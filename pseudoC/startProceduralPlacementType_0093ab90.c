@@ -1,0 +1,77 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: startProceduralPlacementType
+// Entry Point: 0093ab90
+// Size: 384 bytes
+// Signature: undefined __cdecl startProceduralPlacementType(void * param_1, char * param_2, char * * param_3)
+
+
+/* I3DSceneGraphFactory::startProceduralPlacementType(void*, char const*, char const**) */
+
+void I3DSceneGraphFactory::startProceduralPlacementType(void *param_1,char *param_2,char **param_3)
+
+{
+  long lVar1;
+  int iVar2;
+  char *__s;
+  basic_string *pbVar3;
+  size_t __n;
+  void *__dest;
+  ulong uVar4;
+  undefined8 local_60;
+  size_t local_58;
+  void *local_50;
+  long local_48;
+  
+  lVar1 = tpidr_el0;
+  local_48 = *(long *)(lVar1 + 0x28);
+  __s = (char *)ExpatUtil::getAttr("name",param_3);
+  if (__s == (char *)0x0) {
+    if (((LogManager::getInstance()::singletonLogManager & 1) == 0) &&
+       (iVar2 = __cxa_guard_acquire(&LogManager::getInstance()::singletonLogManager), iVar2 != 0)) {
+                    /* try { // try from 0093acd4 to 0093acdf has its CatchHandler @ 0093ad10 */
+      LogManager::LogManager((LogManager *)&LogManager::getInstance()::singletonLogManager);
+      __cxa_atexit(LogManager::~LogManager,&LogManager::getInstance()::singletonLogManager,
+                   &PTR_LOOP_00fd8de0);
+      __cxa_guard_release(&LogManager::getInstance()::singletonLogManager);
+    }
+    LogManager::warnf((char *)&LogManager::getInstance()::singletonLogManager,
+                      "Warning: Missing I3D attribute \'name\' for procedural placement type\n");
+    goto LAB_0093ac94;
+  }
+  std::__ndk1::basic_string<char,std::__ndk1::char_traits<char>,std::__ndk1::allocator<char>>::
+  assign((char *)(*(long *)((long)param_1 + 0x280) + 0x228));
+  pbVar3 = (basic_string *)ProceduralPlacementManager::getInstance();
+  __n = strlen(__s);
+  if (0xffffffffffffffef < __n) {
+                    /* WARNING: Subroutine does not return */
+    std::__ndk1::__basic_string_common<true>::__throw_length_error();
+  }
+  if (__n < 0x17) {
+    __dest = (void *)((ulong)&local_60 | 1);
+    local_60 = CONCAT71(local_60._1_7_,(char)((int)__n << 1));
+    if (__n != 0) goto LAB_0093ac64;
+  }
+  else {
+    uVar4 = __n + 0x10 & 0xfffffffffffffff0;
+    __dest = operator_new(uVar4);
+    local_60 = uVar4 | 1;
+    local_58 = __n;
+    local_50 = __dest;
+LAB_0093ac64:
+    memcpy(__dest,__s,__n);
+  }
+  *(undefined *)((long)__dest + __n) = 0;
+                    /* try { // try from 0093ac78 to 0093ac83 has its CatchHandler @ 0093ad28 */
+  ProceduralPlacementManager::addType(pbVar3);
+  if ((local_60 & 1) != 0) {
+    operator_delete(local_50);
+  }
+LAB_0093ac94:
+  if (*(long *)(lVar1 + 0x28) != local_48) {
+                    /* WARNING: Subroutine does not return */
+    __stack_chk_fail();
+  }
+  return;
+}
+
+

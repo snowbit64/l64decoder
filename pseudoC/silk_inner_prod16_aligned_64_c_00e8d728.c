@@ -1,0 +1,267 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: silk_inner_prod16_aligned_64_c
+// Entry Point: 00e8d728
+// Size: 296 bytes
+// Signature: undefined silk_inner_prod16_aligned_64_c(void)
+
+
+long silk_inner_prod16_aligned_64_c(long param_1,long param_2,uint param_3)
+
+{
+  undefined8 uVar1;
+  undefined8 uVar2;
+  undefined8 uVar3;
+  undefined8 uVar4;
+  undefined auVar5 [16];
+  undefined auVar6 [16];
+  undefined auVar7 [16];
+  undefined auVar8 [16];
+  undefined8 uVar9;
+  undefined8 uVar10;
+  undefined auVar11 [16];
+  undefined auVar12 [16];
+  undefined auVar13 [16];
+  undefined auVar14 [16];
+  long lVar15;
+  undefined8 *puVar16;
+  ulong uVar17;
+  long lVar18;
+  ulong uVar19;
+  undefined8 *puVar20;
+  short *psVar21;
+  ulong uVar22;
+  short *psVar23;
+  long lVar24;
+  long lVar25;
+  long lVar26;
+  long lVar27;
+  long lVar28;
+  long lVar29;
+  long lVar30;
+  long lVar31;
+  long lVar32;
+  long lVar33;
+  long lVar34;
+  long lVar35;
+  long lVar36;
+  long lVar37;
+  int iVar38;
+  int iVar39;
+  int iVar40;
+  int iVar41;
+  int iVar42;
+  int iVar43;
+  int iVar44;
+  int iVar45;
+  int iVar46;
+  int iVar47;
+  int iVar48;
+  int iVar49;
+  int iVar50;
+  int iVar51;
+  int iVar52;
+  int iVar53;
+  int iVar54;
+  int iVar55;
+  int iVar56;
+  int iVar57;
+  int iVar58;
+  int iVar59;
+  int iVar60;
+  int iVar61;
+  int iVar62;
+  int iVar63;
+  undefined auVar64 [16];
+  undefined auVar65 [16];
+  undefined auVar66 [16];
+  undefined auVar67 [16];
+  int iVar68;
+  int iVar69;
+  int iVar70;
+  int iVar71;
+  undefined auVar72 [16];
+  undefined auVar73 [16];
+  undefined auVar74 [16];
+  undefined auVar75 [16];
+  
+  if ((int)param_3 < 1) {
+    return 0;
+  }
+  uVar17 = (ulong)param_3;
+  if (param_3 < 0x10) {
+    uVar19 = 0;
+    lVar15 = 0;
+  }
+  else {
+    uVar19 = uVar17 & 0xfffffff0;
+    puVar16 = (undefined8 *)(param_1 + 0x10);
+    lVar15 = 0;
+    lVar18 = 0;
+    puVar20 = (undefined8 *)(param_2 + 0x10);
+    lVar28 = 0;
+    lVar29 = 0;
+    lVar24 = 0;
+    lVar25 = 0;
+    lVar26 = 0;
+    lVar27 = 0;
+    lVar30 = 0;
+    lVar31 = 0;
+    lVar36 = 0;
+    lVar37 = 0;
+    lVar32 = 0;
+    lVar33 = 0;
+    lVar34 = 0;
+    lVar35 = 0;
+    uVar22 = uVar19;
+    do {
+      uVar2 = puVar16[-1];
+      uVar1 = puVar16[-2];
+      uVar4 = puVar16[1];
+      uVar3 = *puVar16;
+      puVar16 = puVar16 + 4;
+      uVar22 = uVar22 - 0x10;
+      iVar48 = (int)(short)uVar1;
+      iVar49 = (int)(short)((ulong)uVar1 >> 0x10);
+      iVar50 = (int)(short)((ulong)uVar1 >> 0x20);
+      iVar51 = (int)(short)((ulong)uVar1 >> 0x30);
+      iVar38 = (int)(short)uVar2;
+      iVar39 = (int)(short)((ulong)uVar2 >> 0x10);
+      iVar40 = (int)(short)((ulong)uVar2 >> 0x20);
+      iVar41 = (int)(short)((ulong)uVar2 >> 0x30);
+      uVar2 = puVar20[-1];
+      uVar1 = puVar20[-2];
+      uVar10 = puVar20[1];
+      uVar9 = *puVar20;
+      iVar52 = (int)(short)uVar3;
+      iVar53 = (int)(short)((ulong)uVar3 >> 0x10);
+      iVar54 = (int)(short)((ulong)uVar3 >> 0x20);
+      iVar55 = (int)(short)((ulong)uVar3 >> 0x30);
+      puVar20 = puVar20 + 4;
+      iVar42 = (int)(short)uVar4;
+      iVar43 = (int)(short)((ulong)uVar4 >> 0x10);
+      iVar44 = (int)(short)((ulong)uVar4 >> 0x20);
+      iVar45 = (int)(short)((ulong)uVar4 >> 0x30);
+      auVar64._4_4_ = iVar49;
+      auVar64._0_4_ = iVar48;
+      auVar64._8_4_ = iVar50;
+      auVar64._12_4_ = iVar51;
+      auVar75._4_4_ = iVar49;
+      auVar75._0_4_ = iVar48;
+      auVar75._8_4_ = iVar50;
+      auVar75._12_4_ = iVar51;
+      auVar64 = NEON_ext(auVar64,auVar75,8,1);
+      iVar60 = (int)(short)uVar1;
+      iVar61 = (int)(short)((ulong)uVar1 >> 0x10);
+      iVar62 = (int)(short)((ulong)uVar1 >> 0x20);
+      iVar63 = (int)(short)((ulong)uVar1 >> 0x30);
+      iVar50 = (int)(short)uVar2;
+      iVar51 = (int)(short)((ulong)uVar2 >> 0x10);
+      iVar46 = (int)(short)((ulong)uVar2 >> 0x20);
+      iVar47 = (int)(short)((ulong)uVar2 >> 0x30);
+      iVar68 = (int)(short)uVar9;
+      iVar69 = (int)(short)((ulong)uVar9 >> 0x10);
+      iVar70 = (int)(short)((ulong)uVar9 >> 0x20);
+      iVar71 = (int)(short)((ulong)uVar9 >> 0x30);
+      iVar56 = (int)(short)uVar10;
+      iVar57 = (int)(short)((ulong)uVar10 >> 0x10);
+      iVar58 = (int)(short)((ulong)uVar10 >> 0x20);
+      iVar59 = (int)(short)((ulong)uVar10 >> 0x30);
+      auVar65._4_4_ = iVar39;
+      auVar65._0_4_ = iVar38;
+      auVar65._8_4_ = iVar40;
+      auVar65._12_4_ = iVar41;
+      auVar66._4_4_ = iVar39;
+      auVar66._0_4_ = iVar38;
+      auVar66._8_4_ = iVar40;
+      auVar66._12_4_ = iVar41;
+      auVar65 = NEON_ext(auVar65,auVar66,8,1);
+      auVar5._4_4_ = iVar53;
+      auVar5._0_4_ = iVar52;
+      auVar5._8_4_ = iVar54;
+      auVar5._12_4_ = iVar55;
+      auVar6._4_4_ = iVar53;
+      auVar6._0_4_ = iVar52;
+      auVar6._8_4_ = iVar54;
+      auVar6._12_4_ = iVar55;
+      auVar66 = NEON_ext(auVar5,auVar6,8,1);
+      auVar67._4_4_ = iVar43;
+      auVar67._0_4_ = iVar42;
+      auVar67._8_4_ = iVar44;
+      auVar67._12_4_ = iVar45;
+      auVar72._4_4_ = iVar43;
+      auVar72._0_4_ = iVar42;
+      auVar72._8_4_ = iVar44;
+      auVar72._12_4_ = iVar45;
+      auVar67 = NEON_ext(auVar67,auVar72,8,1);
+      auVar11._4_4_ = iVar61;
+      auVar11._0_4_ = iVar60;
+      auVar11._8_4_ = iVar62;
+      auVar11._12_4_ = iVar63;
+      auVar12._4_4_ = iVar61;
+      auVar12._0_4_ = iVar60;
+      auVar12._8_4_ = iVar62;
+      auVar12._12_4_ = iVar63;
+      auVar72 = NEON_ext(auVar11,auVar12,8,1);
+      auVar73._4_4_ = iVar51;
+      auVar73._0_4_ = iVar50;
+      auVar73._8_4_ = iVar46;
+      auVar73._12_4_ = iVar47;
+      auVar74._4_4_ = iVar51;
+      auVar74._0_4_ = iVar50;
+      auVar74._8_4_ = iVar46;
+      auVar74._12_4_ = iVar47;
+      auVar73 = NEON_ext(auVar73,auVar74,8,1);
+      auVar13._4_4_ = iVar69;
+      auVar13._0_4_ = iVar68;
+      auVar13._8_4_ = iVar70;
+      auVar13._12_4_ = iVar71;
+      auVar14._4_4_ = iVar69;
+      auVar14._0_4_ = iVar68;
+      auVar14._8_4_ = iVar70;
+      auVar14._12_4_ = iVar71;
+      auVar74 = NEON_ext(auVar13,auVar14,8,1);
+      auVar7._4_4_ = iVar57;
+      auVar7._0_4_ = iVar56;
+      auVar7._8_4_ = iVar58;
+      auVar7._12_4_ = iVar59;
+      auVar8._4_4_ = iVar57;
+      auVar8._0_4_ = iVar56;
+      auVar8._8_4_ = iVar58;
+      auVar8._12_4_ = iVar59;
+      auVar75 = NEON_ext(auVar7,auVar8,8,1);
+      lVar24 = lVar24 + (long)iVar50 * (long)iVar38;
+      lVar25 = lVar25 + (long)iVar51 * (long)iVar39;
+      lVar26 = lVar26 + (long)auVar73._0_4_ * (long)auVar65._0_4_;
+      lVar27 = lVar27 + (long)auVar73._4_4_ * (long)auVar65._4_4_;
+      lVar15 = lVar15 + (long)iVar60 * (long)iVar48;
+      lVar18 = lVar18 + (long)iVar61 * (long)iVar49;
+      lVar28 = lVar28 + (long)auVar72._0_4_ * (long)auVar64._0_4_;
+      lVar29 = lVar29 + (long)auVar72._4_4_ * (long)auVar64._4_4_;
+      lVar32 = lVar32 + (long)iVar56 * (long)iVar42;
+      lVar33 = lVar33 + (long)iVar57 * (long)iVar43;
+      lVar34 = lVar34 + (long)auVar75._0_4_ * (long)auVar67._0_4_;
+      lVar35 = lVar35 + (long)auVar75._4_4_ * (long)auVar67._4_4_;
+      lVar30 = lVar30 + (long)iVar68 * (long)iVar52;
+      lVar31 = lVar31 + (long)iVar69 * (long)iVar53;
+      lVar36 = lVar36 + (long)auVar74._0_4_ * (long)auVar66._0_4_;
+      lVar37 = lVar37 + (long)auVar74._4_4_ * (long)auVar66._4_4_;
+    } while (uVar22 != 0);
+    lVar15 = lVar30 + lVar15 + lVar32 + lVar24 + lVar36 + lVar28 + lVar34 + lVar26 +
+             lVar31 + lVar18 + lVar33 + lVar25 + lVar37 + lVar29 + lVar35 + lVar27;
+    if (uVar19 == uVar17) {
+      return lVar15;
+    }
+  }
+  lVar18 = uVar17 - uVar19;
+  psVar21 = (short *)(param_2 + uVar19 * 2);
+  psVar23 = (short *)(param_1 + uVar19 * 2);
+  do {
+    lVar18 = lVar18 + -1;
+    lVar15 = lVar15 + (long)*psVar21 * (long)*psVar23;
+    psVar21 = psVar21 + 1;
+    psVar23 = psVar23 + 1;
+  } while (lVar18 != 0);
+  return lVar15;
+}
+
+

@@ -1,0 +1,21 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: Accumulate
+// Entry Point: 00c828a0
+// Size: 48 bytes
+// Signature: undefined __cdecl Accumulate(Integer * param_1, Integer * param_2)
+
+
+/* CryptoPP::AbstractGroup<CryptoPP::Integer>::Accumulate(CryptoPP::Integer&, CryptoPP::Integer
+   const&) const */
+
+void CryptoPP::AbstractGroup<CryptoPP::Integer>::Accumulate(Integer *param_1,Integer *param_2)
+
+{
+  Integer *pIVar1;
+  
+  pIVar1 = (Integer *)(**(code **)(*(long *)param_1 + 0x20))();
+  Integer::operator=(param_2,pIVar1);
+  return;
+}
+
+

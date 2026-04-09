@@ -1,0 +1,25 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: AlgorithmProvider
+// Entry Point: 00bbe7e4
+// Size: 16 bytes
+// Signature: undefined AlgorithmProvider(void)
+
+
+/* WARNING: Unknown calling convention -- yet parameter storage is locked */
+/* CryptoPP::CipherModeFinalTemplate_CipherHolder<CryptoPP::BlockCipherFinal<(CryptoPP::CipherDir)0,
+   CryptoPP::Rijndael::Enc>, CryptoPP::CBC_Encryption>::AlgorithmProvider() const */
+
+void CryptoPP::
+     CipherModeFinalTemplate_CipherHolder<CryptoPP::BlockCipherFinal<(CryptoPP::CipherDir)0,CryptoPP::Rijndael::Enc>,CryptoPP::CBC_Encryption>
+     ::AlgorithmProvider(void)
+
+{
+  long in_x0;
+  
+                    /* WARNING: Could not recover jumptable at 0x00bbe7f0. Too many branches */
+                    /* WARNING: Treating indirect jump as call */
+  (**(code **)(*(long *)(*(long *)(in_x0 + 0x10) + 8) + 0x20))();
+  return;
+}
+
+

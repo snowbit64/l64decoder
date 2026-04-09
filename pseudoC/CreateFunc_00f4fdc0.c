@@ -1,0 +1,16 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: ~CreateFunc
+// Entry Point: 00f4fdc0
+// Size: 4 bytes
+// Signature: undefined __thiscall ~CreateFunc(CreateFunc * this)
+
+
+/* btConvexConvexAlgorithm::CreateFunc::~CreateFunc() */
+
+void __thiscall btConvexConvexAlgorithm::CreateFunc::~CreateFunc(CreateFunc *this)
+
+{
+  return;
+}
+
+

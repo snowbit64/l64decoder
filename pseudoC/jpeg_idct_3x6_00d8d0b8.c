@@ -1,0 +1,154 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: jpeg_idct_3x6
+// Entry Point: 00d8d0b8
+// Size: 1180 bytes
+// Signature: undefined jpeg_idct_3x6(void)
+
+
+void jpeg_idct_3x6(long param_1,long param_2,short *param_3,long *param_4,uint param_5)
+
+{
+  int iVar1;
+  long lVar2;
+  long lVar3;
+  long lVar4;
+  long lVar5;
+  undefined *puVar6;
+  uint uVar7;
+  uint uVar8;
+  ulong uVar9;
+  ulong uVar10;
+  ulong uVar11;
+  int iVar12;
+  short sVar13;
+  short sVar14;
+  short sVar15;
+  short sVar16;
+  int iVar17;
+  int iVar18;
+  int iVar19;
+  int iVar20;
+  int iVar21;
+  int iVar22;
+  ulong uVar23;
+  long lVar24;
+  int iVar25;
+  int iVar26;
+  int iVar27;
+  int iVar28;
+  int *piVar29;
+  int iVar30;
+  int iVar31;
+  int iVar32;
+  long lVar33;
+  long lVar34;
+  int iVar35;
+  int iVar36;
+  int iVar37;
+  long lVar38;
+  long lVar39;
+  long lVar40;
+  long lVar41;
+  long lVar42;
+  long lVar43;
+  long lVar44;
+  
+  piVar29 = *(int **)(param_2 + 0x58);
+  sVar13 = param_3[0x10];
+  iVar21 = piVar29[0x10];
+  sVar14 = param_3[0x20];
+  iVar22 = piVar29[0x20];
+  iVar12 = piVar29[0x22];
+  iVar27 = piVar29[0x22];
+  uVar9 = (long)(*piVar29 * (int)*param_3) << 0xd | 0x400;
+  iVar36 = piVar29[8] * (int)param_3[8];
+  iVar20 = (int)uVar9 + (int)((long)iVar22 * (long)sVar14) * 0x16a1;
+  lVar24 = (long)piVar29[10] * (long)param_3[9];
+  iVar25 = piVar29[0x28] * (int)param_3[0x28];
+  sVar15 = param_3[0x21];
+  sVar16 = param_3[0x22];
+  iVar17 = piVar29[0x18] * (int)param_3[0x18];
+  lVar38 = (long)piVar29[0x19] * (long)param_3[0x19];
+  iVar26 = (iVar25 + iVar36) * 0xbb6;
+  uVar10 = (long)(piVar29[1] * (int)param_3[1]) << 0xd | 0x400;
+  lVar39 = (long)piVar29[0x2a] * (long)param_3[0x29];
+  lVar34 = (long)piVar29[10] * (long)param_3[10];
+  lVar40 = (long)piVar29[0x2a] * (long)param_3[0x2a];
+  lVar42 = (lVar39 + lVar24) * 0xbb6;
+  lVar41 = (lVar40 + lVar34) * 0xbb6;
+  lVar43 = (long)piVar29[0x1a] * (long)param_3[0x1a];
+  lVar44 = uVar10 + (long)iVar12 * (long)sVar15 * 0x16a1;
+  uVar11 = (long)(piVar29[2] * (int)param_3[2]) << 0xd | 0x400;
+  iVar1 = iVar26 + (iVar17 + iVar36) * 0x2000;
+  lVar2 = lVar42 + (lVar38 + lVar24) * 0x2000;
+  lVar3 = (long)piVar29[0x12] * (long)param_3[0x11] * 0x2731 + lVar44;
+  lVar33 = uVar11 + (long)iVar27 * (long)sVar16 * 0x16a1;
+  iVar30 = iVar21 * sVar13 * 0x2731 + iVar20;
+  lVar4 = lVar41 + (lVar43 + lVar34) * 0x2000;
+  iVar28 = (int)((ulong)(lVar2 + lVar3) >> 0xb);
+  lVar5 = (long)piVar29[0x12] * (long)param_3[0x12] * 0x2731 + lVar33;
+  lVar44 = lVar44 + (long)piVar29[0x12] * (long)param_3[0x11] * -0x2731;
+  lVar33 = lVar33 + (long)piVar29[0x12] * (long)param_3[0x12] * -0x2731;
+  uVar23 = (ulong)param_5;
+  uVar7 = (iVar1 + iVar30) * 4 + 0x8020000U & 0xffffe000;
+  iVar31 = (int)((ulong)(lVar4 + lVar5) >> 0xb);
+  iVar37 = uVar7 + iVar31 * 0x16a1;
+  iVar18 = (int)lVar24 - ((int)lVar38 + (int)lVar39);
+  iVar36 = iVar36 - (iVar17 + iVar25);
+  lVar24 = *(long *)(param_1 + 0x198) + -0x180;
+  iVar19 = (int)lVar34 - ((int)lVar43 + (int)lVar40);
+  puVar6 = (undefined *)(*param_4 + uVar23);
+  lVar42 = lVar42 + (lVar39 - lVar38) * 0x2000;
+  *puVar6 = *(undefined *)(lVar24 + ((ulong)((uint)(iVar37 + iVar28 * 0x2731) >> 0x12) & 0x3ff));
+  iVar35 = (int)(uVar10 + (long)iVar12 * (long)sVar15 * -0x2d42 >> 0xb);
+  iVar12 = iVar18 * 4 + iVar35;
+  puVar6[2] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar37 + iVar28 * -0x2731) >> 0x12) & 0x3ff));
+  iVar32 = (int)(uVar9 + (long)iVar22 * (long)sVar14 * -0x2d42 >> 0xb);
+  iVar28 = (int)(uVar11 + (long)iVar27 * (long)sVar16 * -0x2d42 >> 0xb);
+  iVar22 = iVar19 * 4 + iVar28;
+  iVar27 = (iVar36 * 4 + iVar32) * 0x2000 + 0x8020000;
+  iVar37 = iVar27 + iVar22 * 0x16a1;
+  iVar35 = iVar35 + iVar18 * -4;
+  iVar28 = iVar28 + iVar19 * -4;
+  puVar6[1] = *(undefined *)(lVar24 + ((ulong)(uVar7 + iVar31 * -0x2d42 >> 0x12) & 0x3ff));
+  puVar6 = (undefined *)(param_4[1] + uVar23);
+  iVar20 = iVar20 + iVar21 * sVar13 * -0x2731;
+  *puVar6 = *(undefined *)(lVar24 + ((ulong)((uint)(iVar37 + iVar12 * 0x2731) >> 0x12) & 0x3ff));
+  iVar26 = iVar26 + (iVar25 - iVar17) * 0x2000;
+  lVar41 = lVar41 + (lVar40 - lVar43) * 0x2000;
+  puVar6[2] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar37 + iVar12 * -0x2731) >> 0x12) & 0x3ff));
+  uVar7 = (iVar26 + iVar20) * 4 + 0x8020000U & 0xffffe000;
+  iVar37 = (int)((ulong)(lVar42 + lVar44) >> 0xb);
+  iVar21 = (int)((ulong)(lVar41 + lVar33) >> 0xb);
+  iVar12 = uVar7 + iVar21 * 0x16a1;
+  puVar6[1] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar27 + iVar22 * -0x2d42) >> 0x12) & 0x3ff));
+  puVar6 = (undefined *)(param_4[2] + uVar23);
+  *puVar6 = *(undefined *)(lVar24 + ((ulong)((uint)(iVar12 + iVar37 * 0x2731) >> 0x12) & 0x3ff));
+  uVar8 = (iVar20 - iVar26) * 4 + 0x8020000U & 0xffffe000;
+  iVar22 = (int)((ulong)(lVar44 - lVar42) >> 0xb);
+  puVar6[2] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar12 + iVar37 * -0x2731) >> 0x12) & 0x3ff));
+  iVar27 = (int)((ulong)(lVar33 - lVar41) >> 0xb);
+  iVar12 = uVar8 + iVar27 * 0x16a1;
+  puVar6[1] = *(undefined *)(lVar24 + ((ulong)(uVar7 + iVar21 * -0x2d42 >> 0x12) & 0x3ff));
+  puVar6 = (undefined *)(param_4[3] + uVar23);
+  *puVar6 = *(undefined *)(lVar24 + ((ulong)((uint)(iVar12 + iVar22 * 0x2731) >> 0x12) & 0x3ff));
+  puVar6[2] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar12 + iVar22 * -0x2731) >> 0x12) & 0x3ff));
+  iVar12 = (iVar32 + iVar36 * -4) * 0x2000 + 0x8020000;
+  iVar22 = iVar12 + iVar28 * 0x16a1;
+  puVar6[1] = *(undefined *)(lVar24 + ((ulong)(uVar8 + iVar27 * -0x2d42 >> 0x12) & 0x3ff));
+  puVar6 = (undefined *)(param_4[4] + uVar23);
+  *puVar6 = *(undefined *)(lVar24 + ((ulong)((uint)(iVar22 + iVar35 * 0x2731) >> 0x12) & 0x3ff));
+  puVar6[2] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar22 + iVar35 * -0x2731) >> 0x12) & 0x3ff));
+  iVar22 = (int)((ulong)(lVar3 - lVar2) >> 0xb);
+  uVar7 = (iVar30 - iVar1) * 4 + 0x8020000U & 0xffffe000;
+  puVar6[1] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar12 + iVar28 * -0x2d42) >> 0x12) & 0x3ff));
+  iVar30 = (int)((ulong)(lVar5 - lVar4) >> 0xb);
+  iVar1 = uVar7 + iVar30 * 0x16a1;
+  puVar6 = (undefined *)(param_4[5] + uVar23);
+  *puVar6 = *(undefined *)(lVar24 + ((ulong)((uint)(iVar1 + iVar22 * 0x2731) >> 0x12) & 0x3ff));
+  puVar6[2] = *(undefined *)(lVar24 + ((ulong)((uint)(iVar1 + iVar22 * -0x2731) >> 0x12) & 0x3ff));
+  puVar6[1] = *(undefined *)(lVar24 + ((ulong)(uVar7 + iVar30 * -0x2d42 >> 0x12) & 0x3ff));
+  return;
+}
+
+

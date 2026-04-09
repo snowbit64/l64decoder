@@ -1,0 +1,18 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: ~BERSequenceDecoder
+// Entry Point: 00cb31d8
+// Size: 40 bytes
+// Signature: undefined __thiscall ~BERSequenceDecoder(BERSequenceDecoder * this)
+
+
+/* non-virtual thunk to CryptoPP::BERSequenceDecoder::~BERSequenceDecoder() */
+
+void __thiscall CryptoPP::BERSequenceDecoder::~BERSequenceDecoder(BERSequenceDecoder *this)
+
+{
+  BERGeneralDecoder::~BERGeneralDecoder((BERGeneralDecoder *)(this + -8));
+  operator_delete((BERGeneralDecoder *)(this + -8));
+  return;
+}
+
+

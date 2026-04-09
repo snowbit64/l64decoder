@@ -1,0 +1,276 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: drawCone
+// Entry Point: 009aef48
+// Size: 1660 bytes
+// Signature: undefined __cdecl drawCone(float param_1, float param_2, int param_3, btTransform * param_4, btVector3 * param_5)
+
+
+/* btIDebugDraw::drawCone(float, float, int, btTransform const&, btVector3 const&) */
+
+void btIDebugDraw::drawCone
+               (float param_1,float param_2,int param_3,btTransform *param_4,btVector3 *param_5)
+
+{
+  int iVar1;
+  int iVar2;
+  long lVar3;
+  long *plVar4;
+  int iVar5;
+  long lVar6;
+  ulong uVar7;
+  uint uVar8;
+  float fVar9;
+  float fVar10;
+  undefined4 uVar11;
+  float fVar12;
+  float fVar13;
+  float fVar14;
+  float fVar15;
+  undefined4 uVar16;
+  float fVar17;
+  float fVar18;
+  float fVar19;
+  float fVar20;
+  undefined4 uVar21;
+  float fVar22;
+  float fVar23;
+  float fVar24;
+  float fVar25;
+  undefined4 uVar26;
+  undefined4 uVar27;
+  float fVar28;
+  undefined4 uVar29;
+  undefined4 uVar30;
+  undefined4 uVar31;
+  undefined4 uVar32;
+  undefined4 uVar33;
+  float local_148;
+  float fStack_144;
+  undefined4 local_140;
+  undefined4 uStack_13c;
+  undefined4 local_138;
+  undefined4 local_134;
+  undefined4 local_130;
+  undefined4 uStack_12c;
+  undefined4 local_128;
+  undefined4 local_124;
+  float local_120;
+  float fStack_11c;
+  float local_118;
+  undefined4 local_114;
+  undefined8 local_110;
+  ulong local_108;
+  undefined8 local_100;
+  ulong local_f8;
+  undefined8 local_f0;
+  undefined8 local_e8;
+  undefined8 local_e0;
+  undefined8 local_d8;
+  undefined8 local_d0;
+  undefined8 local_c8;
+  undefined8 local_c0;
+  undefined8 local_b8;
+  long local_b0;
+  
+  plVar4 = (long *)(ulong)(uint)param_3;
+  lVar3 = tpidr_el0;
+  local_b0 = *(long *)(lVar3 + 0x28);
+  iVar5 = (int)param_4;
+  uVar7 = -((ulong)param_4 >> 0x1f & 1) & 0xfffffffc00000000 | ((ulong)param_4 & 0xffffffff) << 2;
+  local_c0 = 0;
+  local_b8 = 0;
+  *(float *)((long)&local_c0 + uVar7) = param_2 * 0.5;
+  iVar1 = (iVar5 + 1) % 3;
+  fVar24 = *(float *)(param_5 + 0x30);
+  fVar23 = *(float *)(param_5 + 0x34);
+  iVar2 = (iVar5 + 2) % 3;
+  fVar9 = (float)local_c0;
+  fVar10 = local_c0._4_4_;
+  fVar25 = *(float *)(param_5 + 0x38);
+  uVar8 = 0xffffffe2;
+  fVar15 = (float)local_b8;
+  local_d0 = 0;
+  local_c8 = 0;
+  *(float *)((long)&local_d0 + (long)iVar1 * 4) = param_1;
+  local_f0 = 0;
+  local_e8 = 0;
+  *(float *)((long)&local_f0 + uVar7) = -(param_2 * 0.5);
+  local_e0 = 0;
+  local_d8 = 0;
+  *(float *)((long)&local_e0 + (long)iVar2 * 4) = param_1;
+  do {
+    uVar8 = uVar8 + 0x1e;
+    sincosf((float)uVar8 * 0.01745329,&fStack_144,&local_148);
+    uVar11 = *(undefined4 *)param_5;
+    fVar13 = *(float *)(param_5 + 4);
+    uVar16 = *(undefined4 *)(param_5 + 0x10);
+    fVar18 = *(float *)(param_5 + 0x14);
+    uVar32 = *(undefined4 *)(param_5 + 8);
+    lVar6 = *plVar4;
+    *(float *)((long)&local_f0 + (long)iVar1 * 4) = fStack_144 * param_1;
+    *(float *)((long)&local_f0 + (long)iVar2 * 4) = local_148 * param_1;
+    uVar21 = NEON_fmadd(uVar11,fVar9,fVar13 * fVar10);
+    uVar27 = NEON_fmadd(uVar16,fVar9,fVar10 * fVar18);
+    fVar22 = (float)NEON_fmadd(uVar32,fVar15,uVar21);
+    uVar30 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar9,fVar10 * *(float *)(param_5 + 0x24));
+    uVar21 = NEON_fmadd(uVar11,(undefined4)local_f0,fVar13 * local_f0._4_4_);
+    uVar16 = NEON_fmadd(uVar16,(undefined4)local_f0,fVar18 * local_f0._4_4_);
+    uVar11 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),(undefined4)local_f0,
+                        *(float *)(param_5 + 0x24) * local_f0._4_4_);
+    fVar28 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar15,uVar27);
+    fVar19 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar15,uVar30);
+    fVar12 = (float)NEON_fmadd(uVar32,(undefined4)local_e8,uVar21);
+    fVar18 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),(undefined4)local_e8,uVar16);
+    fVar13 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),(undefined4)local_e8,uVar11);
+    local_100 = CONCAT44(fVar23 + fVar28,fVar24 + fVar22);
+    local_f8 = (ulong)(uint)(fVar25 + fVar19);
+    local_110 = CONCAT44(fVar23 + fVar18,fVar24 + fVar12);
+    local_108 = (ulong)(uint)(fVar25 + fVar13);
+    (**(code **)(lVar6 + 0x20))(plVar4,&local_100,&local_110);
+  } while (uVar8 < 0x14a);
+  fVar13 = (float)local_d0;
+  fVar18 = local_d0._4_4_;
+  fVar19 = local_d0._4_4_ - fVar10;
+  fVar28 = (float)local_d0 - fVar9;
+  fVar12 = (float)local_c8;
+  uVar16 = NEON_fmadd(*(undefined4 *)param_5,fVar9,*(float *)(param_5 + 4) * fVar10);
+  uVar27 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),fVar9,fVar10 * *(float *)(param_5 + 0x14));
+  uVar32 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar9,fVar10 * *(float *)(param_5 + 0x24));
+  uVar11 = NEON_fmadd(*(undefined4 *)param_5,fVar28,*(float *)(param_5 + 4) * fVar19);
+  fVar22 = (float)local_c8 - fVar15;
+  uVar21 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),fVar28,*(float *)(param_5 + 0x14) * fVar19);
+  uVar30 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar28,*(float *)(param_5 + 0x24) * fVar19);
+  fVar14 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),fVar15,uVar16);
+  fVar17 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar15,uVar27);
+  fVar20 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar15,uVar32);
+  fVar19 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),fVar22,uVar11);
+  fVar28 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar22,uVar21);
+  fVar22 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar22,uVar30);
+  local_100 = CONCAT44(fVar23 + fVar17,fVar24 + fVar14);
+  local_f8 = (ulong)(uint)(fVar25 + fVar20);
+  local_110 = CONCAT44(fVar23 + fVar28,fVar24 + fVar19);
+  local_108 = (ulong)(uint)(fVar25 + fVar22);
+  (**(code **)(*plVar4 + 0x20))(plVar4,&local_100,&local_110);
+  fVar18 = -fVar10 - fVar18;
+  fVar13 = -fVar9 - fVar13;
+  uVar27 = NEON_fmadd(*(undefined4 *)param_5,fVar9,*(float *)(param_5 + 4) * fVar10);
+  uVar30 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),fVar9,fVar10 * *(float *)(param_5 + 0x14));
+  uVar32 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar9,fVar10 * *(float *)(param_5 + 0x24));
+  fVar12 = -fVar15 - fVar12;
+  uVar11 = NEON_fmadd(*(undefined4 *)param_5,fVar13,*(float *)(param_5 + 4) * fVar18);
+  uVar16 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),fVar13,fVar18 * *(float *)(param_5 + 0x14));
+  uVar21 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar13,fVar18 * *(float *)(param_5 + 0x24));
+  fVar13 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),fVar15,uVar27);
+  fVar18 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar15,uVar30);
+  fVar9 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),fVar12,uVar11);
+  fVar19 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar15,uVar32);
+  fVar15 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar12,uVar16);
+  fVar10 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar12,uVar21);
+  local_100 = CONCAT44(fVar23 + fVar18,fVar24 + fVar13);
+  local_f8 = (ulong)(uint)(fVar25 + fVar19);
+  local_110 = CONCAT44(fVar23 + fVar15,fVar24 + fVar9);
+  local_108 = (ulong)(uint)(fVar25 + fVar10);
+  (**(code **)(*plVar4 + 0x20))(plVar4,&local_100,&local_110);
+  fVar13 = (float)local_c0;
+  fVar18 = local_c0._4_4_;
+  fVar9 = (float)local_e0;
+  fVar10 = local_e0._4_4_;
+  fVar19 = local_e0._4_4_ - local_c0._4_4_;
+  fVar28 = (float)local_e0 - (float)local_c0;
+  fVar12 = (float)local_b8;
+  fVar15 = (float)local_d8;
+  uVar27 = NEON_fmadd(*(undefined4 *)param_5,(float)local_c0,
+                      *(float *)(param_5 + 4) * local_c0._4_4_);
+  uVar30 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),(float)local_c0,
+                      local_c0._4_4_ * *(float *)(param_5 + 0x14));
+  uVar32 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),(float)local_c0,
+                      local_c0._4_4_ * *(float *)(param_5 + 0x24));
+  uVar11 = NEON_fmadd(*(undefined4 *)param_5,fVar28,*(float *)(param_5 + 4) * fVar19);
+  fVar22 = (float)local_d8 - (float)local_b8;
+  uVar21 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),fVar28,*(float *)(param_5 + 0x14) * fVar19);
+  uVar16 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar28,*(float *)(param_5 + 0x24) * fVar19);
+  fVar14 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),(float)local_b8,uVar27);
+  fVar17 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),(float)local_b8,uVar30);
+  fVar19 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),fVar22,uVar11);
+  fVar20 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),(float)local_b8,uVar32);
+  fVar28 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar22,uVar21);
+  fVar22 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar22,uVar16);
+  local_100 = CONCAT44(fVar23 + fVar17,fVar24 + fVar14);
+  local_f8 = (ulong)(uint)(fVar25 + fVar20);
+  local_110 = CONCAT44(fVar23 + fVar28,fVar24 + fVar19);
+  local_108 = (ulong)(uint)(fVar25 + fVar22);
+  (**(code **)(*plVar4 + 0x20))(plVar4,&local_100,&local_110);
+  fVar10 = -fVar18 - fVar10;
+  fVar9 = -fVar13 - fVar9;
+  uVar27 = NEON_fmadd(*(undefined4 *)param_5,fVar13,*(float *)(param_5 + 4) * fVar18);
+  uVar30 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),fVar13,fVar18 * *(float *)(param_5 + 0x14));
+  uVar32 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar13,fVar18 * *(float *)(param_5 + 0x24));
+  fVar15 = -fVar12 - fVar15;
+  uVar11 = NEON_fmadd(*(undefined4 *)param_5,fVar9,*(float *)(param_5 + 4) * fVar10);
+  uVar16 = NEON_fmadd(*(undefined4 *)(param_5 + 0x10),fVar9,fVar10 * *(float *)(param_5 + 0x14));
+  uVar21 = NEON_fmadd(*(undefined4 *)(param_5 + 0x20),fVar9,fVar10 * *(float *)(param_5 + 0x24));
+  fVar13 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),fVar12,uVar27);
+  fVar19 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar12,uVar30);
+  fVar9 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 8),fVar15,uVar11);
+  fVar12 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar12,uVar32);
+  fVar18 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x18),fVar15,uVar16);
+  fVar10 = (float)NEON_fmadd(*(undefined4 *)(param_5 + 0x28),fVar15,uVar21);
+  local_100 = CONCAT44(fVar23 + fVar19,fVar24 + fVar13);
+  local_f8 = (ulong)(uint)(fVar25 + fVar12);
+  local_110 = CONCAT44(fVar23 + fVar18,fVar24 + fVar9);
+  local_108 = (ulong)(uint)(fVar25 + fVar10);
+  (**(code **)(*plVar4 + 0x20))(plVar4,&local_100,&local_110);
+  uVar16 = *(undefined4 *)param_5;
+  fVar10 = *(float *)(param_5 + 4);
+  uVar11 = (float)local_c0;
+  fVar9 = local_c0._4_4_;
+  uVar30 = *(undefined4 *)(param_5 + 0x10);
+  fVar15 = *(float *)(param_5 + 0x14);
+  uVar26 = *(undefined4 *)(param_5 + 0x20);
+  fVar18 = *(float *)(param_5 + 0x24);
+  uVar21 = (float)local_b8;
+  fVar13 = fVar10 * local_c0._4_4_;
+  local_100 = 0;
+  local_f8 = 0;
+  fVar12 = local_c0._4_4_ * fVar15;
+  *(undefined4 *)((long)&local_100 + (long)iVar5 * 4) = 0x3f800000;
+  local_110 = 0;
+  local_108 = 0;
+  *(undefined4 *)((long)&local_110 + (long)iVar1 * 4) = 0x3f800000;
+  uVar31 = *(undefined4 *)(param_5 + 8);
+  uVar32 = NEON_fmadd(uVar16,uVar11,fVar13);
+  uVar33 = *(undefined4 *)(param_5 + 0x18);
+  uVar29 = NEON_fmadd(uVar30,uVar11,fVar12);
+  uVar11 = NEON_fmadd(uVar26,uVar11,fVar9 * fVar18);
+  uVar27 = *(undefined4 *)(param_5 + 0x28);
+  local_120 = (float)NEON_fmadd(uVar31,uVar21,uVar32);
+  fStack_11c = (float)NEON_fmadd(uVar33,uVar21,uVar29);
+  local_118 = (float)NEON_fmadd(uVar27,uVar21,uVar11);
+  local_120 = fVar24 - local_120;
+  local_118 = fVar25 - local_118;
+  fStack_11c = fVar23 - fStack_11c;
+  uVar32 = NEON_fmadd(uVar16,(undefined4)local_100,fVar10 * local_100._4_4_);
+  uVar29 = NEON_fmadd(uVar30,(undefined4)local_100,fVar15 * local_100._4_4_);
+  uVar11 = NEON_fmadd(uVar16,(undefined4)local_110,fVar10 * local_110._4_4_);
+  uVar21 = NEON_fmadd(uVar30,(undefined4)local_110,fVar15 * local_110._4_4_);
+  uVar16 = NEON_fmadd(uVar26,(undefined4)local_100,fVar18 * local_100._4_4_);
+  local_140 = NEON_fmadd(uVar31,(undefined4)local_108,uVar11);
+  uStack_13c = NEON_fmadd(uVar33,(undefined4)local_108,uVar21);
+  uVar11 = NEON_fmadd(uVar26,(undefined4)local_110,fVar18 * local_110._4_4_);
+  local_130 = NEON_fmadd(uVar31,(undefined4)local_f8,uVar32);
+  uStack_12c = NEON_fmadd(uVar33,(undefined4)local_f8,uVar29);
+  local_128 = NEON_fmadd(uVar27,(undefined4)local_f8,uVar16);
+  local_138 = NEON_fmadd(uVar27,(undefined4)local_108,uVar11);
+  local_114 = 0;
+  local_124 = 0;
+  local_134 = 0;
+  (**(code **)(*plVar4 + 0x88))
+            (param_1,param_1,0,0x40c90fdb,0x41200000,plVar4,&local_120,&local_130,&local_140);
+  if (*(long *)(lVar3 + 0x28) == local_b0) {
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  __stack_chk_fail();
+}
+
+

@@ -1,0 +1,40 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: removeEffect
+// Entry Point: 00a4f1d8
+// Size: 140 bytes
+// Signature: undefined __thiscall removeEffect(AudioSourceSample * this, uint param_1)
+
+
+/* AudioSourceSample::removeEffect(unsigned int) */
+
+void __thiscall AudioSourceSample::removeEffect(AudioSourceSample *this,uint param_1)
+
+{
+  AudioSourceSample *pAVar1;
+  long *plVar2;
+  uint uVar3;
+  long lVar4;
+  ulong uVar5;
+  
+  uVar3 = *(uint *)(this + 0xb0);
+  if (uVar3 != 0) {
+    lVar4 = 0;
+    uVar5 = 0;
+    do {
+      pAVar1 = this + 0xb4;
+      if (1 < uVar3) {
+        pAVar1 = *(AudioSourceSample **)(this + 0xf0);
+      }
+      plVar2 = *(long **)(pAVar1 + lVar4 + 0x30);
+      if (plVar2 != (long *)0x0) {
+        (**(code **)(*plVar2 + 0x90))(plVar2,param_1);
+        uVar3 = *(uint *)(this + 0xb0);
+      }
+      uVar5 = uVar5 + 1;
+      lVar4 = lVar4 + 0x38;
+    } while (uVar5 < uVar3);
+  }
+  return;
+}
+
+

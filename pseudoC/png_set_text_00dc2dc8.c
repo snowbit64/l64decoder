@@ -1,0 +1,21 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: png_set_text
+// Entry Point: 00dc2dc8
+// Size: 52 bytes
+// Signature: undefined png_set_text(void)
+
+
+void png_set_text(undefined8 param_1)
+
+{
+  int iVar1;
+  
+  iVar1 = png_set_text_2();
+  if (iVar1 == 0) {
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  png_error(param_1,"Insufficient memory to store text");
+}
+
+

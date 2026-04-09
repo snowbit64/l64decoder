@@ -1,0 +1,84 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: _INIT_26
+// Entry Point: 00989ce4
+// Size: 308 bytes
+// Signature: undefined _INIT_26(void)
+
+
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void _INIT_26(void)
+
+{
+  Mutex::Mutex((Mutex *)&DAT_021101d0,true);
+  _DAT_02110240 = 0;
+  _DAT_02110238 = &DAT_02110240;
+  _DAT_02110260 = 0;
+  _DAT_02110258 = &DAT_02110260;
+  _DAT_02110278 = 0;
+  _DAT_02110268 = 0;
+  _DAT_02110270 = &DAT_02110278;
+  uRam0000000002110298 = 0;
+  _DAT_02110290 = 0;
+  uRam00000000021102a8 = 0;
+  _DAT_021102a0 = 0;
+  _DAT_021102b0 = 0x3f800000;
+  _DAT_021102b8 = &DAT_021102c0;
+  _DAT_021102c0 = 0;
+  DAT_021101f8 = 0;
+  DAT_02110200 = 0;
+  _DAT_021102c8 = 0;
+  _DAT_021102d0 = &DAT_021102d8;
+  _DAT_02110208 = 0;
+  _DAT_02110228 = 0;
+  _DAT_02110230 = 0;
+  _DAT_02110248 = 0;
+  _DAT_02110280 = 0;
+  uRam00000000021101a8 = 0x3c23d70a3c03126f;
+  _DAT_021101a0 = 0x3b03126f3da3d70a;
+  _DAT_021102d8 = 0;
+  _DAT_021102e0 = 0;
+  uRam00000000021102f0 = 0;
+  _DAT_021102e8 = 0;
+  uRam0000000002110300 = 0;
+  _DAT_021102f8 = 0;
+  uRam00000000021101c8 = 0x4220000043340000;
+  _DAT_021101c0 = 0x3f00000041200000;
+  uRam0000000002110310 = 0;
+  _DAT_02110308 = 0;
+  uRam0000000002110320 = 0;
+  _DAT_02110318 = 0;
+  MeshSplitManager::s_singletonMeshSplitManager = 0x60000000000190;
+  uRam0000000002110330 = 0;
+  _DAT_02110328 = 0;
+  uRam0000000002110340 = 0;
+  _DAT_02110338 = 0;
+  uRam0000000002110350 = 0;
+  _DAT_02110348 = 0;
+  uRam0000000002110360 = 0;
+  _DAT_02110358 = 0;
+  DAT_021101b0 = 0;
+  DAT_021101b8 = 0xffffffff;
+  _DAT_02110210 = 0;
+  DAT_02110288 = 0;
+  DAT_02110250 = 0;
+  uRam0000000002110394 = 0x4348000044d48000;
+  _DAT_0211038c = 0x434800003ba3d70a;
+  DAT_0211039c = 0x13;
+  DAT_021101bc = 0;
+  DAT_02110388 = 0x14;
+  uRam0000000002110370 = 0;
+  _DAT_02110368 = 0;
+  uRam0000000002110380 = 0x4500000045800000;
+  _DAT_02110378 = 0x434800003ba3d70a;
+  DAT_02110218 = 0;
+  DAT_02110220 = 0;
+  uRam00000000021103a8 = 0x4500000045800000;
+  _DAT_021103a0 = 0x434800003ba3d70a;
+  DAT_021103b0 = 0x14;
+  __cxa_atexit(MeshSplitManager::~MeshSplitManager,&MeshSplitManager::s_singletonMeshSplitManager,
+               &PTR_LOOP_00fd8de0);
+  return;
+}
+
+

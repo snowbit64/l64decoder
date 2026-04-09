@@ -1,0 +1,22 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: ~ASN1CryptoMaterial
+// Entry Point: 00cb10fc
+// Size: 4 bytes
+// Signature: undefined __thiscall ~ASN1CryptoMaterial(ASN1CryptoMaterial<CryptoPP::PrivateKey> * this)
+
+
+/* CryptoPP::ASN1CryptoMaterial<CryptoPP::PrivateKey>::~ASN1CryptoMaterial() */
+
+void __thiscall
+CryptoPP::ASN1CryptoMaterial<CryptoPP::PrivateKey>::~ASN1CryptoMaterial
+          (ASN1CryptoMaterial<CryptoPP::PrivateKey> *this)
+
+{
+  code *pcVar1;
+  
+                    /* WARNING: Does not return */
+  pcVar1 = (code *)SoftwareBreakpoint(1,0xcb1100);
+  (*pcVar1)();
+}
+
+

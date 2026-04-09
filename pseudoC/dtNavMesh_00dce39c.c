@@ -1,0 +1,40 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: ~dtNavMesh
+// Entry Point: 00dce39c
+// Size: 136 bytes
+// Signature: undefined __thiscall ~dtNavMesh(dtNavMesh * this)
+
+
+/* dtNavMesh::~dtNavMesh() */
+
+void __thiscall dtNavMesh::~dtNavMesh(dtNavMesh *this)
+
+{
+  long lVar1;
+  int iVar2;
+  long lVar3;
+  long lVar4;
+  
+  iVar2 = *(int *)(this + 0x30);
+  if (0 < iVar2) {
+    lVar3 = 0;
+    lVar4 = 0;
+    lVar1 = *(long *)(this + 0x50);
+    do {
+      if ((*(byte *)(lVar1 + lVar3 + 0x5c) & 1) != 0) {
+        dtFree(*(void **)(lVar1 + lVar3 + 0x50));
+        lVar1 = *(long *)(this + 0x50);
+        iVar2 = *(int *)(this + 0x30);
+        *(undefined8 *)(lVar1 + lVar3 + 0x50) = 0;
+        *(undefined4 *)(lVar1 + lVar3 + 0x58) = 0;
+      }
+      lVar4 = lVar4 + 1;
+      lVar3 = lVar3 + 0x68;
+    } while (lVar4 < iVar2);
+  }
+  dtFree(*(void **)(this + 0x40));
+  dtFree(*(void **)(this + 0x50));
+  return;
+}
+
+

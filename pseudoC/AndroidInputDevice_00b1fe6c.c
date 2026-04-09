@@ -1,0 +1,241 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: AndroidInputDevice
+// Entry Point: 00b1fe6c
+// Size: 760 bytes
+// Signature: undefined __thiscall AndroidInputDevice(AndroidInputDevice * this, uint param_1, float param_2)
+
+
+/* AndroidInputDevice::AndroidInputDevice(unsigned int, float) */
+
+void __thiscall
+AndroidInputDevice::AndroidInputDevice(AndroidInputDevice *this,uint param_1,float param_2)
+
+{
+  uint uVar1;
+  undefined8 uVar2;
+  undefined8 uVar3;
+  long lVar4;
+  undefined4 uVar5;
+  uint uVar6;
+  AndroidJNICall *this_00;
+  undefined8 uVar7;
+  
+  *(undefined8 *)(this + 0x10) = 0;
+  *(undefined8 *)(this + 0x18) = 0;
+  *(undefined ***)this = &PTR_touchBegan_00fe8040;
+  *(undefined8 *)(this + 8) = 0;
+                    /* try { // try from 00b1fea8 to 00b1feaf has its CatchHandler @ 00b20174 */
+  StopWatch::StopWatch((StopWatch *)(this + 0x13d8));
+  *(undefined8 *)(this + 0x1598) = 0;
+  *(undefined8 *)(this + 0x1590) = 0;
+  *(undefined8 *)(this + 0x1588) = 0;
+  *(undefined8 *)(this + 0x1580) = 0;
+  *(undefined8 *)(this + 0x1578) = 0;
+  *(undefined8 *)(this + 0x1570) = 0;
+  m_pInputDevice = this;
+  *(undefined1 **)(this + 0x1448) = m_axisLabelsGeneric;
+  *(undefined1 **)(this + 0x13f0) = m_buttonLabelsGeneric;
+                    /* try { // try from 00b1feec to 00b1fef3 has its CatchHandler @ 00b2017c */
+  this_00 = (AndroidJNICall *)operator_new(0x78);
+                    /* try { // try from 00b1fef8 to 00b1feff has its CatchHandler @ 00b20164 */
+  AndroidJNICall::AndroidJNICall(this_00,0);
+  *(AndroidJNICall **)(this + 0x30) = this_00;
+                    /* try { // try from 00b1ff14 to 00b200ab has its CatchHandler @ 00b2017c */
+  uVar5 = ANativeWindow_getWidth(*(undefined8 *)(AndroidSysUtil::s_pApp + 0x48));
+  lVar4 = AndroidSysUtil::s_pApp;
+  *(undefined4 *)(this + 0x38) = uVar5;
+  uVar6 = ANativeWindow_getHeight(*(undefined8 *)(lVar4 + 0x48));
+  uVar1 = *(uint *)(this + 0x38);
+  *(uint *)(this + 0x3c) = uVar6;
+  if (uVar1 < uVar6) {
+    *(uint *)(this + 0x38) = uVar6;
+    *(uint *)(this + 0x3c) = uVar1;
+  }
+  this[0x13c5] = (AndroidInputDevice)0x0;
+  *(undefined4 *)(this + 0x13d0) = 0;
+  *(undefined8 *)(this + 0x13c8) = 0;
+  StopWatch::start();
+  *(undefined4 *)(this + 0x15a0) = 0;
+  *(undefined8 *)(this + 0x13bc) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x13b4) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1400) = 0;
+  *(undefined8 *)(this + 0x13f8) = 0;
+  *(undefined8 *)(this + 0x1410) = 0;
+  *(undefined8 *)(this + 0x1408) = 0;
+  *(undefined8 *)(this + 0x1420) = 0;
+  *(undefined8 *)(this + 0x1418) = 0;
+  *(undefined8 *)(this + 0x1430) = 0;
+  *(undefined8 *)(this + 0x1428) = 0;
+  *(undefined8 *)(this + 0x1440) = 0;
+  *(undefined8 *)(this + 0x1438) = 0;
+  *(undefined8 *)(this + 0x12ce) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12c6) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12de) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12d6) = 0xffffffffffffffff;
+  *(undefined4 *)(this + 0x12c6) = 0x20001;
+  *(undefined8 *)(this + 0x122e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1226) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x123e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1236) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x124e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1246) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x125e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1256) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x126e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1266) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x127e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1276) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x128e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1286) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x129e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1296) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12ae) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12a6) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12be) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12b6) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12ee) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12e6) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12fe) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x12f6) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x130e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1306) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x131e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1316) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x132e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1326) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x133e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1336) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x134e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1346) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x135e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1356) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x136e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1366) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x137e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1376) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x138e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1386) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x139e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1396) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x13ae) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x13a6) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x122c) = 0x11001300120010;
+  *(undefined4 *)(this + 0x12cc) = 0x30000;
+  *(undefined8 *)(this + 0x120e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1206) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x121e) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1216) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x137e) = 0x3000200010000;
+  *(undefined2 *)(this + 0x120e) = 8;
+  *(undefined2 *)(this + 0x12e4) = 8;
+  *(undefined2 *)(this + 0x12aa) = 8;
+  *(undefined4 *)(this + 0x12d2) = 0x50004;
+  uVar2 = CONCAT44(param_2,param_2);
+  uVar3 = CONCAT44(param_2,param_2);
+  *(undefined4 *)(this + 0x1386) = 0x50004;
+  *(undefined8 *)(this + 0x12da) = 0x80009000b000a;
+  uVar7 = NEON_fmov(0x3f800000,4);
+  *(undefined4 *)(this + 0x138e) = 0x80008;
+  *(undefined8 *)(this + 0x1488) = uVar3;
+  *(undefined8 *)(this + 0x1480) = uVar2;
+  *(undefined8 *)(this + 0x1498) = uVar3;
+  *(undefined8 *)(this + 0x1490) = uVar2;
+  *(undefined8 *)(this + 0x14a8) = uVar3;
+  *(undefined8 *)(this + 0x14a0) = uVar2;
+  *(undefined8 *)(this + 0x1478) = uVar7;
+  *(undefined8 *)(this + 0x1458) = 0;
+  *(undefined8 *)(this + 0x1450) = 0;
+  *(undefined8 *)(this + 0x1468) = 0;
+  *(undefined8 *)(this + 0x1460) = 0;
+  *(undefined8 *)(this + 0x1470) = 0;
+  this[0x13c4] = (AndroidInputDevice)0x0;
+  *(undefined4 *)(this + 0x14b0) = 0;
+  *(undefined8 *)(this + 0x14b4) = 0;
+  *(undefined2 *)(this + 0x1501) = 0;
+  this[0x1544] = (AndroidInputDevice)0x0;
+  *(undefined8 *)(this + 0x20) = 0;
+  *(undefined4 *)(this + 0x28) = 0;
+  *(undefined8 *)(this + 0x14c8) = 0;
+  *(undefined8 *)(this + 0x14c0) = 0;
+  *(undefined8 *)(this + 0x14d8) = 0;
+  *(undefined8 *)(this + 0x14d0) = 0;
+  *(undefined8 *)(this + 0x14e8) = 0;
+  *(undefined8 *)(this + 0x14e0) = 0;
+  *(undefined8 *)(this + 0x14f8) = 0;
+  *(undefined8 *)(this + 0x14f0) = 0;
+  *(undefined8 *)(this + 0x1550) = 0;
+  *(undefined8 *)(this + 0x1548) = 0;
+  *(undefined8 *)(this + 0x1560) = 0;
+  *(undefined8 *)(this + 0x1558) = 0;
+  *(undefined4 *)(this + 0x1568) = 0;
+  initSensors();
+  *(undefined8 *)(this + 0x11fe) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11f6) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11e0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11d8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11f0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11e8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11c0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11b8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11d0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11c8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11a0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1198) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11b0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x11a8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1180) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1178) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1190) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1188) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1160) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1158) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1170) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1168) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1140) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1138) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1150) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1148) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1156) = 0x1210120011f011e;
+  *(undefined8 *)(this + 0x114e) = 0x11d011c011b011a;
+  *(undefined8 *)(this + 0x1120) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1118) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1130) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1128) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1100) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10f8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1110) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1108) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10e0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10d8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10f0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10e8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10c0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10b8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10d0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10c8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10a0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1098) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10b0) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x10a8) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1080) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1078) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1090) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1088) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1060) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1058) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1070) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1068) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1050) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x1048) = 0xffffffffffffffff;
+  *(undefined8 *)(this + 0x115e) = 0x125012401230122;
+  *(undefined2 *)(this + 0x10cc) = 0xd;
+  *(undefined2 *)(this + 0x1126) = 0x1b;
+  *(undefined8 *)(this + 0x106e) = 0x113011401120111;
+  *(undefined2 *)(this + 0x1050) = 0x1b;
+  memset(this + 0x40,0,0x1000);
+  this[0x15a4] = (AndroidInputDevice)0x0;
+  *(undefined8 *)(this + 0x1040) = 0;
+  return;
+}
+
+

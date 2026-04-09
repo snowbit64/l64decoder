@@ -1,0 +1,16 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: ~File
+// Entry Point: 00b32508
+// Size: 4 bytes
+// Signature: undefined __thiscall ~File(File * this)
+
+
+/* File::~File() */
+
+void __thiscall File::~File(File *this)
+
+{
+  return;
+}
+
+

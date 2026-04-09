@@ -1,0 +1,80 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: FUN_0089c4d0
+// Entry Point: 0089c4d0
+// Size: 332 bytes
+// Signature: undefined FUN_0089c4d0(void)
+
+
+void FUN_0089c4d0(void **param_1,undefined8 *param_2)
+
+{
+  ulong uVar1;
+  void *pvVar2;
+  long lVar3;
+  undefined8 *puVar4;
+  void *__src;
+  size_t __n;
+  undefined8 uVar5;
+  undefined8 uVar6;
+  undefined8 uVar7;
+  
+  puVar4 = (undefined8 *)param_1[1];
+  if (puVar4 == (undefined8 *)param_1[2]) {
+    __src = *param_1;
+    __n = (long)puVar4 - (long)__src;
+    lVar3 = (long)__n >> 2;
+    uVar1 = lVar3 * 0x6db6db6db6db6db7 + 1;
+    if (0x924924924924924 < uVar1) {
+                    /* WARNING: Subroutine does not return */
+      std::__ndk1::__vector_base_common<true>::__throw_length_error();
+    }
+    if (uVar1 <= (ulong)(lVar3 * -0x2492492492492492)) {
+      uVar1 = lVar3 * -0x2492492492492492;
+    }
+    if (0x492492492492491 < (ulong)(lVar3 * 0x6db6db6db6db6db7)) {
+      uVar1 = 0x924924924924924;
+    }
+    if (uVar1 == 0) {
+      pvVar2 = (void *)0x0;
+    }
+    else {
+      if (0x924924924924924 < uVar1) {
+                    /* WARNING: Subroutine does not return */
+        FUN_006d1f18("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+      pvVar2 = operator_new(uVar1 * 0x1c);
+    }
+    uVar5 = *param_2;
+    uVar7 = *(undefined8 *)((long)param_2 + 0x14);
+    uVar6 = *(undefined8 *)((long)param_2 + 0xc);
+    puVar4 = (undefined8 *)((long)pvVar2 + lVar3 * 4);
+    puVar4[1] = param_2[1];
+    *puVar4 = uVar5;
+    *(undefined8 *)((long)puVar4 + 0x14) = uVar7;
+    *(undefined8 *)((long)puVar4 + 0xc) = uVar6;
+    if (0 < (long)__n) {
+      memcpy((void *)((long)puVar4 - __n),__src,__n);
+      __src = *param_1;
+    }
+    *param_1 = (void *)((long)puVar4 - __n);
+    param_1[1] = (void *)((long)puVar4 + 0x1c);
+    param_1[2] = (void *)((long)pvVar2 + uVar1 * 0x1c);
+    if (__src != (void *)0x0) {
+      operator_delete(__src);
+      return;
+    }
+  }
+  else {
+    uVar5 = *(undefined8 *)((long)param_2 + 0xc);
+    uVar7 = param_2[1];
+    uVar6 = *param_2;
+    *(undefined8 *)((long)puVar4 + 0x14) = *(undefined8 *)((long)param_2 + 0x14);
+    *(undefined8 *)((long)puVar4 + 0xc) = uVar5;
+    puVar4[1] = uVar7;
+    *puVar4 = uVar6;
+    param_1[1] = (void *)((long)puVar4 + 0x1c);
+  }
+  return;
+}
+
+

@@ -1,0 +1,35 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: GetSignatureAlgorithm
+// Entry Point: 00cca0e8
+// Size: 72 bytes
+// Signature: undefined GetSignatureAlgorithm(void)
+
+
+/* WARNING: Unknown calling convention -- yet parameter storage is locked */
+/* CryptoPP::DL_ObjectImpl<CryptoPP::DL_VerifierBase<CryptoPP::EC2NPoint>,
+   CryptoPP::DL_SignatureSchemeOptions<CryptoPP::DL_SS<CryptoPP::DL_Keys_ECDSA<CryptoPP::EC2N>,
+   CryptoPP::DL_Algorithm_ECDSA<CryptoPP::EC2N>, CryptoPP::DL_SignatureMessageEncodingMethod_DSA,
+   CryptoPP::SHA256, int>, CryptoPP::DL_Keys_ECDSA<CryptoPP::EC2N>,
+   CryptoPP::DL_Algorithm_ECDSA<CryptoPP::EC2N>, CryptoPP::DL_SignatureMessageEncodingMethod_DSA,
+   CryptoPP::SHA256>, CryptoPP::DL_PublicKey_EC<CryptoPP::EC2N> >::GetSignatureAlgorithm() const */
+
+void CryptoPP::
+     DL_ObjectImpl<CryptoPP::DL_VerifierBase<CryptoPP::EC2NPoint>,CryptoPP::DL_SignatureSchemeOptions<CryptoPP::DL_SS<CryptoPP::DL_Keys_ECDSA<CryptoPP::EC2N>,CryptoPP::DL_Algorithm_ECDSA<CryptoPP::EC2N>,CryptoPP::DL_SignatureMessageEncodingMethod_DSA,CryptoPP::SHA256,int>,CryptoPP::DL_Keys_ECDSA<CryptoPP::EC2N>,CryptoPP::DL_Algorithm_ECDSA<CryptoPP::EC2N>,CryptoPP::DL_SignatureMessageEncodingMethod_DSA,CryptoPP::SHA256>,CryptoPP::DL_PublicKey_EC<CryptoPP::EC2N>>
+     ::GetSignatureAlgorithm(void)
+
+{
+  long lVar1;
+  long lVar2;
+  
+  lVar1 = tpidr_el0;
+  lVar2 = *(long *)(lVar1 + 0x28);
+  Singleton<CryptoPP::DL_Algorithm_ECDSA<CryptoPP::EC2N>,CryptoPP::NewObject<CryptoPP::DL_Algorithm_ECDSA<CryptoPP::EC2N>>,0>
+  ::Ref();
+  if (*(long *)(lVar1 + 0x28) == lVar2) {
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  __stack_chk_fail();
+}
+
+

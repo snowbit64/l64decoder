@@ -1,0 +1,38 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: ~btPairCachingGhostObject
+// Entry Point: 00f51b14
+// Size: 252 bytes
+// Signature: undefined __thiscall ~btPairCachingGhostObject(btPairCachingGhostObject * this)
+
+
+/* btPairCachingGhostObject::~btPairCachingGhostObject() */
+
+void __thiscall btPairCachingGhostObject::~btPairCachingGhostObject(btPairCachingGhostObject *this)
+
+{
+  *(undefined ***)this = &PTR__btPairCachingGhostObject_01019c20;
+  (**(code **)**(undefined8 **)(this + 0x170))();
+  if (*(long *)(this + 0x170) != 0) {
+    gNumAlignedFree = gNumAlignedFree + 1;
+    (*(code *)PTR_FUN_01048e40)();
+  }
+  *(undefined ***)this = &PTR__btGhostObject_01019bc8;
+  if ((*(long *)(this + 0x160) != 0) && (this[0x168] != (btPairCachingGhostObject)0x0)) {
+    gNumAlignedFree = gNumAlignedFree + 1;
+    (*(code *)PTR_FUN_01048e40)();
+  }
+  *(undefined8 *)(this + 0x160) = 0;
+  this[0x168] = (btPairCachingGhostObject)0x1;
+  *(undefined8 *)(this + 0x154) = 0;
+  *(undefined ***)this = &PTR__btCollisionObject_01019428;
+  if ((*(long *)(this + 0x138) != 0) && (this[0x140] != (btPairCachingGhostObject)0x0)) {
+    gNumAlignedFree = gNumAlignedFree + 1;
+    (*(code *)PTR_FUN_01048e40)();
+  }
+  this[0x140] = (btPairCachingGhostObject)0x1;
+  *(undefined8 *)(this + 0x138) = 0;
+  *(undefined8 *)(this + 300) = 0;
+  return;
+}
+
+

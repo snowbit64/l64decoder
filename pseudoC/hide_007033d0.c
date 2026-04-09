@@ -1,0 +1,30 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: hide
+// Entry Point: 007033d0
+// Size: 92 bytes
+// Signature: undefined hide(void)
+
+
+/* WARNING: Unknown calling convention -- yet parameter storage is locked */
+/* Animal::hide() */
+
+void Animal::hide(void)
+
+{
+  long in_x0;
+  Bt2PhysicsRBObject *this;
+  
+  if (*(ScenegraphNode **)(in_x0 + 0x698) != (ScenegraphNode *)0x0) {
+    ScenegraphNode::setVisibility(*(ScenegraphNode **)(in_x0 + 0x698),false);
+  }
+  if (((*(long *)(in_x0 + 0x6a0) != 0) &&
+      (this = (Bt2PhysicsRBObject *)RawTransformGroup::getPhysicsObject(),
+      this != (Bt2PhysicsRBObject *)0x0)) && ((*(uint *)(this + 8) >> 3 & 1) != 0)) {
+    *(uint *)(this + 8) = *(uint *)(this + 8) & 0xfffff7ff;
+    Bt2PhysicsRBObject::raiseDirtyFlags(this,0x800);
+    return;
+  }
+  return;
+}
+
+

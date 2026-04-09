@@ -1,0 +1,21 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: Subtract
+// Entry Point: 00c90a10
+// Size: 16 bytes
+// Signature: undefined __cdecl Subtract(PolynomialMod2 * param_1, PolynomialMod2 * param_2)
+
+
+/* CryptoPP::AbstractRing<CryptoPP::PolynomialMod2>::MultiplicativeGroupT::Subtract(CryptoPP::PolynomialMod2
+   const&, CryptoPP::PolynomialMod2 const&) const */
+
+void CryptoPP::AbstractRing<CryptoPP::PolynomialMod2>::MultiplicativeGroupT::Subtract
+               (PolynomialMod2 *param_1,PolynomialMod2 *param_2)
+
+{
+                    /* WARNING: Could not recover jumptable at 0x00c90a1c. Too many branches */
+                    /* WARNING: Treating indirect jump as call */
+  (**(code **)(**(long **)(param_1 + 8) + 0x98))();
+  return;
+}
+
+

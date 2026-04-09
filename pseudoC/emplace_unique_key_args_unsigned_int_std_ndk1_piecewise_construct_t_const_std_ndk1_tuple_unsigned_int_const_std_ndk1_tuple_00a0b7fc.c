@@ -1,0 +1,157 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: __emplace_unique_key_args<unsigned_int,std::__ndk1::piecewise_construct_t_const&,std::__ndk1::tuple<unsigned_int_const&>,std::__ndk1::tuple<>>
+// Entry Point: 00a0b7fc
+// Size: 520 bytes
+// Signature: pair __cdecl __emplace_unique_key_args<unsigned_int,std::__ndk1::piecewise_construct_t_const&,std::__ndk1::tuple<unsigned_int_const&>,std::__ndk1::tuple<>>(uint * param_1, piecewise_construct_t * param_2, tuple * param_3, tuple * param_4)
+
+
+/* std::__ndk1::pair<std::__ndk1::__hash_iterator<std::__ndk1::__hash_node<std::__ndk1::__hash_value_type<unsigned
+   int, ITextureObject*>, void*>*>, bool>
+   std::__ndk1::__hash_table<std::__ndk1::__hash_value_type<unsigned int, ITextureObject*>,
+   std::__ndk1::__unordered_map_hasher<unsigned int, std::__ndk1::__hash_value_type<unsigned int,
+   ITextureObject*>, std::__ndk1::hash<unsigned int>, true>,
+   std::__ndk1::__unordered_map_equal<unsigned int, std::__ndk1::__hash_value_type<unsigned int,
+   ITextureObject*>, std::__ndk1::equal_to<unsigned int>, true>,
+   std::__ndk1::allocator<std::__ndk1::__hash_value_type<unsigned int, ITextureObject*> >
+   >::__emplace_unique_key_args<unsigned int, std::__ndk1::piecewise_construct_t const&,
+   std::__ndk1::tuple<unsigned int const&>, std::__ndk1::tuple<> >(unsigned int const&,
+   std::__ndk1::piecewise_construct_t const&, std::__ndk1::tuple<unsigned int const&>&&,
+   std::__ndk1::tuple<>&&) */
+
+pair std::__ndk1::
+     __hash_table<std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>,std::__ndk1::__unordered_map_hasher<unsigned_int,std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>,std::__ndk1::hash<unsigned_int>,true>,std::__ndk1::__unordered_map_equal<unsigned_int,std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>,std::__ndk1::equal_to<unsigned_int>,true>,std::__ndk1::allocator<std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>>>
+     ::
+     __emplace_unique_key_args<unsigned_int,std::__ndk1::piecewise_construct_t_const&,std::__ndk1::tuple<unsigned_int_const&>,std::__ndk1::tuple<>>
+               (uint *param_1,piecewise_construct_t *param_2,tuple *param_3,tuple *param_4)
+
+{
+  uint uVar1;
+  undefined4 *puVar2;
+  ulong uVar3;
+  long lVar4;
+  long **pplVar5;
+  long *plVar6;
+  ulong uVar7;
+  long lVar8;
+  long **pplVar9;
+  long *plVar10;
+  long *plVar11;
+  long *unaff_x24;
+  undefined2 uVar12;
+  undefined8 uVar13;
+  float fVar14;
+  
+  plVar10 = *(long **)(param_1 + 2);
+  uVar1 = *(uint *)param_2;
+  plVar11 = (long *)(ulong)uVar1;
+  if (plVar10 != (long *)0x0) {
+    uVar13 = NEON_cnt(plVar10,1);
+    uVar12 = NEON_uaddlv(uVar13,1);
+    uVar3 = CONCAT62((int6)((ulong)uVar13 >> 0x10),uVar12) & 0xffffffff;
+    if (uVar3 < 2) {
+      unaff_x24 = (long *)(ulong)((int)plVar10 - 1U & uVar1);
+    }
+    else {
+      unaff_x24 = plVar11;
+      if (plVar10 <= plVar11) {
+        uVar7 = 0;
+        if (plVar10 != (long *)0x0) {
+          uVar7 = (ulong)plVar11 / (ulong)plVar10;
+        }
+        unaff_x24 = (long *)((long)plVar11 - uVar7 * (long)plVar10);
+      }
+    }
+    pplVar9 = *(long ***)(*(long *)param_1 + (long)unaff_x24 * 8);
+    if (pplVar9 != (long **)0x0) {
+      do {
+        pplVar9 = (long **)*pplVar9;
+        if (pplVar9 == (long **)0x0) goto LAB_00a0b8bc;
+        plVar6 = pplVar9[1];
+        if (plVar6 != plVar11) {
+          if (uVar3 < 2) {
+            plVar6 = (long *)((ulong)plVar6 & (long)plVar10 - 1U);
+          }
+          else if (plVar10 <= plVar6) {
+            uVar7 = 0;
+            if (plVar10 != (long *)0x0) {
+              uVar7 = (ulong)plVar6 / (ulong)plVar10;
+            }
+            plVar6 = (long *)((long)plVar6 - uVar7 * (long)plVar10);
+          }
+          if (plVar6 != unaff_x24) goto LAB_00a0b8bc;
+        }
+      } while (*(uint *)(pplVar9 + 2) != uVar1);
+      goto LAB_00a0b9ec;
+    }
+  }
+LAB_00a0b8bc:
+  pplVar9 = (long **)operator_new(0x20);
+  lVar4 = *(long *)(param_1 + 6);
+  puVar2 = *(undefined4 **)param_4;
+  pplVar9[3] = (long *)0x0;
+  fVar14 = (float)param_1[8];
+  *pplVar9 = (long *)0x0;
+  pplVar9[1] = plVar11;
+  *(undefined4 *)(pplVar9 + 2) = *puVar2;
+  if ((plVar10 == (long *)0x0) || (fVar14 * (float)ZEXT89(plVar10) < (float)(unkuint9)(lVar4 + 1)))
+  {
+    uVar3 = 1;
+    if ((long *)0x2 < plVar10) {
+      uVar3 = (ulong)(((ulong)plVar10 & (long)plVar10 - 1U) != 0);
+    }
+    uVar3 = uVar3 | (long)plVar10 << 1;
+    uVar7 = (ulong)((float)(unkuint9)(lVar4 + 1) / fVar14);
+    if (uVar7 <= uVar3) {
+      uVar7 = uVar3;
+    }
+                    /* try { // try from 00a0b930 to 00a0b937 has its CatchHandler @ 00a0ba04 */
+    rehash((__hash_table<std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>,std::__ndk1::__unordered_map_hasher<unsigned_int,std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>,std::__ndk1::hash<unsigned_int>,true>,std::__ndk1::__unordered_map_equal<unsigned_int,std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>,std::__ndk1::equal_to<unsigned_int>,true>,std::__ndk1::allocator<std::__ndk1::__hash_value_type<unsigned_int,ITextureObject*>>>
+            *)param_1,uVar7);
+    plVar10 = *(long **)(param_1 + 2);
+    if (((ulong)plVar10 & (long)plVar10 - 1U) == 0) {
+      unaff_x24 = (long *)(ulong)((int)plVar10 - 1U & uVar1);
+    }
+    else {
+      unaff_x24 = plVar11;
+      if (plVar10 <= plVar11) {
+        uVar3 = 0;
+        if (plVar10 != (long *)0x0) {
+          uVar3 = (ulong)plVar11 / (ulong)plVar10;
+        }
+        unaff_x24 = (long *)((long)plVar11 - uVar3 * (long)plVar10);
+      }
+    }
+  }
+  lVar4 = *(long *)param_1;
+  pplVar5 = *(long ***)(lVar4 + (long)unaff_x24 * 8);
+  if (pplVar5 == (long **)0x0) {
+    plVar11 = (long *)(param_1 + 4);
+    lVar8 = *plVar11;
+    *plVar11 = (long)pplVar9;
+    *pplVar9 = (long *)lVar8;
+    *(long **)(lVar4 + (long)unaff_x24 * 8) = plVar11;
+    if (*pplVar9 != (long *)0x0) {
+      plVar11 = *(long **)((long)*pplVar9 + 8);
+      if (((ulong)plVar10 & (long)plVar10 - 1U) == 0) {
+        plVar11 = (long *)((ulong)plVar11 & (long)plVar10 - 1U);
+      }
+      else if (plVar10 <= plVar11) {
+        uVar3 = 0;
+        if (plVar10 != (long *)0x0) {
+          uVar3 = (ulong)plVar11 / (ulong)plVar10;
+        }
+        plVar11 = (long *)((long)plVar11 - uVar3 * (long)plVar10);
+      }
+      *(long ***)(*(long *)param_1 + (long)plVar11 * 8) = pplVar9;
+    }
+  }
+  else {
+    *pplVar9 = *pplVar5;
+    *pplVar5 = (long *)pplVar9;
+  }
+  *(long *)(param_1 + 6) = *(long *)(param_1 + 6) + 1;
+LAB_00a0b9ec:
+  return (pair)pplVar9;
+}
+
+

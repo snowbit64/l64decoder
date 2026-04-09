@@ -1,0 +1,33 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: CreateUpdateSpace
+// Entry Point: 00d08898
+// Size: 96 bytes
+// Signature: undefined __thiscall CreateUpdateSpace(IteratedHashBase<unsigned_int,CryptoPP::MessageAuthenticationCode> * this, ulong * param_1)
+
+
+/* CryptoPP::IteratedHashBase<unsigned int,
+   CryptoPP::MessageAuthenticationCode>::CreateUpdateSpace(unsigned long&) */
+
+long __thiscall
+CryptoPP::IteratedHashBase<unsigned_int,CryptoPP::MessageAuthenticationCode>::CreateUpdateSpace
+          (IteratedHashBase<unsigned_int,CryptoPP::MessageAuthenticationCode> *this,ulong *param_1)
+
+{
+  uint uVar1;
+  uint uVar2;
+  int iVar3;
+  long lVar4;
+  
+  iVar3 = (**(code **)(*(long *)(this + 8) + 0x50))();
+  uVar2 = *(uint *)(this + 0x10);
+  uVar1 = 0;
+  if (iVar3 != 0) {
+    uVar1 = iVar3 - 1;
+  }
+  lVar4 = *(long *)this;
+  *param_1 = (ulong)(iVar3 - (uVar1 & uVar2));
+  lVar4 = (**(code **)(lVar4 + 0xd8))(this);
+  return lVar4 + (ulong)(uVar1 & uVar2);
+}
+
+

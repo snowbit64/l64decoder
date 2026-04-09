@@ -1,0 +1,75 @@
+// Ghidra Decompiler Output - AArch64 (64-bit)
+// Function: __construct_node<std::__ndk1::pair<unsigned_int,char_const*>>
+// Entry Point: 0093f6e8
+// Size: 200 bytes
+// Signature: unique_ptr __cdecl __construct_node<std::__ndk1::pair<unsigned_int,char_const*>>(pair * param_1)
+
+
+/* std::__ndk1::unique_ptr<std::__ndk1::__tree_node<std::__ndk1::__value_type<unsigned int,
+   std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >,
+   void*>,
+   std::__ndk1::__tree_node_destructor<std::__ndk1::allocator<std::__ndk1::__tree_node<std::__ndk1::__value_type<unsigned
+   int, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char>
+   > >, void*> > > > std::__ndk1::__tree<std::__ndk1::__value_type<unsigned int,
+   std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >,
+   std::__ndk1::__map_value_compare<unsigned int, std::__ndk1::__value_type<unsigned int,
+   std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char> > >,
+   std::__ndk1::less<unsigned int>, true>, std::__ndk1::allocator<std::__ndk1::__value_type<unsigned
+   int, std::__ndk1::basic_string<char, std::__ndk1::char_traits<char>, std::__ndk1::allocator<char>
+   > > > >::__construct_node<std::__ndk1::pair<unsigned int, char const*>
+   >(std::__ndk1::pair<unsigned int, char const*>&&) */
+
+unique_ptr
+std::__ndk1::
+__tree<std::__ndk1::__value_type<unsigned_int,std::__ndk1::basic_string<char,std::__ndk1::char_traits<char>,std::__ndk1::allocator<char>>>,std::__ndk1::__map_value_compare<unsigned_int,std::__ndk1::__value_type<unsigned_int,std::__ndk1::basic_string<char,std::__ndk1::char_traits<char>,std::__ndk1::allocator<char>>>,std::__ndk1::less<unsigned_int>,true>,std::__ndk1::allocator<std::__ndk1::__value_type<unsigned_int,std::__ndk1::basic_string<char,std::__ndk1::char_traits<char>,std::__ndk1::allocator<char>>>>>
+::__construct_node<std::__ndk1::pair<unsigned_int,char_const*>>(pair *param_1)
+
+{
+  undefined4 uVar1;
+  unique_ptr uVar2;
+  void *pvVar3;
+  size_t __n;
+  undefined4 *in_x1;
+  void **in_x8;
+  void *__dest;
+  char *__s;
+  ulong uVar4;
+  
+  pvVar3 = operator_new(0x40);
+  uVar1 = *in_x1;
+  __s = *(char **)(in_x1 + 2);
+  *in_x8 = pvVar3;
+  in_x8[1] = param_1 + 2;
+  *(undefined4 *)((long)pvVar3 + 0x20) = uVar1;
+  *(undefined *)(in_x8 + 2) = 0;
+  __n = strlen(__s);
+  if (0xffffffffffffffef < __n) {
+                    /* try { // try from 0093f7a8 to 0093f7af has its CatchHandler @ 0093f7b0 */
+                    /* WARNING: Subroutine does not return */
+    std::__ndk1::__basic_string_common<true>::__throw_length_error();
+  }
+  if (__n < 0x17) {
+    __dest = (void *)((long)pvVar3 + 0x29);
+    *(char *)((long)pvVar3 + 0x28) = (char)((int)__n << 1);
+    if (__n == 0) {
+      uVar2 = 0;
+      goto LAB_0093f788;
+    }
+  }
+  else {
+    uVar4 = __n + 0x10 & 0xfffffffffffffff0;
+                    /* try { // try from 0093f760 to 0093f767 has its CatchHandler @ 0093f7b0 */
+    __dest = operator_new(uVar4);
+    *(size_t *)((long)pvVar3 + 0x30) = __n;
+    *(void **)((long)pvVar3 + 0x38) = __dest;
+    *(ulong *)((long)pvVar3 + 0x28) = uVar4 | 1;
+  }
+  pvVar3 = memcpy(__dest,__s,__n);
+  uVar2 = (unique_ptr)pvVar3;
+LAB_0093f788:
+  *(undefined *)((long)__dest + __n) = 0;
+  *(undefined *)(in_x8 + 2) = 1;
+  return uVar2;
+}
+
+
