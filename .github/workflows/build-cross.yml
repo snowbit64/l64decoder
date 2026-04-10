@@ -1,7 +1,7 @@
 name: Build binaries (Windows + Android aarch64)
 
 on:
-  workflow_dispatch:
+  #workflow_dispatch:
   push:
     branches: [ "**" ]
   pull_request:
