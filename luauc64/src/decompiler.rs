@@ -6,6 +6,13 @@ pub struct Decompiler {
     output: String,
 }
 
+#[derive(Clone)]
+struct DecodedInstruction {
+    pc: usize,
+    opcode: LuauOpcode,
+    instruction: Instruction,
+}
+
 impl Decompiler {
     pub fn new() -> Self {
         Decompiler {
@@ -49,27 +56,39 @@ impl Decompiler {
         }
         writeln!(self.output, "").map_err(|e| e.to_string())?;
 
-        // Decompile instructions
+        let decoded = self.decode_proto_instructions(proto)?;
+
+        // Decompile instructions (disassembly)
         writeln!(self.output, "-- Instructions").map_err(|e| e.to_string())?;
+        for di in &decoded {
+            writeln!(
+                self.output,
+                "{:04}  {}",
+                di.pc,
+                self.decompile_instruction(di.pc, di.opcode, &di.instruction, proto, strings)?
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        writeln!(self.output).map_err(|e| e.to_string())?;
+
+        // Reconstructed pseudo-Lua (logic-focused)
+        writeln!(self.output, "-- Reconstructed pseudo-Lua").map_err(|e| e.to_string())?;
+        self.reconstruct_pseudolua(proto, strings, &decoded)?;
+        writeln!(self.output).map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
+
+    fn decode_proto_instructions(&self, proto: &Proto) -> Result<Vec<DecodedInstruction>, String> {
+        let mut out = Vec::new();
         let mut pc = 0usize;
+
         while pc < proto.code.len() {
             let instruction_u32 = proto.code[pc];
             let mut instruction = self.decode_instruction(instruction_u32);
             let opcode = match LuauOpcode::try_from(instruction.opcode) {
                 Ok(opcode) => opcode,
                 Err(_) => {
-                    writeln!(
-                        self.output,
-                        "{:04}  UNKNOWN_OPCODE_{} A({}) B({}) C({}) D({}) E({})",
-                        pc,
-                        instruction.opcode,
-                        instruction.a,
-                        instruction.b,
-                        instruction.c,
-                        instruction.d,
-                        instruction.e
-                    )
-                    .map_err(|e| e.to_string())?;
                     pc += 1;
                     continue;
                 }
@@ -85,18 +104,16 @@ impl Decompiler {
                 instruction.aux = proto.code[pc + 1];
             }
 
-            writeln!(
-                self.output,
-                "{:04}  {}",
+            out.push(DecodedInstruction {
                 pc,
-                self.decompile_instruction(pc, opcode, &instruction, proto, strings)?
-            )
-            .map_err(|e| e.to_string())?;
+                opcode,
+                instruction,
+            });
 
             pc += 1 + usize::from(self.opcode_uses_aux(opcode));
         }
 
-        Ok(())
+        Ok(out)
     }
 
     fn decode_instruction(&self, instruction_u32: u32) -> Instruction {
@@ -154,6 +171,274 @@ impl Decompiler {
             .get(index)
             .map(|k| self.format_constant(k, strings))
             .unwrap_or_else(|| format!("<invalid-constant-{}>", index))
+    }
+
+    fn identifier_or_literal(&self, proto: &Proto, index: usize, strings: &[String]) -> String {
+        match proto.k.get(index) {
+            Some(Constant::String(s)) => s.clone(),
+            _ => self.format_constant_index(proto, index, strings),
+        }
+    }
+
+    fn reconstruct_pseudolua(
+        &mut self,
+        proto: &Proto,
+        strings: &[String],
+        decoded: &[DecodedInstruction],
+    ) -> Result<(), String> {
+        let mut regs = vec![String::new(); proto.maxstacksize as usize + 64];
+        let mut labels = std::collections::BTreeSet::new();
+
+        for di in decoded {
+            match di.opcode {
+                LuauOpcode::LOP_JUMP
+                | LuauOpcode::LOP_JUMPBACK
+                | LuauOpcode::LOP_JUMPIF
+                | LuauOpcode::LOP_JUMPIFNOT
+                | LuauOpcode::LOP_JUMPIFEQ
+                | LuauOpcode::LOP_JUMPIFLE
+                | LuauOpcode::LOP_JUMPIFLT
+                | LuauOpcode::LOP_JUMPIFNOTEQ
+                | LuauOpcode::LOP_JUMPIFNOTLE
+                | LuauOpcode::LOP_JUMPIFNOTLT => {
+                    labels.insert(self.jump_target(di.pc, di.instruction.d));
+                }
+                LuauOpcode::LOP_JUMPX => {
+                    labels.insert(di.pc as i32 + 1 + di.instruction.e);
+                }
+                _ => {}
+            }
+        }
+
+        for di in decoded {
+            if labels.contains(&(di.pc as i32)) {
+                writeln!(self.output, "::L{}::", di.pc).map_err(|e| e.to_string())?;
+            }
+
+            let a = di.instruction.a as usize;
+            let b = di.instruction.b as usize;
+            let c = di.instruction.c as usize;
+            let r = |i: usize, regs: &Vec<String>| -> String {
+                if let Some(v) = regs.get(i) {
+                    if !v.is_empty() {
+                        return v.clone();
+                    }
+                }
+                format!("r{}", i)
+            };
+
+            match di.opcode {
+                LuauOpcode::LOP_LOADNIL => {
+                    regs[a] = "nil".to_string();
+                    writeln!(self.output, "r{} = nil", a).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_LOADB => {
+                    regs[a] = if di.instruction.b == 0 {
+                        "false"
+                    } else {
+                        "true"
+                    }
+                    .to_string();
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_LOADN => {
+                    regs[a] = di.instruction.d.to_string();
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_LOADK | LuauOpcode::LOP_LOADKX => {
+                    let kidx = if di.opcode == LuauOpcode::LOP_LOADK {
+                        di.instruction.d as usize
+                    } else {
+                        di.instruction.aux as usize
+                    };
+                    regs[a] = self.format_constant_index(proto, kidx, strings);
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_MOVE => {
+                    regs[a] = r(b, &regs);
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_GETGLOBAL => {
+                    regs[a] = self.identifier_or_literal(proto, di.instruction.aux as usize, strings);
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_SETGLOBAL => {
+                    let name =
+                        self.identifier_or_literal(proto, di.instruction.aux as usize, strings);
+                    writeln!(self.output, "{} = {}", name, r(a, &regs))
+                        .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_GETTABLEKS => {
+                    let key =
+                        self.format_constant_index(proto, di.instruction.aux as usize, strings);
+                    regs[a] = format!("{}[{}]", r(b, &regs), key);
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_SETTABLEKS => {
+                    let key =
+                        self.format_constant_index(proto, di.instruction.aux as usize, strings);
+                    writeln!(self.output, "{}[{}] = {}", r(b, &regs), key, r(a, &regs))
+                        .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_GETTABLE => {
+                    regs[a] = format!("{}[{}]", r(b, &regs), r(c, &regs));
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_SETTABLE => {
+                    writeln!(
+                        self.output,
+                        "{}[{}] = {}",
+                        r(b, &regs),
+                        r(c, &regs),
+                        r(a, &regs)
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_DUPCLOSURE | LuauOpcode::LOP_NEWCLOSURE => {
+                    regs[a] = format!("closure_{}", di.instruction.d as u16);
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_NAMECALL => {
+                    let key =
+                        self.format_constant_index(proto, di.instruction.aux as usize, strings);
+                    regs[a] = format!("{}:{}", r(b, &regs), key);
+                    if a + 1 < regs.len() {
+                        regs[a + 1] = r(b, &regs);
+                    }
+                }
+                LuauOpcode::LOP_CALL => {
+                    let func = r(a, &regs);
+                    let args = if di.instruction.b == 0 {
+                        "...".to_string()
+                    } else {
+                        (a + 1..a + di.instruction.b as usize)
+                            .map(|idx| r(idx, &regs))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    };
+                    let call_expr = format!("{}({})", func, args);
+                    if di.instruction.c <= 1 {
+                        writeln!(self.output, "{}", call_expr).map_err(|e| e.to_string())?;
+                    } else {
+                        regs[a] = call_expr.clone();
+                        writeln!(self.output, "r{} = {}", a, call_expr)
+                            .map_err(|e| e.to_string())?;
+                    }
+                }
+                LuauOpcode::LOP_RETURN => {
+                    if di.instruction.b == 0 {
+                        writeln!(self.output, "return ...").map_err(|e| e.to_string())?;
+                    } else if di.instruction.b == 1 {
+                        writeln!(self.output, "return").map_err(|e| e.to_string())?;
+                    } else {
+                        let vals = (a..a + di.instruction.b as usize - 1)
+                            .map(|idx| r(idx, &regs))
+                            .collect::<Vec<_>>()
+                            .join(", ");
+                        writeln!(self.output, "return {}", vals).map_err(|e| e.to_string())?;
+                    }
+                }
+                LuauOpcode::LOP_JUMP | LuauOpcode::LOP_JUMPBACK => {
+                    writeln!(
+                        self.output,
+                        "goto L{}",
+                        self.jump_target(di.pc, di.instruction.d)
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_JUMPIF => {
+                    writeln!(
+                        self.output,
+                        "if {} then goto L{} end",
+                        r(a, &regs),
+                        self.jump_target(di.pc, di.instruction.d)
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_JUMPIFNOT => {
+                    writeln!(
+                        self.output,
+                        "if not {} then goto L{} end",
+                        r(a, &regs),
+                        self.jump_target(di.pc, di.instruction.d)
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_JUMPIFEQ
+                | LuauOpcode::LOP_JUMPIFLE
+                | LuauOpcode::LOP_JUMPIFLT
+                | LuauOpcode::LOP_JUMPIFNOTEQ
+                | LuauOpcode::LOP_JUMPIFNOTLE
+                | LuauOpcode::LOP_JUMPIFNOTLT => {
+                    let op = match di.opcode {
+                        LuauOpcode::LOP_JUMPIFEQ => "==",
+                        LuauOpcode::LOP_JUMPIFLE => "<=",
+                        LuauOpcode::LOP_JUMPIFLT => "<",
+                        LuauOpcode::LOP_JUMPIFNOTEQ => "~=",
+                        LuauOpcode::LOP_JUMPIFNOTLE => ">",
+                        LuauOpcode::LOP_JUMPIFNOTLT => ">=",
+                        _ => "?",
+                    };
+                    writeln!(
+                        self.output,
+                        "if {} {} {} then goto L{} end",
+                        r(a, &regs),
+                        op,
+                        r(di.instruction.aux as usize, &regs),
+                        self.jump_target(di.pc, di.instruction.d)
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_JUMPX => {
+                    writeln!(self.output, "goto L{}", di.pc as i32 + 1 + di.instruction.e)
+                        .map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_ADD
+                | LuauOpcode::LOP_SUB
+                | LuauOpcode::LOP_MUL
+                | LuauOpcode::LOP_DIV
+                | LuauOpcode::LOP_MOD
+                | LuauOpcode::LOP_POW
+                | LuauOpcode::LOP_AND
+                | LuauOpcode::LOP_OR
+                | LuauOpcode::LOP_IDIV => {
+                    let op = match di.opcode {
+                        LuauOpcode::LOP_ADD => "+",
+                        LuauOpcode::LOP_SUB => "-",
+                        LuauOpcode::LOP_MUL => "*",
+                        LuauOpcode::LOP_DIV => "/",
+                        LuauOpcode::LOP_MOD => "%",
+                        LuauOpcode::LOP_POW => "^",
+                        LuauOpcode::LOP_AND => "and",
+                        LuauOpcode::LOP_OR => "or",
+                        LuauOpcode::LOP_IDIV => "//",
+                        _ => "?",
+                    };
+                    regs[a] = format!("({} {} {})", r(b, &regs), op, r(c, &regs));
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_NOT | LuauOpcode::LOP_MINUS | LuauOpcode::LOP_LENGTH => {
+                    let op = match di.opcode {
+                        LuauOpcode::LOP_NOT => "not ",
+                        LuauOpcode::LOP_MINUS => "-",
+                        LuauOpcode::LOP_LENGTH => "#",
+                        _ => "",
+                    };
+                    regs[a] = format!("{}{}", op, r(b, &regs));
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                _ => {
+                    writeln!(
+                        self.output,
+                        "-- pc {}: {:?} (recon fallback)",
+                        di.pc, di.opcode
+                    )
+                    .map_err(|e| e.to_string())?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn decompile_instruction(
@@ -496,17 +781,6 @@ impl Decompiler {
             )
             .map_err(|e| e.to_string())?,
             LuauOpcode::LOP_NOP | LuauOpcode::LOP_BREAK | LuauOpcode::LOP__COUNT => {}
-            _ => write!(
-                instruction_str,
-                " A({}) B({}) C({}) D({}) E({}) AUX({:#x})",
-                instruction.a,
-                instruction.b,
-                instruction.c,
-                instruction.d,
-                instruction.e,
-                instruction.aux
-            )
-            .map_err(|e| e.to_string())?,
         }
 
         Ok(instruction_str)
