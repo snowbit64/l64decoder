@@ -1,9 +1,16 @@
 use crate::bytecode::{BytecodeFile, Constant, Instruction, LuauOpcode, Proto};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::fmt::Write;
 
 pub struct Decompiler {
     output: String,
+}
+
+#[derive(Default)]
+struct TableNode {
+    leaf: bool,
+    children: BTreeMap<String, TableNode>,
 }
 
 impl Decompiler {
@@ -21,6 +28,40 @@ impl Decompiler {
             .ok_or_else(|| "No main proto found in bytecode file.".to_string())?;
 
         self.decompile_proto(main_proto, &bytecode_file.strings)?;
+        Ok(self.output.clone())
+    }
+
+    pub fn reconstruct_file(
+        &mut self,
+        bytecode_file: &BytecodeFile,
+        module_name: &str,
+    ) -> Result<String, String> {
+        let mut root = TableNode::default();
+        let mut globals = Vec::new();
+
+        for proto in &bytecode_file.protos {
+            for constant in &proto.k {
+                if let Constant::String(s) = constant {
+                    if s.starts_with("g_") && Self::is_identifier(s) {
+                        globals.push(s.clone());
+                    }
+                    self.insert_identifier_path(&mut root, s);
+                }
+            }
+        }
+
+        writeln!(self.output, "{} = {{", module_name).map_err(|e| e.to_string())?;
+        self.render_node(&root, 1)?;
+        writeln!(self.output, "}}").map_err(|e| e.to_string())?;
+
+        if !globals.is_empty() {
+            globals.sort();
+            globals.dedup();
+            for g in globals {
+                writeln!(self.output, "{} = {{}}", g).map_err(|e| e.to_string())?;
+            }
+        }
+
         Ok(self.output.clone())
     }
 
@@ -549,5 +590,52 @@ impl Decompiler {
 
     fn jump_target(&self, pc: usize, d: i16) -> i32 {
         pc as i32 + 1 + d as i32
+    }
+
+    fn is_identifier(value: &str) -> bool {
+        let mut chars = value.chars();
+        match chars.next() {
+            Some(c) if c == '_' || c.is_ascii_alphabetic() => {}
+            _ => return false,
+        }
+        chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
+    }
+
+    fn insert_identifier_path(&self, root: &mut TableNode, raw: &str) {
+        if raw.is_empty() || raw.len() > 120 {
+            return;
+        }
+
+        if raw.contains('.') {
+            let parts = raw.split('.').collect::<Vec<_>>();
+            if parts.is_empty() || !parts.iter().all(|p| Self::is_identifier(p)) {
+                return;
+            }
+
+            let mut current = root;
+            for part in parts {
+                current = current.children.entry(part.to_string()).or_default();
+            }
+            current.leaf = true;
+            return;
+        }
+
+        if Self::is_identifier(raw) {
+            root.children.entry(raw.to_string()).or_default().leaf = true;
+        }
+    }
+
+    fn render_node(&mut self, node: &TableNode, depth: usize) -> Result<(), String> {
+        let indent = "    ".repeat(depth);
+        for (name, child) in &node.children {
+            if child.children.is_empty() {
+                writeln!(self.output, "{}{} = true,", indent, name).map_err(|e| e.to_string())?;
+            } else {
+                writeln!(self.output, "{}{} = {{", indent, name).map_err(|e| e.to_string())?;
+                self.render_node(child, depth + 1)?;
+                writeln!(self.output, "{}}},", indent).map_err(|e| e.to_string())?;
+            }
+        }
+        Ok(())
     }
 }

@@ -127,6 +127,7 @@ luauc64 decipher -b scripts/A.l64 scripts/B.l64 scripts/C.l64 --overwrite
 - `decompile` accepts `.l64` and `.lb` as input.
 - `decipher` accepts only `.l64`.
 - For `.l64`, the tool applies the known GE10 decode logic and writes Luau bytecode.
+- `decompile` currently prioritizes a readable reconstructed Lua skeleton (table/function key mapping) generated from bytecode constants.
 - The decompiler is still evolving; some opcodes may be emitted as `UNKNOWN_OPCODE_*` until full opcode mapping is implemented.
 
 ---
