@@ -1,8 +1,8 @@
+use bytemuck::Pod;
+use std::convert::TryFrom;
+use std::mem;
 use std::string::String;
 use std::vec::Vec;
-use std::mem;
-use std::convert::TryFrom;
-use bytemuck::Pod;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,12 +41,6 @@ pub enum LuauOpcode {
     LOP_JUMPIFNOTEQ,
     LOP_JUMPIFNOTLE,
     LOP_JUMPIFNOTLT,
-    LOP_JUMPIFEQK,
-    LOP_JUMPIFLEK,
-    LOP_JUMPIFLTK,
-    LOP_JUMPIFNOTEQK,
-    LOP_JUMPIFNOTLEK,
-    LOP_JUMPIFNOTLTK,
     LOP_ADD,
     LOP_SUB,
     LOP_MUL,
@@ -59,15 +53,45 @@ pub enum LuauOpcode {
     LOP_DIVK,
     LOP_MODK,
     LOP_POWK,
-    LOP_SUBRK,
-    LOP_DIVRK,
-    LOP_FASTCALL,
-    LOP_FASTCALL1,
-    LOP_FASTCALL2,
+    LOP_AND,
+    LOP_OR,
+    LOP_ANDK,
+    LOP_ORK,
+    LOP_CONCAT,
+    LOP_NOT,
+    LOP_MINUS,
+    LOP_LENGTH,
+    LOP_NEWTABLE,
+    LOP_DUPTABLE,
+    LOP_SETLIST,
+    LOP_FORNPREP,
+    LOP_FORNLOOP,
+    LOP_FORGLOOP,
+    LOP_FORGPREP_INEXT,
     LOP_FASTCALL3,
+    LOP_FORGPREP_NEXT,
+    LOP_NATIVECALL,
+    LOP_GETVARARGS,
+    LOP_DUPCLOSURE,
+    LOP_PREPVARARGS,
+    LOP_LOADKX,
+    LOP_JUMPX,
+    LOP_FASTCALL,
     LOP_COVERAGE,
     LOP_CAPTURE,
-    LOP_NUM_OPCODES,
+    LOP_SUBRK,
+    LOP_DIVRK,
+    LOP_FASTCALL1,
+    LOP_FASTCALL2,
+    LOP_FASTCALL2K,
+    LOP_FORGPREP,
+    LOP_JUMPXEQKNIL,
+    LOP_JUMPXEQKB,
+    LOP_JUMPXEQKN,
+    LOP_JUMPXEQKS,
+    LOP_IDIV,
+    LOP_IDIVK,
+    LOP__COUNT,
 }
 
 #[derive(Debug)]
@@ -117,6 +141,7 @@ pub struct Proto {
     pub k: Vec<Constant>,
     pub sizek: usize,
     pub p: Vec<Proto>,
+    pub child_proto_indices: Vec<usize>,
     pub sizep: usize,
     pub linedefined: u32,
     pub debugname: String,
@@ -137,6 +162,7 @@ pub enum Constant {
     Table(Vec<(usize, f64)>),
     TableWithConstants(Vec<(usize, Constant)>),
     Closure(usize),
+    Integer(i64),
 }
 
 #[derive(Debug)]
@@ -145,6 +171,7 @@ pub struct BytecodeFile {
     pub types_version: u8,
     pub strings: Vec<String>,
     pub protos: Vec<Proto>,
+    pub main_proto: Option<usize>,
 }
 
 pub struct BytecodeReader<'a> {
@@ -179,6 +206,22 @@ impl<'a> BytecodeReader<'a> {
         result
     }
 
+    pub fn read_var_int64(&mut self) -> u64 {
+        let mut result = 0u64;
+        let mut shift = 0;
+
+        loop {
+            let byte = self.read::<u8>();
+            result |= ((byte & 127) as u64) << shift;
+            shift += 7;
+            if (byte & 128) == 0 {
+                break;
+            }
+        }
+
+        result
+    }
+
     pub fn read_string(&mut self, strings: &[String]) -> String {
         let id = self.read_var_int();
         if id == 0 {
@@ -192,7 +235,10 @@ impl<'a> BytecodeReader<'a> {
         let version = self.read::<u8>();
 
         if version == 0 {
-            return Err(format!("Error: {}", std::str::from_utf8(&self.data[self.offset..]).unwrap_or("Invalid UTF-8")));
+            return Err(format!(
+                "Error: {}",
+                std::str::from_utf8(&self.data[self.offset..]).unwrap_or("Invalid UTF-8")
+            ));
         }
 
         // TODO: Add version checks (LBC_VERSION_MIN, LBC_VERSION_MAX)
@@ -219,7 +265,6 @@ impl<'a> BytecodeReader<'a> {
         let proto_count = self.read_var_int();
         let mut protos = Vec::with_capacity(proto_count as usize);
         for i in 0..proto_count {
-            let source = strings[0].clone(); // Placeholder, actual source is read later
             let bytecodeid = i as i32;
 
             let maxstacksize = self.read::<u8>();
@@ -254,15 +299,9 @@ impl<'a> BytecodeReader<'a> {
                     0 => k.push(Constant::Nil),
                     1 => k.push(Constant::Boolean(self.read::<u8>() != 0)),
                     2 => k.push(Constant::Number(self.read::<f64>())),
-                    3 => k.push(Constant::Vector(
-                        self.read::<f32>(),
-                        self.read::<f32>(),
-                        self.read::<f32>(),
-                        self.read::<f32>(),
-                    )),
-                    4 => k.push(Constant::String(self.read_string(&strings))),
-                    5 => k.push(Constant::Import(self.read::<u32>())),
-                    6 => {
+                    3 => k.push(Constant::String(self.read_string(&strings))),
+                    4 => k.push(Constant::Import(self.read::<u32>())),
+                    5 => {
                         let keys = self.read_var_int();
                         let mut table_entries = Vec::with_capacity(keys as usize);
                         for _ in 0..keys {
@@ -271,8 +310,15 @@ impl<'a> BytecodeReader<'a> {
                             table_entries.push((key_idx as usize, 0.0));
                         }
                         k.push(Constant::Table(table_entries));
-                    },
-                    7 => {
+                    }
+                    6 => k.push(Constant::Closure(self.read_var_int() as usize)),
+                    7 => k.push(Constant::Vector(
+                        self.read::<f32>(),
+                        self.read::<f32>(),
+                        self.read::<f32>(),
+                        self.read::<f32>(),
+                    )),
+                    8 => {
                         let keys = self.read_var_int();
                         let mut table_entries = Vec::with_capacity(keys as usize);
                         for _ in 0..keys {
@@ -282,16 +328,33 @@ impl<'a> BytecodeReader<'a> {
                             table_entries.push((key_idx as usize, Constant::Nil)); // Placeholder
                         }
                         k.push(Constant::TableWithConstants(table_entries));
-                    },
-                    8 => k.push(Constant::Closure(self.read_var_int() as usize)),
-                    _ => return Err(format!("Unknown constant type: {}", constant_type)),
+                    }
+                    9 => {
+                        let is_negative = self.read::<u8>() != 0;
+                        let magnitude = self.read_var_int64();
+                        let value = if is_negative {
+                            (!magnitude).wrapping_add(1) as i64
+                        } else {
+                            magnitude as i64
+                        };
+                        k.push(Constant::Integer(value));
+                    }
+                    _ => {
+                        return Err(format!(
+                            "Unknown constant type: {} (proto {}, constant {}, offset {})",
+                            constant_type,
+                            i,
+                            k.len(),
+                            self.offset
+                        ));
+                    }
                 }
             }
 
             let sizep = self.read_var_int();
-            // For now, we'll just skip reading child protos. We'll need to recursively parse them later.
+            let mut child_proto_ids = Vec::with_capacity(sizep as usize);
             for _ in 0..sizep {
-                self.read_var_int(); // child proto index
+                child_proto_ids.push(self.read_var_int() as usize);
             }
 
             let linedefined = self.read_var_int();
@@ -319,6 +382,31 @@ impl<'a> BytecodeReader<'a> {
                 }
             }
 
+            let debuginfo_flag = self.read::<u8>();
+            if debuginfo_flag != 0 {
+                let sizelocvars = self.read_var_int();
+                for _ in 0..sizelocvars {
+                    let _varname = self.read_string(&strings);
+                    let _startpc = self.read_var_int();
+                    let _endpc = self.read_var_int();
+                    let _reg = self.read::<u8>();
+                }
+
+                let sizeupvalues = self.read_var_int();
+                for _ in 0..sizeupvalues {
+                    let _upvalue_name = self.read_string(&strings);
+                }
+            }
+
+            let source = strings.first().cloned().unwrap_or_default();
+
+            let children = child_proto_ids
+                .iter()
+                .filter_map(|idx| protos.get(*idx).cloned())
+                .collect::<Vec<_>>();
+
+            let sizelineinfo = lineinfo.len();
+
             protos.push(Proto {
                 source,
                 bytecodeid,
@@ -333,22 +421,38 @@ impl<'a> BytecodeReader<'a> {
                 sizecode: sizecode as usize,
                 k,
                 sizek: sizek as usize,
-                p: Vec::new(), // Child protos will be populated later
+                p: children,
+                child_proto_indices: child_proto_ids,
                 sizep: sizep as usize,
                 linedefined,
                 debugname,
                 linegaplog2,
                 lineinfo,
-                sizelineinfo: 0, // TODO: Calculate actual size
+                sizelineinfo,
                 abslineinfo,
             });
         }
+
+        for i in 0..protos.len() {
+            let child_indices = protos[i].child_proto_indices.clone();
+            protos[i].p = child_indices
+                .iter()
+                .filter_map(|idx| protos.get(*idx).cloned())
+                .collect();
+        }
+
+        let main_proto = if self.offset < self.data.len() {
+            Some(self.read_var_int() as usize)
+        } else {
+            None
+        };
 
         Ok(BytecodeFile {
             version,
             types_version,
             strings,
             protos,
+            main_proto,
         })
     }
 }
@@ -357,7 +461,7 @@ impl TryFrom<u8> for LuauOpcode {
     type Error = String;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value < LuauOpcode::LOP_NUM_OPCODES as u8 {
+        if value < LuauOpcode::LOP__COUNT as u8 {
             // SAFETY: We are checking the range, and the enum is `repr(u8)`.
             // This is safe because the enum variants are contiguous and start from 0.
             Ok(unsafe { std::mem::transmute(value) })
