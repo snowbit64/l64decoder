@@ -34,16 +34,14 @@ pub fn decode_l64(data: &[u8], luau_compatible_header: bool) -> Result<DecodedL6
 
     match variant {
         L64Variant::Ge10Key2 => {
-            for i in 2..decoded.len() {
+            for (i, byte) in decoded.iter_mut().enumerate().skip(2) {
                 let x = i - 1;
-                decoded[i] = decoded[i]
-                    .wrapping_add(x as u8)
-                    .wrapping_add(GE10_KEY2[x & 0x07]);
+                *byte = byte.wrapping_add(x as u8).wrapping_add(GE10_KEY2[x & 0x07]);
             }
         }
         L64Variant::Ge10Key3 => {
-            for i in 2..decoded.len() {
-                decoded[i] = decoded[i]
+            for (i, byte) in decoded.iter_mut().enumerate().skip(2) {
+                *byte = byte
                     .wrapping_add(i as u8)
                     .wrapping_add(GE10_KEY3[(i - 1) & 0x0F]);
             }
@@ -61,4 +59,54 @@ pub fn decode_l64(data: &[u8], luau_compatible_header: bool) -> Result<DecodedL6
         bytecode: decoded,
         variant,
     })
+}
+
+pub fn encode_l64(
+    bytecode: &[u8],
+    variant: L64Variant,
+    second_header_byte: u8,
+) -> Result<Vec<u8>, String> {
+    if bytecode.is_empty() {
+        return Err("bytecode vazio".to_string());
+    }
+
+    let mut normalized = if bytecode.len() >= 2 && bytecode[0] == 0x01 && bytecode[1] == 0x03 {
+        bytecode.to_vec()
+    } else if bytecode[0] == 0x03 {
+        let mut v = Vec::with_capacity(bytecode.len() + 1);
+        v.push(0x01);
+        v.extend_from_slice(bytecode);
+        v
+    } else {
+        return Err(
+            "bytecode Luau inválido para compilação .l64 (esperado prefixo 01 03 ou 03)"
+                .to_string(),
+        );
+    };
+
+    if normalized.len() >= 2 {
+        normalized[0] = match variant {
+            L64Variant::Ge10Key2 => 0x02,
+            L64Variant::Ge10Key3 => 0x03,
+        };
+        normalized[1] = second_header_byte;
+    }
+
+    match variant {
+        L64Variant::Ge10Key2 => {
+            for (i, byte) in normalized.iter_mut().enumerate().skip(2) {
+                let x = i - 1;
+                *byte = byte.wrapping_sub(x as u8).wrapping_sub(GE10_KEY2[x & 0x07]);
+            }
+        }
+        L64Variant::Ge10Key3 => {
+            for (i, byte) in normalized.iter_mut().enumerate().skip(2) {
+                *byte = byte
+                    .wrapping_sub(i as u8)
+                    .wrapping_sub(GE10_KEY3[(i - 1) & 0x0F]);
+            }
+        }
+    }
+
+    Ok(normalized)
 }
