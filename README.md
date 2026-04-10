@@ -120,3 +120,8 @@ This repository includes a GitHub Actions workflow that builds and uploads artif
 
 - Windows (`x86_64-pc-windows-msvc`)
 - Android (`aarch64-linux-android`)
+
+## Documentação de engenharia reversa
+
+- `ANALISE_INICIAL.md`: visão geral inicial do pipeline.
+- `ANALISE_PSEUDOC_LUAU.md`: achados aprofundados de pseudoC sobre loader/compilador Luau no jogo.
