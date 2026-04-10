@@ -57,7 +57,11 @@ fn main() {
         }
     };
 
-    let bytecode_data = if args.input.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("l64")) {
+    let bytecode_data = if args
+        .input
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("l64"))
+    {
         match decode_l64(&input_data, args.luau_compatible_header) {
             Ok(decoded) => {
                 if args.debug {

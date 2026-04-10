@@ -1,8 +1,8 @@
+use bytemuck::Pod;
+use std::convert::TryFrom;
+use std::mem;
 use std::string::String;
 use std::vec::Vec;
-use std::mem;
-use std::convert::TryFrom;
-use bytemuck::Pod;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -192,7 +192,10 @@ impl<'a> BytecodeReader<'a> {
         let version = self.read::<u8>();
 
         if version == 0 {
-            return Err(format!("Error: {}", std::str::from_utf8(&self.data[self.offset..]).unwrap_or("Invalid UTF-8")));
+            return Err(format!(
+                "Error: {}",
+                std::str::from_utf8(&self.data[self.offset..]).unwrap_or("Invalid UTF-8")
+            ));
         }
 
         // TODO: Add version checks (LBC_VERSION_MIN, LBC_VERSION_MAX)
@@ -219,7 +222,6 @@ impl<'a> BytecodeReader<'a> {
         let proto_count = self.read_var_int();
         let mut protos = Vec::with_capacity(proto_count as usize);
         for i in 0..proto_count {
-            let source = strings[0].clone(); // Placeholder, actual source is read later
             let bytecodeid = i as i32;
 
             let maxstacksize = self.read::<u8>();
@@ -271,7 +273,7 @@ impl<'a> BytecodeReader<'a> {
                             table_entries.push((key_idx as usize, 0.0));
                         }
                         k.push(Constant::Table(table_entries));
-                    },
+                    }
                     7 => {
                         let keys = self.read_var_int();
                         let mut table_entries = Vec::with_capacity(keys as usize);
@@ -282,16 +284,16 @@ impl<'a> BytecodeReader<'a> {
                             table_entries.push((key_idx as usize, Constant::Nil)); // Placeholder
                         }
                         k.push(Constant::TableWithConstants(table_entries));
-                    },
+                    }
                     8 => k.push(Constant::Closure(self.read_var_int() as usize)),
                     _ => return Err(format!("Unknown constant type: {}", constant_type)),
                 }
             }
 
             let sizep = self.read_var_int();
-            // For now, we'll just skip reading child protos. We'll need to recursively parse them later.
+            let mut child_proto_ids = Vec::with_capacity(sizep as usize);
             for _ in 0..sizep {
-                self.read_var_int(); // child proto index
+                child_proto_ids.push(self.read_var_int() as usize);
             }
 
             let linedefined = self.read_var_int();
@@ -319,6 +321,15 @@ impl<'a> BytecodeReader<'a> {
                 }
             }
 
+            let source = strings.first().cloned().unwrap_or_default();
+
+            let children = child_proto_ids
+                .iter()
+                .filter_map(|idx| protos.get(*idx).cloned())
+                .collect::<Vec<_>>();
+
+            let sizelineinfo = lineinfo.len();
+
             protos.push(Proto {
                 source,
                 bytecodeid,
@@ -333,13 +344,13 @@ impl<'a> BytecodeReader<'a> {
                 sizecode: sizecode as usize,
                 k,
                 sizek: sizek as usize,
-                p: Vec::new(), // Child protos will be populated later
+                p: children,
                 sizep: sizep as usize,
                 linedefined,
                 debugname,
                 linegaplog2,
                 lineinfo,
-                sizelineinfo: 0, // TODO: Calculate actual size
+                sizelineinfo,
                 abslineinfo,
             });
         }
