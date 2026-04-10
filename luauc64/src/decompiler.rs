@@ -353,6 +353,105 @@ impl Decompiler {
                 self.format_constant_index(proto, instruction.c as usize, strings)
             )
             .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_AND | LuauOpcode::LOP_OR | LuauOpcode::LOP_IDIV => write!(
+                instruction_str,
+                " R({}), R({}), R({})",
+                instruction.a, instruction.b, instruction.c
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_ANDK | LuauOpcode::LOP_ORK | LuauOpcode::LOP_IDIVK => write!(
+                instruction_str,
+                " R({}), R({}), K({}) ; {}",
+                instruction.a,
+                instruction.b,
+                instruction.c,
+                self.format_constant_index(proto, instruction.c as usize, strings)
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_CONCAT => write!(
+                instruction_str,
+                " R({}), R({})..R({})",
+                instruction.a, instruction.b, instruction.c
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_NOT | LuauOpcode::LOP_MINUS | LuauOpcode::LOP_LENGTH => write!(
+                instruction_str,
+                " R({}), R({})",
+                instruction.a, instruction.b
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_NEWTABLE => write!(
+                instruction_str,
+                " R({}), hashHint({}), arraySize({})",
+                instruction.a, instruction.b, instruction.aux
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_DUPTABLE => write!(
+                instruction_str,
+                " R({}), K({}) ; {}",
+                instruction.a,
+                instruction.d,
+                self.format_constant_index(proto, instruction.d as usize, strings)
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_SETLIST => write!(
+                instruction_str,
+                " R({}), from R({}), count({}), startIndex({})",
+                instruction.a, instruction.b, instruction.c, instruction.aux
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_FORNPREP
+            | LuauOpcode::LOP_FORNLOOP
+            | LuauOpcode::LOP_FORGPREP_INEXT
+            | LuauOpcode::LOP_FORGPREP_NEXT
+            | LuauOpcode::LOP_FORGPREP => write!(
+                instruction_str,
+                " base(R{}), -> {}",
+                instruction.a,
+                self.jump_target(pc, instruction.d)
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_FORGLOOP => write!(
+                instruction_str,
+                " base(R{}), vars({}), aux({:#x}), -> {}",
+                instruction.a,
+                instruction.aux & 0xff,
+                instruction.aux,
+                self.jump_target(pc, instruction.d)
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_NATIVECALL => {
+                write!(instruction_str, " (runtime-generated)").map_err(|e| e.to_string())?
+            }
+            LuauOpcode::LOP_GETVARARGS => write!(
+                instruction_str,
+                " R({}), count({})",
+                instruction.a, instruction.b
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_DUPCLOSURE => write!(
+                instruction_str,
+                " R({}), K({}) ; {}",
+                instruction.a,
+                instruction.d,
+                self.format_constant_index(proto, instruction.d as usize, strings)
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_PREPVARARGS => {
+                write!(instruction_str, " fixed({})", instruction.a).map_err(|e| e.to_string())?
+            }
+            LuauOpcode::LOP_LOADKX => write!(
+                instruction_str,
+                " R({}), K({}) ; {}",
+                instruction.a,
+                instruction.aux,
+                self.format_constant_index(proto, instruction.aux as usize, strings)
+            )
+            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_JUMPX => {
+                write!(instruction_str, " -> {}", pc as i32 + 1 + instruction.e)
+                    .map_err(|e| e.to_string())?
+            }
             LuauOpcode::LOP_SUBRK | LuauOpcode::LOP_DIVRK => write!(
                 instruction_str,
                 " R({}), K({}), R({}) ; {}",
@@ -376,6 +475,17 @@ impl Decompiler {
                 )
                 .map_err(|e| e.to_string())?
             }
+            LuauOpcode::LOP_JUMPXEQKNIL
+            | LuauOpcode::LOP_JUMPXEQKB
+            | LuauOpcode::LOP_JUMPXEQKN
+            | LuauOpcode::LOP_JUMPXEQKS => write!(
+                instruction_str,
+                " R({}), AUX({:#x}), -> {}",
+                instruction.a,
+                instruction.aux,
+                self.jump_target(pc, instruction.d)
+            )
+            .map_err(|e| e.to_string())?,
             LuauOpcode::LOP_COVERAGE => {
                 write!(instruction_str, " D({})", instruction.d).map_err(|e| e.to_string())?
             }

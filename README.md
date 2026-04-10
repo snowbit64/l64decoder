@@ -111,3 +111,12 @@ luauc64 decipher -b scripts/A.l64 scripts/B.l64 scripts/C.l64 --overwrite
 - `decipher` accepts only `.l64`.
 - For `.l64`, the tool applies the known GE10 decode logic and writes Luau bytecode.
 - The decompiler is still evolving; some opcodes may be emitted as `UNKNOWN_OPCODE_*` until full opcode mapping is implemented.
+
+---
+
+## CI build artifacts
+
+This repository includes a GitHub Actions workflow that builds and uploads artifacts (without creating a GitHub Release) for:
+
+- Windows (`x86_64-pc-windows-msvc`)
+- Android (`aarch64-linux-android`)

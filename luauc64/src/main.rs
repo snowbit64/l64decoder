@@ -355,6 +355,203 @@ fn collect_from_dir(
             }
             continue;
         }
+    }
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(failures.join("\n"))
+    }
+}
+
+fn decompile_one(
+    input: &Path,
+    output_override: Option<&PathBuf>,
+    args: &InputArgs,
+) -> Result<PathBuf, String> {
+    let input_data = fs::read(input).map_err(|e| format!("failed to read input: {e}"))?;
+    let is_l64 = has_ext(input, "l64");
+
+    let (bytecode_data, decipher_variant) = if is_l64 {
+        let decoded =
+            decode_l64(&input_data, false).map_err(|e| format!("decode .l64 failed: {e}"))?;
+        let lb_path = input.with_extension("lb");
+        write_file(&lb_path, &decoded.bytecode, args.overwrite)?;
+        (decoded.bytecode, Some(format!("{:?}", decoded.variant)))
+    } else {
+        (input_data, None)
+    };
+
+    let bytecode_file = parse_bytecode_with_fallback(&bytecode_data, args.verbose)?;
+
+    let mut decompiler = Decompiler::new();
+    let luau = decompiler
+        .decompile_file(&bytecode_file)
+        .map_err(|e| format!("decompile failed: {e}"))?;
+
+    let out_path = output_override
+        .cloned()
+        .unwrap_or_else(|| input.with_extension("luau"));
+
+    write_file(&out_path, luau.as_bytes(), args.overwrite)?;
+
+    if args.emit_json {
+        let json_path = out_path.with_extension("json");
+        let payload = json!({
+            "command": "decompile",
+            "input": input.display().to_string(),
+            "output_luau": out_path.display().to_string(),
+            "decoded_variant": decipher_variant,
+            "bytecode_version": bytecode_file.version,
+            "proto_count": bytecode_file.protos.len(),
+            "main_proto": bytecode_file.main_proto,
+        });
+        write_file(
+            &json_path,
+            serde_json::to_string_pretty(&payload)
+                .map_err(|e| format!("failed to serialize JSON metadata: {e}"))?
+                .as_bytes(),
+            args.overwrite,
+        )?;
+    }
+
+    Ok(out_path)
+}
+
+fn decipher_one(
+    input: &Path,
+    output_override: Option<&PathBuf>,
+    args: &InputArgs,
+) -> Result<PathBuf, String> {
+    let input_data = fs::read(input).map_err(|e| format!("failed to read input: {e}"))?;
+
+    if !has_ext(input, "l64") {
+        return Err("decipher command only accepts .l64 files".to_string());
+    }
+
+    let decoded = decode_l64(&input_data, false).map_err(|e| format!("decode .l64 failed: {e}"))?;
+    let out_path = output_override
+        .cloned()
+        .unwrap_or_else(|| input.with_extension("lb"));
+
+    write_file(&out_path, &decoded.bytecode, args.overwrite)?;
+
+    if args.emit_json {
+        let json_path = out_path.with_extension("json");
+        let payload = json!({
+            "command": "decipher",
+            "input": input.display().to_string(),
+            "output_lb": out_path.display().to_string(),
+            "decoded_variant": format!("{:?}", decoded.variant),
+            "decoded_size": decoded.bytecode.len(),
+        });
+        write_file(
+            &json_path,
+            serde_json::to_string_pretty(&payload)
+                .map_err(|e| format!("failed to serialize JSON metadata: {e}"))?
+                .as_bytes(),
+            args.overwrite,
+        )?;
+    }
+
+    Ok(out_path)
+}
+
+fn parse_bytecode_with_fallback(
+    data: &[u8],
+    verbose: bool,
+) -> Result<bytecode::BytecodeFile, String> {
+    let mut reader = BytecodeReader::new(data);
+    let mut result = reader.read_bytecode_file();
+
+    let should_try_fallback = data.len() > 1
+        && data[0] == 0x01
+        && data[1] == 0x03
+        && match &result {
+            Ok(file) => file.protos.is_empty(),
+            Err(_) => true,
+        };
+
+    if should_try_fallback {
+        if verbose {
+            println!("Parser fallback: retrying from byte offset +1 (01 03 header).");
+        }
+        let mut fallback = BytecodeReader::new(&data[1..]);
+        result = fallback.read_bytecode_file();
+    }
+
+    result
+}
+
+fn collect_input_files(
+    args: &InputArgs,
+    allowed_extensions: &[&str],
+) -> Result<Vec<PathBuf>, String> {
+    let mut sources = 0;
+    if args.file.is_some() {
+        sources += 1;
+    }
+    if args.dir.is_some() {
+        sources += 1;
+    }
+    if !args.batch.is_empty() {
+        sources += 1;
+    }
+
+    if sources != 1 {
+        return Err("use exactly one input source: --file OR --dir OR --batch".to_string());
+    }
+
+    let mut files = Vec::new();
+
+    if let Some(file) = &args.file {
+        files.push(file.clone());
+    } else if let Some(dir) = &args.dir {
+        collect_from_dir(dir, args.recursive, allowed_extensions, &mut files)?;
+    } else {
+        files.extend(args.batch.iter().cloned());
+    }
+
+    let files = files
+        .into_iter()
+        .filter(|p| {
+            p.extension()
+                .and_then(OsStr::to_str)
+                .map(|ext| {
+                    allowed_extensions
+                        .iter()
+                        .any(|allowed| ext.eq_ignore_ascii_case(allowed))
+                })
+                .unwrap_or(false)
+        })
+        .collect::<Vec<_>>();
+
+    if files.is_empty() {
+        return Err("no matching input files found".to_string());
+    }
+
+    Ok(files)
+}
+
+fn collect_from_dir(
+    dir: &Path,
+    recursive: bool,
+    allowed_extensions: &[&str],
+    out: &mut Vec<PathBuf>,
+) -> Result<(), String> {
+    let entries = fs::read_dir(dir)
+        .map_err(|e| format!("failed to read directory {}: {e}", dir.display()))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("failed to read directory entry: {e}"))?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            if recursive {
+                collect_from_dir(&path, recursive, allowed_extensions, out)?;
+            }
+            continue;
+        }
 
         if path
             .extension()
