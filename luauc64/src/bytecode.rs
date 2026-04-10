@@ -318,8 +318,11 @@ impl<'a> BytecodeReader<'a> {
                     _ => {
                         return Err(format!(
                             "Unknown constant type: {} (proto {}, constant {}, offset {})",
-                            constant_type, i, k.len(), self.offset
-                        ))
+                            constant_type,
+                            i,
+                            k.len(),
+                            self.offset
+                        ));
                     }
                 }
             }
