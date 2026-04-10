@@ -115,6 +115,7 @@ fn run_decipher(args: InputArgs) -> Result<(), String> {
                     break;
                 }
             }
+            continue;
         }
     }
 
@@ -156,6 +157,7 @@ fn run_decompile(args: InputArgs) -> Result<(), String> {
                     break;
                 }
             }
+            continue;
         }
     }
 
