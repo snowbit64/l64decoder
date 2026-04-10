@@ -10,6 +10,7 @@ use bytecode::BytecodeReader;
 use clap::{Parser, Subcommand};
 use decompiler::Decompiler;
 use l64::decode_l64;
+use serde_json::json;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -64,6 +65,10 @@ struct InputArgs {
     /// Verbose mode
     #[arg(short, long, default_value_t = false)]
     verbose: bool,
+
+    /// Emit JSON sidecar metadata (<output>.json)
+    #[arg(long, default_value_t = false)]
+    emit_json: bool,
 }
 
 fn main() {
@@ -151,6 +156,7 @@ fn run_decompile(args: InputArgs) -> Result<(), String> {
                     break;
                 }
             }
+            continue;
         }
     }
 
@@ -169,14 +175,14 @@ fn decompile_one(
     let input_data = fs::read(input).map_err(|e| format!("failed to read input: {e}"))?;
     let is_l64 = has_ext(input, "l64");
 
-    let bytecode_data = if is_l64 {
+    let (bytecode_data, decipher_variant) = if is_l64 {
         let decoded =
             decode_l64(&input_data, false).map_err(|e| format!("decode .l64 failed: {e}"))?;
         let lb_path = input.with_extension("lb");
         write_file(&lb_path, &decoded.bytecode, args.overwrite)?;
-        decoded.bytecode
+        (decoded.bytecode, Some(format!("{:?}", decoded.variant)))
     } else {
-        input_data
+        (input_data, None)
     };
 
     let bytecode_file = parse_bytecode_with_fallback(&bytecode_data, args.verbose)?;
@@ -191,6 +197,27 @@ fn decompile_one(
         .unwrap_or_else(|| input.with_extension("luau"));
 
     write_file(&out_path, luau.as_bytes(), args.overwrite)?;
+
+    if args.emit_json {
+        let json_path = out_path.with_extension("json");
+        let payload = json!({
+            "command": "decompile",
+            "input": input.display().to_string(),
+            "output_luau": out_path.display().to_string(),
+            "decoded_variant": decipher_variant,
+            "bytecode_version": bytecode_file.version,
+            "proto_count": bytecode_file.protos.len(),
+            "main_proto": bytecode_file.main_proto,
+        });
+        write_file(
+            &json_path,
+            serde_json::to_string_pretty(&payload)
+                .map_err(|e| format!("failed to serialize JSON metadata: {e}"))?
+                .as_bytes(),
+            args.overwrite,
+        )?;
+    }
+
     Ok(out_path)
 }
 
@@ -211,6 +238,25 @@ fn decipher_one(
         .unwrap_or_else(|| input.with_extension("lb"));
 
     write_file(&out_path, &decoded.bytecode, args.overwrite)?;
+
+    if args.emit_json {
+        let json_path = out_path.with_extension("json");
+        let payload = json!({
+            "command": "decipher",
+            "input": input.display().to_string(),
+            "output_lb": out_path.display().to_string(),
+            "decoded_variant": format!("{:?}", decoded.variant),
+            "decoded_size": decoded.bytecode.len(),
+        });
+        write_file(
+            &json_path,
+            serde_json::to_string_pretty(&payload)
+                .map_err(|e| format!("failed to serialize JSON metadata: {e}"))?
+                .as_bytes(),
+            args.overwrite,
+        )?;
+    }
+
     Ok(out_path)
 }
 

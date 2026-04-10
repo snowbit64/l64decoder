@@ -41,12 +41,6 @@ pub enum LuauOpcode {
     LOP_JUMPIFNOTEQ,
     LOP_JUMPIFNOTLE,
     LOP_JUMPIFNOTLT,
-    LOP_JUMPIFEQK,
-    LOP_JUMPIFLEK,
-    LOP_JUMPIFLTK,
-    LOP_JUMPIFNOTEQK,
-    LOP_JUMPIFNOTLEK,
-    LOP_JUMPIFNOTLTK,
     LOP_ADD,
     LOP_SUB,
     LOP_MUL,
@@ -59,15 +53,45 @@ pub enum LuauOpcode {
     LOP_DIVK,
     LOP_MODK,
     LOP_POWK,
-    LOP_SUBRK,
-    LOP_DIVRK,
-    LOP_FASTCALL,
-    LOP_FASTCALL1,
-    LOP_FASTCALL2,
+    LOP_AND,
+    LOP_OR,
+    LOP_ANDK,
+    LOP_ORK,
+    LOP_CONCAT,
+    LOP_NOT,
+    LOP_MINUS,
+    LOP_LENGTH,
+    LOP_NEWTABLE,
+    LOP_DUPTABLE,
+    LOP_SETLIST,
+    LOP_FORNPREP,
+    LOP_FORNLOOP,
+    LOP_FORGLOOP,
+    LOP_FORGPREP_INEXT,
     LOP_FASTCALL3,
+    LOP_FORGPREP_NEXT,
+    LOP_NATIVECALL,
+    LOP_GETVARARGS,
+    LOP_DUPCLOSURE,
+    LOP_PREPVARARGS,
+    LOP_LOADKX,
+    LOP_JUMPX,
+    LOP_FASTCALL,
     LOP_COVERAGE,
     LOP_CAPTURE,
-    LOP_NUM_OPCODES,
+    LOP_SUBRK,
+    LOP_DIVRK,
+    LOP_FASTCALL1,
+    LOP_FASTCALL2,
+    LOP_FASTCALL2K,
+    LOP_FORGPREP,
+    LOP_JUMPXEQKNIL,
+    LOP_JUMPXEQKB,
+    LOP_JUMPXEQKN,
+    LOP_JUMPXEQKS,
+    LOP_IDIV,
+    LOP_IDIVK,
+    LOP__COUNT,
 }
 
 #[derive(Debug)]
@@ -437,7 +461,7 @@ impl TryFrom<u8> for LuauOpcode {
     type Error = String;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        if value < LuauOpcode::LOP_NUM_OPCODES as u8 {
+        if value < LuauOpcode::LOP__COUNT as u8 {
             // SAFETY: We are checking the range, and the enum is `repr(u8)`.
             // This is safe because the enum variants are contiguous and start from 0.
             Ok(unsafe { std::mem::transmute(value) })

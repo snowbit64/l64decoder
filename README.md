@@ -50,6 +50,7 @@ Both commands share the same input options:
 - `--overwrite`: overwrite output files if they already exist
 - `--keep-going`: continue batch/dir execution even when one file fails
 - `-v, --verbose`: print extra processing details
+- `--emit-json`: emit sidecar metadata JSON (`<output>.json`)
 
 > `--output` is ignored when `--dir` or `--batch` is used.
 
@@ -72,6 +73,12 @@ Generates:
 
 ```bash
 luauc64 decompile -f scripts/StartParams.l64 -o out/StartParams.luau
+```
+
+To also emit metadata:
+
+```bash
+luauc64 decompile -f scripts/StartParams.l64 --emit-json
 ```
 
 ### Decipher one file

@@ -128,14 +128,23 @@ impl Decompiler {
                 | LuauOpcode::LOP_GETTABLEKS
                 | LuauOpcode::LOP_SETTABLEKS
                 | LuauOpcode::LOP_NAMECALL
-                | LuauOpcode::LOP_JUMPIFEQK
-                | LuauOpcode::LOP_JUMPIFLEK
-                | LuauOpcode::LOP_JUMPIFLTK
-                | LuauOpcode::LOP_JUMPIFNOTEQK
-                | LuauOpcode::LOP_JUMPIFNOTLEK
-                | LuauOpcode::LOP_JUMPIFNOTLTK
+                | LuauOpcode::LOP_JUMPIFEQ
+                | LuauOpcode::LOP_JUMPIFLE
+                | LuauOpcode::LOP_JUMPIFLT
+                | LuauOpcode::LOP_JUMPIFNOTEQ
+                | LuauOpcode::LOP_JUMPIFNOTLE
+                | LuauOpcode::LOP_JUMPIFNOTLT
+                | LuauOpcode::LOP_NEWTABLE
+                | LuauOpcode::LOP_SETLIST
+                | LuauOpcode::LOP_FORGLOOP
                 | LuauOpcode::LOP_FASTCALL2
+                | LuauOpcode::LOP_FASTCALL2K
                 | LuauOpcode::LOP_FASTCALL3
+                | LuauOpcode::LOP_LOADKX
+                | LuauOpcode::LOP_JUMPXEQKNIL
+                | LuauOpcode::LOP_JUMPXEQKB
+                | LuauOpcode::LOP_JUMPXEQKN
+                | LuauOpcode::LOP_JUMPXEQKS
         )
     }
 
@@ -315,21 +324,7 @@ impl Decompiler {
                 instruction_str,
                 " R({}), R({}), -> {}",
                 instruction.a,
-                instruction.b,
-                self.jump_target(pc, instruction.d)
-            )
-            .map_err(|e| e.to_string())?,
-            LuauOpcode::LOP_JUMPIFEQK
-            | LuauOpcode::LOP_JUMPIFLEK
-            | LuauOpcode::LOP_JUMPIFLTK
-            | LuauOpcode::LOP_JUMPIFNOTEQK
-            | LuauOpcode::LOP_JUMPIFNOTLEK
-            | LuauOpcode::LOP_JUMPIFNOTLTK => write!(
-                instruction_str,
-                " R({}), K({}) ; {} -> {}",
-                instruction.a,
                 instruction.aux,
-                self.format_constant_index(proto, instruction.aux as usize, strings),
                 self.jump_target(pc, instruction.d)
             )
             .map_err(|e| e.to_string())?,
@@ -373,12 +368,14 @@ impl Decompiler {
                 instruction.a, instruction.b, instruction.c
             )
             .map_err(|e| e.to_string())?,
-            LuauOpcode::LOP_FASTCALL2 | LuauOpcode::LOP_FASTCALL3 => write!(
-                instruction_str,
-                " builtin({}), arg(R{}), skip({}), AUX({:#x})",
-                instruction.a, instruction.b, instruction.c, instruction.aux
-            )
-            .map_err(|e| e.to_string())?,
+            LuauOpcode::LOP_FASTCALL2 | LuauOpcode::LOP_FASTCALL2K | LuauOpcode::LOP_FASTCALL3 => {
+                write!(
+                    instruction_str,
+                    " builtin({}), arg(R{}), skip({}), AUX({:#x})",
+                    instruction.a, instruction.b, instruction.c, instruction.aux
+                )
+                .map_err(|e| e.to_string())?
+            }
             LuauOpcode::LOP_COVERAGE => {
                 write!(instruction_str, " D({})", instruction.d).map_err(|e| e.to_string())?
             }
@@ -388,7 +385,18 @@ impl Decompiler {
                 instruction.a, instruction.b
             )
             .map_err(|e| e.to_string())?,
-            LuauOpcode::LOP_NOP | LuauOpcode::LOP_NUM_OPCODES | LuauOpcode::LOP_BREAK => {}
+            LuauOpcode::LOP_NOP | LuauOpcode::LOP_BREAK | LuauOpcode::LOP__COUNT => {}
+            _ => write!(
+                instruction_str,
+                " A({}) B({}) C({}) D({}) E({}) AUX({:#x})",
+                instruction.a,
+                instruction.b,
+                instruction.c,
+                instruction.d,
+                instruction.e,
+                instruction.aux
+            )
+            .map_err(|e| e.to_string())?,
         }
 
         Ok(instruction_str)
