@@ -156,6 +156,7 @@ fn run_decompile(args: InputArgs) -> Result<(), String> {
                     break;
                 }
             }
+            continue;
         }
     }
 
