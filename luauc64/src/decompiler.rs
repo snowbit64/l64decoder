@@ -14,12 +14,13 @@ impl Decompiler {
     }
 
     pub fn decompile_file(&mut self, bytecode_file: &BytecodeFile) -> Result<String, String> {
-        // For now, we'll just decompile the main proto (the first one)
-        if let Some(main_proto) = bytecode_file.protos.first() {
-            self.decompile_proto(main_proto, &bytecode_file.strings)?; // Pass strings for constant resolution
-        } else {
-            return Err("No main proto found in bytecode file.".to_string());
-        }
+        let main_proto = bytecode_file
+            .main_proto
+            .and_then(|idx| bytecode_file.protos.get(idx))
+            .or_else(|| bytecode_file.protos.first())
+            .ok_or_else(|| "No main proto found in bytecode file.".to_string())?;
+
+        self.decompile_proto(main_proto, &bytecode_file.strings)?;
         Ok(self.output.clone())
     }
 
@@ -54,7 +55,25 @@ impl Decompiler {
         while pc < proto.code.len() {
             let instruction_u32 = proto.code[pc];
             let mut instruction = self.decode_instruction(instruction_u32);
-            let opcode = LuauOpcode::try_from(instruction.opcode).map_err(|e| e.to_string())?;
+            let opcode = match LuauOpcode::try_from(instruction.opcode) {
+                Ok(opcode) => opcode,
+                Err(_) => {
+                    writeln!(
+                        self.output,
+                        "{:04}  UNKNOWN_OPCODE_{} A({}) B({}) C({}) D({}) E({})",
+                        pc,
+                        instruction.opcode,
+                        instruction.a,
+                        instruction.b,
+                        instruction.c,
+                        instruction.d,
+                        instruction.e
+                    )
+                    .map_err(|e| e.to_string())?;
+                    pc += 1;
+                    continue;
+                }
+            };
 
             if self.opcode_uses_aux(opcode) {
                 if pc + 1 >= proto.code.len() {
@@ -406,6 +425,7 @@ impl Decompiler {
                 s
             }
             Constant::Closure(idx) => format!("Closure({})", idx),
+            Constant::Integer(i) => i.to_string(),
         }
     }
 
