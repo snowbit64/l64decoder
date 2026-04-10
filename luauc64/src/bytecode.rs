@@ -2,7 +2,7 @@ use std::string::String;
 use std::vec::Vec;
 use std::mem;
 use std::convert::TryFrom;
-use bytemuck::{Pod, Zeroable};
+use bytemuck::Pod;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,7 +161,7 @@ impl<'a> BytecodeReader<'a> {
         let size = mem::size_of::<T>();
         let slice = &self.data[self.offset..self.offset + size];
         self.offset += size;
-        *bytemuck::from_bytes(slice)
+        bytemuck::pod_read_unaligned(slice)
     }
 
     pub fn read_var_int(&mut self) -> u32 {
