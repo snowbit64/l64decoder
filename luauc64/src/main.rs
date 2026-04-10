@@ -57,7 +57,11 @@ fn main() {
         }
     };
 
-    let bytecode_data = if args.input.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("l64")) {
+    let bytecode_data = if args
+        .input
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("l64"))
+    {
         match decode_l64(&input_data, args.luau_compatible_header) {
             Ok(decoded) => {
                 if args.debug {
@@ -90,7 +94,34 @@ fn main() {
     }
 
     let mut reader = BytecodeReader::new(&bytecode_data);
-    match reader.read_bytecode_file() {
+    let mut bytecode_result = reader.read_bytecode_file();
+
+    let should_try_fallback = bytecode_data.len() > 1
+        && bytecode_data[0] == 0x01
+        && bytecode_data[1] == 0x03
+        && match &bytecode_result {
+            Ok(file) => file.protos.is_empty(),
+            Err(_) => true,
+        };
+
+    if should_try_fallback {
+        if args.debug {
+            match &bytecode_result {
+                Ok(_) => println!(
+                    "Leitura inicial retornou 0 protos. Tentando fallback com cabeçalho Luau compatível."
+                ),
+                Err(err) => println!(
+                    "Primeira leitura do bytecode falhou ({}). Tentando fallback com cabeçalho Luau compatível.",
+                    err
+                ),
+            }
+        }
+
+        let mut fallback_reader = BytecodeReader::new(&bytecode_data[1..]);
+        bytecode_result = fallback_reader.read_bytecode_file();
+    }
+
+    match bytecode_result {
         Ok(bytecode_file) => {
             if args.debug {
                 println!("Deserialização concluída com sucesso!");
