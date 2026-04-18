@@ -1,4 +1,5 @@
 /luauc64/target/
+/pseudoC/
 **/*.rs.bk
 
 # Decipher/decompile outputs generated alongside .l64 test files
