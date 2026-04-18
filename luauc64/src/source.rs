@@ -221,6 +221,12 @@ enum Stmt {
         target: Expr,
         value: Expr,
     },
+    /// `t1, t2, ... = v` — multi-target assignment (e.g. from a multi-return call)
+    /// when the targets are already-declared locals.
+    MultiAssign {
+        targets: Vec<Expr>,
+        value: Expr,
+    },
     /// `local v_a, v_b, ... = v, w, ...` for multi-return calls/locals.
     LocalList {
         names: Vec<String>,
@@ -324,11 +330,103 @@ pub fn reconstruct(file: &BytecodeFile) -> Result<String, String> {
 }
 
 fn proto_header(proto: &Proto) -> String {
-    let mut params: Vec<String> = (0..proto.numparams).map(|i| format!("v{}", i)).collect();
+    let mut params: Vec<String> = (0..proto.numparams)
+        .map(|i| {
+            if i == 0 && looks_like_method(proto) {
+                "self".to_string()
+            } else {
+                format!("v{}", i)
+            }
+        })
+        .collect();
     if proto.is_vararg != 0 {
         params.push("...".to_string());
     }
     format!("function({})", params.join(", "))
+}
+
+/// Heuristic: the proto is a method if its first register (v0) is used
+/// as the receiver of a `NAMECALL` or as the table in a `GETTABLEKS` /
+/// `SETTABLEKS` / `GETTABLE` / `SETTABLE` anywhere in its code.
+fn looks_like_method(proto: &Proto) -> bool {
+    if proto.numparams == 0 {
+        return false;
+    }
+    let Ok(instrs) = decode_proto(proto) else {
+        return false;
+    };
+    use LuauOpcode::*;
+    instrs.iter().any(|i| {
+        matches!(
+            i.op,
+            LOP_NAMECALL
+                | LOP_GETTABLEKS
+                | LOP_SETTABLEKS
+                | LOP_GETTABLE
+                | LOP_SETTABLE
+                | LOP_GETTABLEN
+                | LOP_SETTABLEN
+        ) && i.b == 0
+    })
+}
+
+/// Replace the bare identifier `v0` with `self` in the rendered body of a
+/// method — walk the text respecting Lua identifier boundaries so that
+/// other identifiers that happen to contain `v0` (e.g. `v05`, `foov0`) are
+/// left alone.  String literals are preserved verbatim.
+fn rename_reg0_to_self(body: &str) -> String {
+    let bytes = body.as_bytes();
+    let mut out = String::with_capacity(body.len());
+    let mut i = 0usize;
+    let is_ident = |c: u8| c.is_ascii_alphanumeric() || c == b'_';
+    while i < bytes.len() {
+        let c = bytes[i];
+        // Skip double-quoted string literals intact.
+        if c == b'"' {
+            let start = i;
+            i += 1;
+            while i < bytes.len() {
+                let b = bytes[i];
+                if b == b'\\' && i + 1 < bytes.len() {
+                    i += 2;
+                    continue;
+                }
+                if b == b'"' {
+                    i += 1;
+                    break;
+                }
+                i += 1;
+            }
+            out.push_str(&body[start..i]);
+            continue;
+        }
+        // Skip `-- ...` line comments (don't touch v0 mentions in comments).
+        if c == b'-' && i + 1 < bytes.len() && bytes[i + 1] == b'-' {
+            let start = i;
+            while i < bytes.len() && bytes[i] != b'\n' {
+                i += 1;
+            }
+            out.push_str(&body[start..i]);
+            continue;
+        }
+        // Identifier / number run.
+        if is_ident(c) {
+            let start = i;
+            while i < bytes.len() && is_ident(bytes[i]) {
+                i += 1;
+            }
+            let token = &body[start..i];
+            if token == "v0" {
+                out.push_str("self");
+            } else {
+                out.push_str(token);
+            }
+            continue;
+        }
+        out.push(c as char);
+        i += 1;
+    }
+    out
 }
 
 /// Reconstruct a single proto body. Each line in the returned string is
@@ -374,6 +472,9 @@ fn reconstruct_proto_body(
     let pad = "  ".repeat(indent);
     for s in &stmts {
         render_stmt(&mut out, s, &pad, file, indent)?;
+    }
+    if looks_like_method(proto) {
+        out = rename_reg0_to_self(&out);
     }
     Ok(out)
 }
@@ -518,26 +619,33 @@ fn jumpif_condition(i: &Instr, regs: &RegFile, proto: &Proto) -> Option<Expr> {
 /// collapse `pairs(t)` / `ipairs(t)` calls into the `for ... in <call>`
 /// header.
 fn try_inline_forgen_iterator(out: &mut Vec<Stmt>, base: u8) -> Option<Vec<Expr>> {
-    let Stmt::LocalList { names, value, .. } = out.last()? else {
-        return None;
-    };
-    if names.len() != 3 {
-        return None;
-    }
-    for k in 0..3u8 {
-        if names[k as usize] != format!("v{}", base + k) {
-            return None;
-        }
-    }
-    match value {
-        Expr::Call { .. } | Expr::Method { .. } => {}
+    // Inspect the previous statement: either `local v<b>, v<b+1>, v<b+2> = <call>`
+    // or a bare `v<b>, v<b+1>, v<b+2> = <call>` left-over from an already-declared
+    // triplet.  Both represent the iter/state/ctrl registers a FORGPREP expects.
+    let (value_is_call, matches) = match out.last()? {
+        Stmt::LocalList { names, value, .. } => (
+            matches!(value, Expr::Call { .. } | Expr::Method { .. }),
+            names.len() == 3
+                && (0..3u8)
+                    .all(|k| names[k as usize] == format!("v{}", base + k)),
+        ),
+        Stmt::MultiAssign { targets, value } => (
+            matches!(value, Expr::Call { .. } | Expr::Method { .. }),
+            targets.len() == 3
+                && (0..3u8).all(|k| {
+                    matches!(targets[k as usize], Expr::Reg(r) if r == base + k)
+                }),
+        ),
         _ => return None,
+    };
+    if !value_is_call || !matches {
+        return None;
     }
-    let popped = out.pop().unwrap();
-    if let Stmt::LocalList { value, .. } = popped {
-        Some(vec![value])
-    } else {
-        None
+    match out.pop()? {
+        Stmt::LocalList { value, .. } | Stmt::MultiAssign { value, .. } => {
+            Some(vec![value])
+        }
+        _ => None,
     }
 }
 
@@ -857,6 +965,41 @@ fn lift_range(
             }
         }
 
+        // ---- conditional break / continue (taken before any `if` so
+        //      that `if cond then continue end` inside a loop body is
+        //      recognised instead of being folded into a giant `if`
+        //      block stretching to the loop tail) ----
+        if let Some(cond) = jumpif_condition(instr, regs, proto) {
+            if instr.d > 0 {
+                let target_pc =
+                    (instr.pc as isize + 1 + instr.d as isize) as usize;
+                if let Some(&target_idx) = pc_to_idx.get(&target_pc) {
+                    let neg = Expr::UnOp {
+                        op: "not ",
+                        operand: Box::new(cond.clone()),
+                    };
+                    if Some(target_idx) == loop_ctx.break_target {
+                        out.push(Stmt::If {
+                            cond: neg,
+                            then_block: vec![Stmt::Break],
+                            else_block: None,
+                        });
+                        i += 1;
+                        continue;
+                    }
+                    if Some(target_idx) == loop_ctx.continue_target {
+                        out.push(Stmt::If {
+                            cond: neg,
+                            then_block: vec![Stmt::Continue],
+                            else_block: None,
+                        });
+                        i += 1;
+                        continue;
+                    }
+                }
+            }
+        }
+
         // ---- forward conditional jump: if-then[-else] or while ----
         if let Some(cond) = jumpif_condition(instr, regs, proto) {
             if instr.d > 0 {
@@ -983,38 +1126,6 @@ fn lift_range(
                         let body: Vec<Stmt> = out.split_off(body_stmts_start);
                         out.push(Stmt::Repeat { body, cond });
                         seed_params(regs, proto.numparams);
-                        i += 1;
-                        continue;
-                    }
-                }
-            }
-        }
-
-        // ---- conditional break / continue ----
-        if let Some(cond) = jumpif_condition(instr, regs, proto) {
-            if instr.d > 0 {
-                let target_pc =
-                    (instr.pc as isize + 1 + instr.d as isize) as usize;
-                if let Some(&target_idx) = pc_to_idx.get(&target_pc) {
-                    let neg = Expr::UnOp {
-                        op: "not ",
-                        operand: Box::new(cond),
-                    };
-                    if Some(target_idx) == loop_ctx.break_target {
-                        out.push(Stmt::If {
-                            cond: neg,
-                            then_block: vec![Stmt::Break],
-                            else_block: None,
-                        });
-                        i += 1;
-                        continue;
-                    }
-                    if Some(target_idx) == loop_ctx.continue_target {
-                        out.push(Stmt::If {
-                            cond: neg,
-                            then_block: vec![Stmt::Continue],
-                            else_block: None,
-                        });
                         i += 1;
                         continue;
                     }
@@ -1577,12 +1688,8 @@ fn emit_bound_call(
         });
     } else {
         // Plain multi-assignment: `v<a>, v<b> = call(...)`.
-        stmts.push(Stmt::Comment(format!(
-            "{} = {}",
-            names.join(", "),
-            "<call>"
-        )));
-        stmts.push(Stmt::Call(value));
+        let targets: Vec<Expr> = regs_bound.iter().map(|r| Expr::Reg(*r)).collect();
+        stmts.push(Stmt::MultiAssign { targets, value });
     }
 }
 
@@ -1865,6 +1972,20 @@ fn render_stmt(
                 "{}{} = {}",
                 pad,
                 render_expr(target, Prec::Lowest, file, indent),
+                render_expr(value, Prec::Lowest, file, indent)
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Stmt::MultiAssign { targets, value } => {
+            let rendered: Vec<String> = targets
+                .iter()
+                .map(|t| render_expr(t, Prec::Lowest, file, indent))
+                .collect();
+            writeln!(
+                out,
+                "{}{} = {}",
+                pad,
+                rendered.join(", "),
                 render_expr(value, Prec::Lowest, file, indent)
             )
             .map_err(|e| e.to_string())?;
