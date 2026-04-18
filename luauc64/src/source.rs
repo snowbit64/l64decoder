@@ -230,6 +230,40 @@ enum Stmt {
     },
     Call(Expr),
     Return(Vec<Expr>),
+    /// `if cond then <then_block> [else <else_block>] end`.
+    If {
+        cond: Expr,
+        then_block: Vec<Stmt>,
+        else_block: Option<Vec<Stmt>>,
+    },
+    /// `while cond do <body> end`.
+    While {
+        cond: Expr,
+        body: Vec<Stmt>,
+    },
+    /// `repeat <body> until cond`.
+    Repeat {
+        body: Vec<Stmt>,
+        cond: Expr,
+    },
+    /// `for <var> = <start>, <limit>[, <step>] do <body> end`.
+    ForNum {
+        var: String,
+        start: Expr,
+        limit: Expr,
+        step: Option<Expr>,
+        body: Vec<Stmt>,
+    },
+    /// `for <vars...> in <exprs...> do <body> end`.
+    ForGen {
+        vars: Vec<String>,
+        exprs: Vec<Expr>,
+        body: Vec<Stmt>,
+    },
+    /// `break`.
+    Break,
+    /// `continue`.
+    Continue,
     /// Free-form comment line (no leading `-- `; the renderer adds it).
     Comment(String),
     /// Label comment, e.g. `-- [L42]` used as a jump target marker.
@@ -243,7 +277,7 @@ enum Stmt {
 /// Virtual register file. Each register holds either `None` (no known
 /// expression; the register is "dirty") or `Some(expr)` (the current
 /// expression produced by the most recent write).
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct RegFile {
     regs: BTreeMap<u8, Expr>,
 }
@@ -305,7 +339,11 @@ fn reconstruct_proto_body(
     indent: usize,
 ) -> Result<String, String> {
     let instrs = decode_proto(proto)?;
-    let jump_targets = collect_jump_targets(&instrs);
+    let pc_to_idx: BTreeMap<usize, usize> = instrs
+        .iter()
+        .enumerate()
+        .map(|(idx, i)| (i.pc, idx))
+        .collect();
 
     let mut regs = RegFile::default();
     // Seed params as local registers v0..vN — these count as "already
@@ -316,34 +354,20 @@ fn reconstruct_proto_body(
         regs.set(i, Expr::Reg(i));
         declared.insert(i);
     }
-    let mut stmts: Vec<Stmt> = Vec::new();
     let mut pending_captures: Vec<Capture> = Vec::new();
 
-    for (idx, instr) in instrs.iter().enumerate() {
-        if jump_targets.contains(&instr.pc) {
-            stmts.push(Stmt::LabelMarker(instr.pc));
-            // Across a basic-block boundary we can't rely on prior
-            // register expression snapshots anymore (they may have been
-            // produced on an alternate path). Declared-local names do
-            // survive the boundary, so keep `declared`.
-            regs = RegFile::default();
-            for i in 0..proto.numparams {
-                regs.set(i, Expr::Reg(i));
-            }
-        }
-
-        lift_instr(
-            file,
-            proto,
-            instr,
-            &instrs,
-            idx,
-            &mut regs,
-            &mut stmts,
-            &mut declared,
-            &mut pending_captures,
-        )?;
-    }
+    let stmts = lift_range(
+        file,
+        proto,
+        &instrs,
+        &pc_to_idx,
+        0,
+        instrs.len(),
+        &mut regs,
+        &mut declared,
+        &mut pending_captures,
+        &LoopContext::default(),
+    )?;
 
     // Render statements to text.
     let mut out = String::new();
@@ -352,6 +376,20 @@ fn reconstruct_proto_body(
         render_stmt(&mut out, s, &pad, file, indent)?;
     }
     Ok(out)
+}
+
+/// Context passed through nested `lift_range` calls so that a bare
+/// JUMP/JUMPBACK can be recognised as a `break` / `continue` out of the
+/// innermost loop instead of a goto-comment.
+#[derive(Default, Clone)]
+struct LoopContext {
+    /// Index of the instruction that should be reached to continue the
+    /// innermost loop (i.e. the FORNLOOP/JUMPBACK target or the while
+    /// header re-check).
+    continue_target: Option<usize>,
+    /// Index of the instruction just past the innermost loop (i.e. the
+    /// fall-through target after the loop ends).
+    break_target: Option<usize>,
 }
 
 /// Collect the set of `pc` values that are jump targets anywhere in the
@@ -402,6 +440,623 @@ fn collect_jump_targets(instrs: &[Instr]) -> BTreeSet<usize> {
 struct Capture {
     kind: u8, // 0=value, 1=ref, 2=upval
     idx: u8,
+}
+
+/// If `instr` is a conditional `JUMPIF*` whose body runs when the
+/// `skip-jump` is not taken, return the positive condition expression
+/// that should head an `if`/`while`. `None` for unsupported opcodes.
+fn jumpif_condition(i: &Instr, regs: &RegFile, proto: &Proto) -> Option<Expr> {
+    use LuauOpcode::*;
+    match i.op {
+        LOP_JUMPIFNOT => Some(regs.get(i.a)),
+        LOP_JUMPIF => Some(Expr::UnOp {
+            op: "not ",
+            operand: Box::new(regs.get(i.a)),
+        }),
+        LOP_JUMPIFEQ
+        | LOP_JUMPIFNOTEQ
+        | LOP_JUMPIFLE
+        | LOP_JUMPIFNOTLE
+        | LOP_JUMPIFLT
+        | LOP_JUMPIFNOTLT => {
+            let lhs = regs.get(i.a);
+            let rhs = regs.get(i.aux as u8);
+            let op: &'static str = match i.op {
+                // Jump-if skips the body; the body runs when the
+                // comparison is *inverted*.
+                LOP_JUMPIFEQ => "~=",
+                LOP_JUMPIFNOTEQ => "==",
+                LOP_JUMPIFLE => ">",
+                LOP_JUMPIFNOTLE => "<=",
+                LOP_JUMPIFLT => ">=",
+                LOP_JUMPIFNOTLT => "<",
+                _ => unreachable!(),
+            };
+            Some(Expr::BinOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            })
+        }
+        LOP_JUMPXEQKNIL | LOP_JUMPXEQKB | LOP_JUMPXEQKN | LOP_JUMPXEQKS => {
+            // aux bit 31 = "not equal" flag; low bits hold the k-index
+            // except for JUMPXEQKNIL/KB where the payload is inline.
+            let not_eq = (i.aux >> 31) & 1 == 1;
+            let lhs = regs.get(i.a);
+            let rhs = match i.op {
+                LOP_JUMPXEQKNIL => Expr::Nil,
+                LOP_JUMPXEQKB => Expr::Bool((i.aux & 1) != 0),
+                LOP_JUMPXEQKN => {
+                    let k_idx = (i.aux & 0x00FFFFFF) as usize;
+                    constant_to_expr(proto, k_idx)
+                }
+                LOP_JUMPXEQKS => {
+                    let k_idx = (i.aux & 0x00FFFFFF) as usize;
+                    constant_to_expr(proto, k_idx)
+                }
+                _ => unreachable!(),
+            };
+            // The bytecode jumps when the equality check matches `not_eq`.
+            // The body runs when the equality check matches the *opposite*
+            // of `not_eq`, so:
+            //   not_eq=false (jump-if-equal)     → body runs when a ~= rhs
+            //   not_eq=true  (jump-if-not-equal) → body runs when a == rhs
+            let op = if not_eq { "==" } else { "~=" };
+            Some(Expr::BinOp {
+                op,
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+            })
+        }
+        _ => None,
+    }
+}
+
+/// If the last statement in `out` is `local v{a}, v{a+1}, v{a+2} = <call>`
+/// (matching the 3 iter/state/ctrl registers that `FORGPREP` reads),
+/// remove it and return the single right-hand expression.  Used to
+/// collapse `pairs(t)` / `ipairs(t)` calls into the `for ... in <call>`
+/// header.
+fn try_inline_forgen_iterator(out: &mut Vec<Stmt>, base: u8) -> Option<Vec<Expr>> {
+    let Stmt::LocalList { names, value, .. } = out.last()? else {
+        return None;
+    };
+    if names.len() != 3 {
+        return None;
+    }
+    for k in 0..3u8 {
+        if names[k as usize] != format!("v{}", base + k) {
+            return None;
+        }
+    }
+    match value {
+        Expr::Call { .. } | Expr::Method { .. } => {}
+        _ => return None,
+    }
+    let popped = out.pop().unwrap();
+    if let Stmt::LocalList { value, .. } = popped {
+        Some(vec![value])
+    } else {
+        None
+    }
+}
+
+fn seed_params(regs: &mut RegFile, numparams: u8) {
+    regs.regs.clear();
+    for i in 0..numparams {
+        regs.set(i, Expr::Reg(i));
+    }
+}
+
+/// Return true if `op` is any flavour of jump that carries a `d` offset.
+fn is_forward_jump_family(op: LuauOpcode) -> bool {
+    use LuauOpcode::*;
+    matches!(
+        op,
+        LOP_JUMP
+            | LOP_JUMPBACK
+            | LOP_JUMPIF
+            | LOP_JUMPIFNOT
+            | LOP_JUMPIFEQ
+            | LOP_JUMPIFNOTEQ
+            | LOP_JUMPIFLE
+            | LOP_JUMPIFNOTLE
+            | LOP_JUMPIFLT
+            | LOP_JUMPIFNOTLT
+            | LOP_JUMPXEQKNIL
+            | LOP_JUMPXEQKB
+            | LOP_JUMPXEQKN
+            | LOP_JUMPXEQKS
+    )
+}
+
+/// Pre-scan `[from, to)` for backward jumps and return a map from
+/// `loop_start_idx` → `tail_idx` (the last instruction in the loop body,
+/// i.e. the backward jump itself).  When multiple back-jumps target the
+/// same index, we keep the farthest one so the whole loop is captured.
+fn scan_loop_starts(
+    instrs: &[Instr],
+    pc_to_idx: &BTreeMap<usize, usize>,
+    from: usize,
+    to: usize,
+) -> BTreeMap<usize, usize> {
+    let mut loops: BTreeMap<usize, usize> = BTreeMap::new();
+    for (j, inst) in instrs.iter().enumerate().take(to).skip(from) {
+        if !is_forward_jump_family(inst.op) || inst.d >= 0 {
+            continue;
+        }
+        let back_pc = (inst.pc as isize + 1 + inst.d as isize) as usize;
+        let Some(&back_idx) = pc_to_idx.get(&back_pc) else {
+            continue;
+        };
+        if back_idx < from || back_idx > j || back_idx >= to {
+            continue;
+        }
+        loops
+            .entry(back_idx)
+            .and_modify(|tail| {
+                if *tail < j {
+                    *tail = j;
+                }
+            })
+            .or_insert(j);
+    }
+    loops
+}
+
+/// Lift a range of instructions `[from, to)` to a list of statements,
+/// detecting `for` / `if` / `while` / `repeat` regions along the way.
+#[allow(clippy::too_many_arguments)]
+fn lift_range(
+    file: &BytecodeFile,
+    proto: &Proto,
+    instrs: &[Instr],
+    pc_to_idx: &BTreeMap<usize, usize>,
+    from: usize,
+    to: usize,
+    regs: &mut RegFile,
+    declared: &mut BTreeSet<u8>,
+    pending_captures: &mut Vec<Capture>,
+    loop_ctx: &LoopContext,
+) -> Result<Vec<Stmt>, String> {
+    use LuauOpcode::*;
+    let loop_starts = scan_loop_starts(instrs, pc_to_idx, from, to);
+    let mut out: Vec<Stmt> = Vec::new();
+    let mut i = from;
+    while i < to {
+        let instr = &instrs[i];
+
+        // ---- loop region starting here (pre-scan) ----
+        if let Some(&tail_idx) = loop_starts.get(&i) {
+            if tail_idx < to && tail_idx >= i {
+                let tail = &instrs[tail_idx];
+                let break_target = Some(tail_idx + 1);
+
+                // `while cond do body end`: the first instruction in the
+                // body is a forward skip-jump past the tail, and the tail
+                // is an unconditional JUMPBACK to `i`.
+                if let Some(cond) = jumpif_condition(instr, regs, proto) {
+                    if instr.d > 0 {
+                        let skip_pc =
+                            (instr.pc as isize + 1 + instr.d as isize) as usize;
+                        let skip_idx = pc_to_idx.get(&skip_pc).copied();
+                        if skip_idx == Some(tail_idx + 1)
+                            && matches!(tail.op, LOP_JUMPBACK | LOP_JUMP)
+                            && tail.d < 0
+                        {
+                            let back_pc =
+                                (tail.pc as isize + 1 + tail.d as isize) as usize;
+                            if pc_to_idx.get(&back_pc) == Some(&i) {
+                                let mut body_regs = RegFile::default();
+                                seed_params(&mut body_regs, proto.numparams);
+                                let inner_ctx = LoopContext {
+                                    continue_target: Some(tail_idx),
+                                    break_target,
+                                };
+                                let body = lift_range(
+                                    file,
+                                    proto,
+                                    instrs,
+                                    pc_to_idx,
+                                    i + 1,
+                                    tail_idx,
+                                    &mut body_regs,
+                                    declared,
+                                    pending_captures,
+                                    &inner_ctx,
+                                )?;
+                                out.push(Stmt::While { cond, body });
+                                seed_params(regs, proto.numparams);
+                                i = tail_idx + 1;
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                // `repeat body until cond`: tail is a backward conditional
+                // jump landing on `i`.
+                if tail.d < 0 {
+                    let back_pc =
+                        (tail.pc as isize + 1 + tail.d as isize) as usize;
+                    if pc_to_idx.get(&back_pc) == Some(&i) {
+                        let mut body_regs = RegFile::default();
+                        seed_params(&mut body_regs, proto.numparams);
+                        let inner_ctx = LoopContext {
+                            continue_target: Some(tail_idx),
+                            break_target,
+                        };
+                        let body = lift_range(
+                            file,
+                            proto,
+                            instrs,
+                            pc_to_idx,
+                            i,
+                            tail_idx,
+                            &mut body_regs,
+                            declared,
+                            pending_captures,
+                            &inner_ctx,
+                        )?;
+                        if let Some(cond) =
+                            jumpif_condition(tail, &body_regs, proto)
+                        {
+                            out.push(Stmt::Repeat { body, cond });
+                            seed_params(regs, proto.numparams);
+                            i = tail_idx + 1;
+                            continue;
+                        }
+                        // Unconditional JUMPBACK with no predicate → infinite
+                        // loop with break-inside semantics.
+                        if matches!(tail.op, LOP_JUMPBACK | LOP_JUMP) {
+                            let mut body_regs = RegFile::default();
+                            seed_params(&mut body_regs, proto.numparams);
+                            let body = lift_range(
+                                file,
+                                proto,
+                                instrs,
+                                pc_to_idx,
+                                i,
+                                tail_idx,
+                                &mut body_regs,
+                                declared,
+                                pending_captures,
+                                &inner_ctx,
+                            )?;
+                            out.push(Stmt::While {
+                                cond: Expr::Bool(true),
+                                body,
+                            });
+                            seed_params(regs, proto.numparams);
+                            i = tail_idx + 1;
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- numeric for loop ----
+        if matches!(instr.op, LOP_FORNPREP) {
+            let target_pc = (instr.pc as isize + 1 + instr.d as isize) as usize;
+            if let Some(&loop_idx) = pc_to_idx.get(&target_pc) {
+                if loop_idx > i
+                    && loop_idx < to
+                    && matches!(instrs[loop_idx].op, LOP_FORNLOOP)
+                {
+                    let start = regs.get(instr.a + 2);
+                    let limit = regs.get(instr.a);
+                    let step = regs.get(instr.a + 1);
+                    let step_opt = match &step {
+                        Expr::Num(n) if (*n - 1.0).abs() < f64::EPSILON => None,
+                        _ => Some(step),
+                    };
+                    let var = format!("v{}", instr.a + 2);
+                    let mut body_regs = RegFile::default();
+                    seed_params(&mut body_regs, proto.numparams);
+                    body_regs.set(instr.a + 2, Expr::Reg(instr.a + 2));
+                    declared.insert(instr.a + 2);
+                    let inner_ctx = LoopContext {
+                        continue_target: Some(loop_idx),
+                        break_target: Some(loop_idx + 1),
+                    };
+                    let body = lift_range(
+                        file,
+                        proto,
+                        instrs,
+                        pc_to_idx,
+                        i + 1,
+                        loop_idx,
+                        &mut body_regs,
+                        declared,
+                        pending_captures,
+                        &inner_ctx,
+                    )?;
+                    out.push(Stmt::ForNum {
+                        var,
+                        start,
+                        limit,
+                        step: step_opt,
+                        body,
+                    });
+                    seed_params(regs, proto.numparams);
+                    i = loop_idx + 1;
+                    continue;
+                }
+            }
+        }
+
+        // ---- generic for loop ----
+        if matches!(
+            instr.op,
+            LOP_FORGPREP | LOP_FORGPREP_NEXT | LOP_FORGPREP_INEXT
+        ) {
+            let target_pc = (instr.pc as isize + 1 + instr.d as isize) as usize;
+            if let Some(&loop_idx) = pc_to_idx.get(&target_pc) {
+                if loop_idx > i
+                    && loop_idx < to
+                    && matches!(instrs[loop_idx].op, LOP_FORGLOOP)
+                {
+                    let forgloop = &instrs[loop_idx];
+                    let num_vars_raw = forgloop.aux & 0xFF;
+                    // FORGLOOP aux low byte = number of loop variables.
+                    let num_vars = if num_vars_raw == 0 {
+                        1
+                    } else {
+                        num_vars_raw as u8
+                    };
+                    let exprs_base = instr.a;
+                    let exprs = vec![
+                        regs.get(exprs_base),
+                        regs.get(exprs_base + 1),
+                        regs.get(exprs_base + 2),
+                    ];
+                    let vars: Vec<String> = (0..num_vars)
+                        .map(|k| format!("v{}", instr.a + 3 + k))
+                        .collect();
+                    let mut body_regs = RegFile::default();
+                    seed_params(&mut body_regs, proto.numparams);
+                    for k in 0..num_vars {
+                        let r = instr.a + 3 + k;
+                        body_regs.set(r, Expr::Reg(r));
+                        declared.insert(r);
+                    }
+                    let inner_ctx = LoopContext {
+                        continue_target: Some(loop_idx),
+                        break_target: Some(loop_idx + 1),
+                    };
+                    let body = lift_range(
+                        file,
+                        proto,
+                        instrs,
+                        pc_to_idx,
+                        i + 1,
+                        loop_idx,
+                        &mut body_regs,
+                        declared,
+                        pending_captures,
+                        &inner_ctx,
+                    )?;
+                    // If the three iter/state/ctrl registers were just
+                    // produced by a single preceding call, fold that call
+                    // back into the `for ... in <call>(...)` header.
+                    let folded_exprs = try_inline_forgen_iterator(
+                        &mut out,
+                        instr.a,
+                    )
+                    .unwrap_or(exprs);
+                    out.push(Stmt::ForGen {
+                        vars,
+                        exprs: folded_exprs,
+                        body,
+                    });
+                    seed_params(regs, proto.numparams);
+                    i = loop_idx + 1;
+                    continue;
+                }
+            }
+        }
+
+        // ---- forward conditional jump: if-then[-else] or while ----
+        if let Some(cond) = jumpif_condition(instr, regs, proto) {
+            if instr.d > 0 {
+                let skip_pc = (instr.pc as isize + 1 + instr.d as isize) as usize;
+                if let Some(&skip_idx) = pc_to_idx.get(&skip_pc) {
+                    if skip_idx > i && skip_idx <= to {
+                        // `while`: the last instruction before `skip_idx`
+                        // is a JUMPBACK that lands back at `i`.
+                        let last_then = skip_idx.saturating_sub(1);
+                        if last_then > i {
+                            let lt = &instrs[last_then];
+                            if matches!(lt.op, LOP_JUMPBACK | LOP_JUMP) && lt.d < 0 {
+                                let back_pc =
+                                    (lt.pc as isize + 1 + lt.d as isize) as usize;
+                                if pc_to_idx.get(&back_pc) == Some(&i) {
+                                    let mut body_regs = RegFile::default();
+                                    seed_params(&mut body_regs, proto.numparams);
+                                    let inner_ctx = LoopContext {
+                                        continue_target: Some(last_then),
+                                        break_target: Some(skip_idx),
+                                    };
+                                    let body = lift_range(
+                                        file,
+                                        proto,
+                                        instrs,
+                                        pc_to_idx,
+                                        i + 1,
+                                        last_then,
+                                        &mut body_regs,
+                                        declared,
+                                        pending_captures,
+                                        &inner_ctx,
+                                    )?;
+                                    out.push(Stmt::While { cond, body });
+                                    seed_params(regs, proto.numparams);
+                                    i = skip_idx;
+                                    continue;
+                                }
+                            }
+                        }
+
+                        // Detect if/else: last then-instr is JUMP forward to `merge`.
+                        let (then_end, else_end) = {
+                            if last_then > i {
+                                let lt = &instrs[last_then];
+                                if matches!(lt.op, LOP_JUMP) && lt.d > 0 {
+                                    let merge_pc =
+                                        (lt.pc as isize + 1 + lt.d as isize) as usize;
+                                    if let Some(&merge_idx) = pc_to_idx.get(&merge_pc) {
+                                        if merge_idx > skip_idx && merge_idx <= to {
+                                            (last_then, Some(merge_idx))
+                                        } else {
+                                            (skip_idx, None)
+                                        }
+                                    } else {
+                                        (skip_idx, None)
+                                    }
+                                } else {
+                                    (skip_idx, None)
+                                }
+                            } else {
+                                (skip_idx, None)
+                            }
+                        };
+
+                        let then_block = {
+                            let mut body_regs = regs.clone();
+                            lift_range(
+                                file,
+                                proto,
+                                instrs,
+                                pc_to_idx,
+                                i + 1,
+                                then_end,
+                                &mut body_regs,
+                                declared,
+                                pending_captures,
+                                loop_ctx,
+                            )?
+                        };
+                        let else_block = if let Some(merge_idx) = else_end {
+                            let mut body_regs = regs.clone();
+                            Some(lift_range(
+                                file,
+                                proto,
+                                instrs,
+                                pc_to_idx,
+                                skip_idx,
+                                merge_idx,
+                                &mut body_regs,
+                                declared,
+                                pending_captures,
+                                loop_ctx,
+                            )?)
+                        } else {
+                            None
+                        };
+                        out.push(Stmt::If {
+                            cond,
+                            then_block,
+                            else_block,
+                        });
+                        seed_params(regs, proto.numparams);
+                        i = else_end.unwrap_or(skip_idx);
+                        continue;
+                    }
+                }
+            }
+            // ---- backward conditional jump: `repeat ... until cond` ----
+            if instr.d < 0 {
+                let back_pc = (instr.pc as isize + 1 + instr.d as isize) as usize;
+                if let Some(&back_idx) = pc_to_idx.get(&back_pc) {
+                    if back_idx >= from && back_idx <= i {
+                        // Only accept if the region [back_idx, i] is fully
+                        // contained in our current range and no other
+                        // higher-level structure has claimed it (the
+                        // previous statements in `out` that correspond to
+                        // this body will be moved into the `repeat`).
+                        let body_stmts_start = out
+                            .iter()
+                            .rposition(|s| matches!(s, Stmt::LabelMarker(pc) if *pc == back_pc))
+                            .map(|p| p + 1)
+                            .unwrap_or(0);
+                        let body: Vec<Stmt> = out.split_off(body_stmts_start);
+                        out.push(Stmt::Repeat { body, cond });
+                        seed_params(regs, proto.numparams);
+                        i += 1;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // ---- conditional break / continue ----
+        if let Some(cond) = jumpif_condition(instr, regs, proto) {
+            if instr.d > 0 {
+                let target_pc =
+                    (instr.pc as isize + 1 + instr.d as isize) as usize;
+                if let Some(&target_idx) = pc_to_idx.get(&target_pc) {
+                    let neg = Expr::UnOp {
+                        op: "not ",
+                        operand: Box::new(cond),
+                    };
+                    if Some(target_idx) == loop_ctx.break_target {
+                        out.push(Stmt::If {
+                            cond: neg,
+                            then_block: vec![Stmt::Break],
+                            else_block: None,
+                        });
+                        i += 1;
+                        continue;
+                    }
+                    if Some(target_idx) == loop_ctx.continue_target {
+                        out.push(Stmt::If {
+                            cond: neg,
+                            then_block: vec![Stmt::Continue],
+                            else_block: None,
+                        });
+                        i += 1;
+                        continue;
+                    }
+                }
+            }
+        }
+
+        // ---- bare JUMP to loop break/continue targets ----
+        if matches!(instr.op, LOP_JUMP | LOP_JUMPBACK | LOP_JUMPX) {
+            let target_pc = match instr.op {
+                LOP_JUMPX => (instr.pc as isize + 1 + instr.e as isize) as usize,
+                _ => (instr.pc as isize + 1 + instr.d as isize) as usize,
+            };
+            if let Some(&target_idx) = pc_to_idx.get(&target_pc) {
+                if Some(target_idx) == loop_ctx.break_target {
+                    out.push(Stmt::Break);
+                    i += 1;
+                    continue;
+                }
+                if Some(target_idx) == loop_ctx.continue_target {
+                    out.push(Stmt::Continue);
+                    i += 1;
+                    continue;
+                }
+            }
+        }
+
+        // ---- fallback: plain instruction lifting ----
+        lift_instr(
+            file,
+            proto,
+            instr,
+            instrs,
+            i,
+            regs,
+            &mut out,
+            declared,
+            pending_captures,
+        )?;
+        i += 1;
+    }
+    Ok(out)
 }
 
 /// Lift one instruction into statements and/or register updates.
@@ -501,13 +1156,21 @@ fn lift_instr(
             regs.set(i.a, field_or_index(t, name));
         }
         LOP_SETTABLEKS => {
-            let t = regs.get(i.b);
             let name = string_const(proto, i.aux as usize)
                 .unwrap_or_else(|| format!("k{}", i.aux));
-            stmts.push(Stmt::Assign {
-                target: field_or_index(t, name),
-                value: regs.get(i.a),
-            });
+            let value = regs.get(i.a);
+            // If register `b` still holds a non-escaped in-progress table
+            // literal, merge the key/value into its hash part instead of
+            // emitting a standalone `t.k = v` statement.
+            if let Some(Expr::Table { hash, .. }) = regs.regs.get_mut(&i.b) {
+                hash.push((Expr::Str(name), value));
+            } else {
+                let t = regs.get(i.b);
+                stmts.push(Stmt::Assign {
+                    target: field_or_index(t, name),
+                    value,
+                });
+            }
         }
         LOP_GETTABLEN => {
             let t = regs.get(i.b);
@@ -517,11 +1180,31 @@ fn lift_instr(
             );
         }
         LOP_SETTABLEN => {
-            let t = regs.get(i.b);
-            stmts.push(Stmt::Assign {
-                target: Expr::Index(Box::new(t), Box::new(Expr::Num((i.c as u32 + 1) as f64))),
-                value: regs.get(i.a),
-            });
+            let idx_val = Expr::Num((i.c as u32 + 1) as f64);
+            let value = regs.get(i.a);
+            if let Some(Expr::Table { array, .. }) = regs.regs.get_mut(&i.b) {
+                // Fill with `nil` until the slot matches the 1-based index.
+                let want = (i.c as usize) + 1;
+                while array.len() + 1 < want {
+                    array.push(Expr::Nil);
+                }
+                if array.len() + 1 == want {
+                    array.push(value);
+                } else {
+                    // Out-of-order write; fall back to standalone assign.
+                    let t = regs.get(i.b);
+                    stmts.push(Stmt::Assign {
+                        target: Expr::Index(Box::new(t), Box::new(idx_val)),
+                        value,
+                    });
+                }
+            } else {
+                let t = regs.get(i.b);
+                stmts.push(Stmt::Assign {
+                    target: Expr::Index(Box::new(t), Box::new(idx_val)),
+                    value,
+                });
+            }
         }
 
         LOP_NEWTABLE => regs.set(
@@ -1230,6 +1913,135 @@ fn render_stmt(
         }
         Stmt::Blank => {
             writeln!(out).map_err(|e| e.to_string())?;
+        }
+        Stmt::Break => {
+            writeln!(out, "{}break", pad).map_err(|e| e.to_string())?;
+        }
+        Stmt::Continue => {
+            writeln!(out, "{}continue", pad).map_err(|e| e.to_string())?;
+        }
+        Stmt::If {
+            cond,
+            then_block,
+            else_block,
+        } => {
+            writeln!(
+                out,
+                "{}if {} then",
+                pad,
+                render_expr(cond, Prec::Lowest, file, indent)
+            )
+            .map_err(|e| e.to_string())?;
+            let body_pad = "  ".repeat(indent + 1);
+            for s in then_block {
+                render_stmt(out, s, &body_pad, file, indent + 1)?;
+            }
+            if let Some(else_b) = else_block {
+                // Collapse `else { if ... }` into `elseif`.
+                if else_b.len() == 1 {
+                    if let Stmt::If {
+                        cond: c2,
+                        then_block: t2,
+                        else_block: e2,
+                    } = &else_b[0]
+                    {
+                        writeln!(
+                            out,
+                            "{}elseif {} then",
+                            pad,
+                            render_expr(c2, Prec::Lowest, file, indent)
+                        )
+                        .map_err(|e| e.to_string())?;
+                        for s in t2 {
+                            render_stmt(out, s, &body_pad, file, indent + 1)?;
+                        }
+                        if let Some(e3) = e2 {
+                            writeln!(out, "{}else", pad).map_err(|e| e.to_string())?;
+                            for s in e3 {
+                                render_stmt(out, s, &body_pad, file, indent + 1)?;
+                            }
+                        }
+                        writeln!(out, "{}end", pad).map_err(|e| e.to_string())?;
+                        return Ok(());
+                    }
+                }
+                writeln!(out, "{}else", pad).map_err(|e| e.to_string())?;
+                for s in else_b {
+                    render_stmt(out, s, &body_pad, file, indent + 1)?;
+                }
+            }
+            writeln!(out, "{}end", pad).map_err(|e| e.to_string())?;
+        }
+        Stmt::While { cond, body } => {
+            writeln!(
+                out,
+                "{}while {} do",
+                pad,
+                render_expr(cond, Prec::Lowest, file, indent)
+            )
+            .map_err(|e| e.to_string())?;
+            let body_pad = "  ".repeat(indent + 1);
+            for s in body {
+                render_stmt(out, s, &body_pad, file, indent + 1)?;
+            }
+            writeln!(out, "{}end", pad).map_err(|e| e.to_string())?;
+        }
+        Stmt::Repeat { body, cond } => {
+            writeln!(out, "{}repeat", pad).map_err(|e| e.to_string())?;
+            let body_pad = "  ".repeat(indent + 1);
+            for s in body {
+                render_stmt(out, s, &body_pad, file, indent + 1)?;
+            }
+            writeln!(
+                out,
+                "{}until {}",
+                pad,
+                render_expr(cond, Prec::Lowest, file, indent)
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Stmt::ForNum {
+            var,
+            start,
+            limit,
+            step,
+            body,
+        } => {
+            let header = match step {
+                Some(s) => format!(
+                    "for {} = {}, {}, {} do",
+                    var,
+                    render_expr(start, Prec::Lowest, file, indent),
+                    render_expr(limit, Prec::Lowest, file, indent),
+                    render_expr(s, Prec::Lowest, file, indent),
+                ),
+                None => format!(
+                    "for {} = {}, {} do",
+                    var,
+                    render_expr(start, Prec::Lowest, file, indent),
+                    render_expr(limit, Prec::Lowest, file, indent),
+                ),
+            };
+            writeln!(out, "{}{}", pad, header).map_err(|e| e.to_string())?;
+            let body_pad = "  ".repeat(indent + 1);
+            for s in body {
+                render_stmt(out, s, &body_pad, file, indent + 1)?;
+            }
+            writeln!(out, "{}end", pad).map_err(|e| e.to_string())?;
+        }
+        Stmt::ForGen { vars, exprs, body } => {
+            let rhs = exprs
+                .iter()
+                .map(|e| render_expr(e, Prec::Lowest, file, indent))
+                .collect::<Vec<_>>()
+                .join(", ");
+            writeln!(out, "{}for {} in {} do", pad, vars.join(", "), rhs)
+                .map_err(|e| e.to_string())?;
+            let body_pad = "  ".repeat(indent + 1);
+            for s in body {
+                render_stmt(out, s, &body_pad, file, indent + 1)?;
+            }
+            writeln!(out, "{}end", pad).map_err(|e| e.to_string())?;
         }
     }
     Ok(())
