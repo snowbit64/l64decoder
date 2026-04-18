@@ -174,6 +174,12 @@ pub struct BytecodeFile {
     pub main_proto: Option<usize>,
 }
 
+/// Minimum Luau bytecode version accepted by the FS23 runtime.
+/// Based on `luau_load` pseudoC: `expected [3..3]`.
+pub const LBC_VERSION_MIN: u8 = 3;
+/// Maximum Luau bytecode version accepted by the FS23 runtime.
+pub const LBC_VERSION_MAX: u8 = 3;
+
 pub struct BytecodeReader<'a> {
     data: &'a [u8],
     offset: usize,
@@ -184,154 +190,212 @@ impl<'a> BytecodeReader<'a> {
         BytecodeReader { data, offset: 0 }
     }
 
-    pub fn read<T: Sized + Copy + Pod>(&mut self) -> T {
-        let size = mem::size_of::<T>();
-        let slice = &self.data[self.offset..self.offset + size];
-        self.offset += size;
-        bytemuck::pod_read_unaligned(slice)
+    fn ensure(&self, n: usize) -> Result<(), String> {
+        if self.offset + n > self.data.len() {
+            Err(format!(
+                "truncated bytecode: tried to read {} bytes at offset {} (data len {})",
+                n,
+                self.offset,
+                self.data.len()
+            ))
+        } else {
+            Ok(())
+        }
     }
 
-    pub fn read_var_int(&mut self) -> u32 {
+    pub fn read<T: Sized + Copy + Pod>(&mut self) -> Result<T, String> {
+        let size = mem::size_of::<T>();
+        self.ensure(size)?;
+        let slice = &self.data[self.offset..self.offset + size];
+        self.offset += size;
+        Ok(bytemuck::pod_read_unaligned(slice))
+    }
+
+    pub fn read_var_int(&mut self) -> Result<u32, String> {
         let mut result = 0u32;
-        let mut shift = 0;
+        let mut shift = 0u32;
 
         loop {
-            let byte = self.read::<u8>();
+            let byte: u8 = self.read()?;
             result |= ((byte & 127) as u32) << shift;
             shift += 7;
             if (byte & 128) == 0 {
                 break;
             }
+            if shift >= 35 {
+                return Err(format!(
+                    "varint overflow at offset {} (>=5 continuation bytes)",
+                    self.offset
+                ));
+            }
         }
-        result
+        Ok(result)
     }
 
-    pub fn read_var_int64(&mut self) -> u64 {
+    pub fn read_var_int64(&mut self) -> Result<u64, String> {
         let mut result = 0u64;
-        let mut shift = 0;
+        let mut shift = 0u32;
 
         loop {
-            let byte = self.read::<u8>();
+            let byte: u8 = self.read()?;
             result |= ((byte & 127) as u64) << shift;
             shift += 7;
             if (byte & 128) == 0 {
                 break;
             }
+            if shift >= 70 {
+                return Err(format!(
+                    "varint64 overflow at offset {} (>=10 continuation bytes)",
+                    self.offset
+                ));
+            }
         }
-
-        result
+        Ok(result)
     }
 
-    pub fn read_string(&mut self, strings: &[String]) -> String {
-        let id = self.read_var_int();
+    pub fn read_string(&mut self, strings: &[String]) -> Result<String, String> {
+        let id = self.read_var_int()?;
         if id == 0 {
-            String::new()
+            Ok(String::new())
         } else {
-            strings[(id - 1) as usize].clone()
+            let idx = (id - 1) as usize;
+            strings
+                .get(idx)
+                .cloned()
+                .ok_or_else(|| format!("string id {} out of range (have {})", id, strings.len()))
         }
     }
 
     pub fn read_bytecode_file(&mut self) -> Result<BytecodeFile, String> {
-        let version = self.read::<u8>();
+        // loadBuffer in the game strips a leading `0x01` sentinel before
+        // handing the blob to luau_load: see pseudoC/loadBuffer_00bb6f84.c.
+        // We mirror that normalization so callers can feed us the raw `01 03`
+        // stream produced by `decode_l64`.
+        if self.data.get(..2) == Some(&[0x01, 0x03]) {
+            self.offset = 1;
+        }
+
+        let version: u8 = self.read()?;
 
         if version == 0 {
+            // The runtime encodes a compile error as `\0<message>`; surface it.
+            let msg = std::str::from_utf8(&self.data[self.offset..]).unwrap_or("Invalid UTF-8");
+            return Err(format!("compile error payload: {}", msg));
+        }
+
+        if !(LBC_VERSION_MIN..=LBC_VERSION_MAX).contains(&version) {
             return Err(format!(
-                "Error: {}",
-                std::str::from_utf8(&self.data[self.offset..]).unwrap_or("Invalid UTF-8")
+                "bytecode version mismatch (expected [{}..{}], got {})",
+                LBC_VERSION_MIN, LBC_VERSION_MAX, version
             ));
         }
 
-        // TODO: Add version checks (LBC_VERSION_MIN, LBC_VERSION_MAX)
-
-        let mut types_version = 0;
-        if version >= 4 {
-            types_version = self.read::<u8>();
-            // TODO: Add types_version checks (LBC_TYPE_VERSION_MIN, LBC_TYPE_VERSION_MAX)
-        }
+        let types_version = if version >= 4 { self.read::<u8>()? } else { 0 };
 
         // Read strings
-        let string_count = self.read_var_int();
+        let string_count = self.read_var_int()?;
         let mut strings = Vec::with_capacity(string_count as usize);
         for _ in 0..string_count {
-            let length = self.read_var_int();
-            let slice = &self.data[self.offset..self.offset + length as usize];
-            self.offset += length as usize;
+            let length = self.read_var_int()? as usize;
+            self.ensure(length)?;
+            let slice = &self.data[self.offset..self.offset + length];
+            self.offset += length;
             strings.push(String::from_utf8_lossy(slice).to_string());
         }
 
-        // TODO: Handle userdata type remapping table (types_version == 3)
+        // userdata type remapping table (types_version == 3) - not used in FS23 (v3).
 
         // Read protos
-        let proto_count = self.read_var_int();
+        let proto_count = self.read_var_int()?;
         let mut protos = Vec::with_capacity(proto_count as usize);
         for i in 0..proto_count {
             let bytecodeid = i as i32;
 
-            let maxstacksize = self.read::<u8>();
-            let numparams = self.read::<u8>();
-            let nups = self.read::<u8>();
-            let is_vararg = self.read::<u8>();
+            let maxstacksize = self.read::<u8>()?;
+            let numparams = self.read::<u8>()?;
+            let nups = self.read::<u8>()?;
+            let is_vararg = self.read::<u8>()?;
 
             let mut flags = 0;
             if version >= 4 {
-                flags = self.read::<u8>();
+                flags = self.read::<u8>()?;
 
-                // TODO: Handle typeinfo (types_version 1, 2, 3)
                 if types_version == 1 || types_version == 2 || types_version == 3 {
-                    let typesize = self.read_var_int();
-                    if typesize > 0 {
-                        self.offset += typesize as usize;
-                    }
+                    let typesize = self.read_var_int()? as usize;
+                    self.ensure(typesize)?;
+                    self.offset += typesize;
                 }
             }
 
-            let sizecode = self.read_var_int();
-            let mut code = Vec::with_capacity(sizecode as usize);
+            let sizecode = self.read_var_int()? as usize;
+            let mut code = Vec::with_capacity(sizecode);
             for _ in 0..sizecode {
-                code.push(self.read::<u32>());
+                code.push(self.read::<u32>()?);
             }
 
-            let sizek = self.read_var_int();
-            let mut k = Vec::with_capacity(sizek as usize);
+            let sizek = self.read_var_int()? as usize;
+            let mut k = Vec::with_capacity(sizek);
             for _ in 0..sizek {
-                let constant_type = self.read::<u8>();
+                let constant_type = self.read::<u8>()?;
                 match constant_type {
                     0 => k.push(Constant::Nil),
-                    1 => k.push(Constant::Boolean(self.read::<u8>() != 0)),
-                    2 => k.push(Constant::Number(self.read::<f64>())),
-                    3 => k.push(Constant::String(self.read_string(&strings))),
-                    4 => k.push(Constant::Import(self.read::<u32>())),
+                    1 => k.push(Constant::Boolean(self.read::<u8>()? != 0)),
+                    2 => k.push(Constant::Number(self.read::<f64>()?)),
+                    3 => k.push(Constant::String(self.read_string(&strings)?)),
+                    4 => k.push(Constant::Import(self.read::<u32>()?)),
                     5 => {
-                        let keys = self.read_var_int();
-                        let mut table_entries = Vec::with_capacity(keys as usize);
+                        let keys = self.read_var_int()? as usize;
+                        let mut table_entries = Vec::with_capacity(keys);
                         for _ in 0..keys {
-                            let key_idx = self.read_var_int();
-                            // Value is always 0.0 for LBC_CONSTANT_TABLE
-                            table_entries.push((key_idx as usize, 0.0));
+                            let key_idx = self.read_var_int()? as usize;
+                            // In LBC v3 table constants, values are implicit nil.
+                            table_entries.push((key_idx, 0.0));
                         }
                         k.push(Constant::Table(table_entries));
                     }
-                    6 => k.push(Constant::Closure(self.read_var_int() as usize)),
-                    7 => k.push(Constant::Vector(
-                        self.read::<f32>(),
-                        self.read::<f32>(),
-                        self.read::<f32>(),
-                        self.read::<f32>(),
-                    )),
+                    6 => k.push(Constant::Closure(self.read_var_int()? as usize)),
+                    // tags 7/8/9 are not supported by the FS23 Luau runtime
+                    // (`luau_load` only handles 0..=6). Accept them for
+                    // forward-compat when parsing upstream Luau blobs.
+                    7 => {
+                        if version < 4 {
+                            return Err(format!(
+                                "unsupported constant type {} (Vector) in LBC v{} (proto {}, offset {})",
+                                constant_type, version, i, self.offset
+                            ));
+                        }
+                        k.push(Constant::Vector(
+                            self.read::<f32>()?,
+                            self.read::<f32>()?,
+                            self.read::<f32>()?,
+                            self.read::<f32>()?,
+                        ));
+                    }
                     8 => {
-                        let keys = self.read_var_int();
-                        let mut table_entries = Vec::with_capacity(keys as usize);
+                        if version < 4 {
+                            return Err(format!(
+                                "unsupported constant type {} (TableWithConstants) in LBC v{} (proto {}, offset {})",
+                                constant_type, version, i, self.offset
+                            ));
+                        }
+                        let keys = self.read_var_int()? as usize;
+                        let mut table_entries = Vec::with_capacity(keys);
                         for _ in 0..keys {
-                            let key_idx = self.read_var_int();
-                            let _constant_idx = self.read::<i32>();
-                            // For now, just store the index. We'll resolve constants later.
-                            table_entries.push((key_idx as usize, Constant::Nil)); // Placeholder
+                            let key_idx = self.read_var_int()? as usize;
+                            let _constant_idx = self.read::<i32>()?;
+                            table_entries.push((key_idx, Constant::Nil));
                         }
                         k.push(Constant::TableWithConstants(table_entries));
                     }
                     9 => {
-                        let is_negative = self.read::<u8>() != 0;
-                        let magnitude = self.read_var_int64();
+                        if version < 4 {
+                            return Err(format!(
+                                "unsupported constant type {} (Integer) in LBC v{} (proto {}, offset {})",
+                                constant_type, version, i, self.offset
+                            ));
+                        }
+                        let is_negative = self.read::<u8>()? != 0;
+                        let magnitude = self.read_var_int64()?;
                         let value = if is_negative {
                             (!magnitude).wrapping_add(1) as i64
                         } else {
@@ -351,50 +415,57 @@ impl<'a> BytecodeReader<'a> {
                 }
             }
 
-            let sizep = self.read_var_int();
-            let mut child_proto_ids = Vec::with_capacity(sizep as usize);
+            let sizep = self.read_var_int()? as usize;
+            let mut child_proto_ids = Vec::with_capacity(sizep);
             for _ in 0..sizep {
-                child_proto_ids.push(self.read_var_int() as usize);
+                child_proto_ids.push(self.read_var_int()? as usize);
             }
 
-            let linedefined = self.read_var_int();
-            let debugname = self.read_string(&strings);
+            let linedefined = self.read_var_int()?;
+            let debugname = self.read_string(&strings)?;
 
-            let lineinfo_flag = self.read::<u8>();
+            let lineinfo_flag = self.read::<u8>()?;
             let mut linegaplog2 = 0;
             let mut lineinfo = Vec::new();
             let mut abslineinfo = Vec::new();
 
             if lineinfo_flag != 0 {
-                linegaplog2 = self.read::<u8>();
-                let intervals = ((sizecode - 1) >> linegaplog2) + 1;
+                linegaplog2 = self.read::<u8>()?;
+                // In LBC v3 lineinfo layout, the number of absolute line
+                // intervals is `((sizecode - 1) >> linegaplog2) + 1` when
+                // sizecode > 0.
+                let intervals = if sizecode == 0 {
+                    0
+                } else {
+                    ((sizecode - 1) >> linegaplog2) + 1
+                };
 
-                let mut last_offset = 0;
+                let mut last_offset: u8 = 0;
                 for _ in 0..sizecode {
-                    last_offset += self.read::<u8>();
+                    last_offset = last_offset.wrapping_add(self.read::<u8>()?);
                     lineinfo.push(last_offset);
                 }
 
-                let mut last_line = 0;
+                let mut last_line: i32 = 0;
                 for _ in 0..intervals {
-                    last_line += self.read::<i32>();
+                    last_line = last_line.wrapping_add(self.read::<i32>()?);
                     abslineinfo.push(last_line);
                 }
             }
 
-            let debuginfo_flag = self.read::<u8>();
+            let debuginfo_flag = self.read::<u8>()?;
             if debuginfo_flag != 0 {
-                let sizelocvars = self.read_var_int();
+                let sizelocvars = self.read_var_int()?;
                 for _ in 0..sizelocvars {
-                    let _varname = self.read_string(&strings);
-                    let _startpc = self.read_var_int();
-                    let _endpc = self.read_var_int();
-                    let _reg = self.read::<u8>();
+                    let _varname = self.read_string(&strings)?;
+                    let _startpc = self.read_var_int()?;
+                    let _endpc = self.read_var_int()?;
+                    let _reg = self.read::<u8>()?;
                 }
 
-                let sizeupvalues = self.read_var_int();
+                let sizeupvalues = self.read_var_int()?;
                 for _ in 0..sizeupvalues {
-                    let _upvalue_name = self.read_string(&strings);
+                    let _upvalue_name = self.read_string(&strings)?;
                 }
             }
 
@@ -415,15 +486,15 @@ impl<'a> BytecodeReader<'a> {
                 nups,
                 is_vararg,
                 flags,
-                typeinfo: Vec::new(), // TODO: Implement typeinfo reading
+                typeinfo: Vec::new(),
                 sizetypeinfo: 0,
                 code,
-                sizecode: sizecode as usize,
+                sizecode,
                 k,
-                sizek: sizek as usize,
+                sizek,
                 p: children,
                 child_proto_indices: child_proto_ids,
-                sizep: sizep as usize,
+                sizep,
                 linedefined,
                 debugname,
                 linegaplog2,
@@ -442,7 +513,7 @@ impl<'a> BytecodeReader<'a> {
         }
 
         let main_proto = if self.offset < self.data.len() {
-            Some(self.read_var_int() as usize)
+            Some(self.read_var_int()? as usize)
         } else {
             None
         };
@@ -462,11 +533,75 @@ impl TryFrom<u8> for LuauOpcode {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         if value < LuauOpcode::LOP__COUNT as u8 {
-            // SAFETY: We are checking the range, and the enum is `repr(u8)`.
-            // This is safe because the enum variants are contiguous and start from 0.
-            Ok(unsafe { std::mem::transmute(value) })
+            // SAFETY: Checked that value is within the contiguous repr(u8) range.
+            Ok(unsafe { std::mem::transmute::<u8, LuauOpcode>(value) })
         } else {
             Err(format!("Invalid LuauOpcode value: {}", value))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ensure_rejects_oob() {
+        let buf = [0u8; 2];
+        let reader = BytecodeReader::new(&buf);
+        assert!(reader.ensure(3).is_err());
+        assert!(reader.ensure(2).is_ok());
+    }
+
+    #[test]
+    fn read_var_int_roundtrip() {
+        // 300 = 0b1_0010_1100 -> bytes: 0xAC, 0x02
+        let data = [0xACu8, 0x02];
+        let mut r = BytecodeReader::new(&data);
+        assert_eq!(r.read_var_int().unwrap(), 300);
+    }
+
+    #[test]
+    fn read_var_int_truncated() {
+        let data = [0xAC];
+        let mut r = BytecodeReader::new(&data);
+        assert!(r.read_var_int().is_err());
+    }
+
+    #[test]
+    fn bytecode_version_must_be_three() {
+        // Simulate a v1 header: single version byte + zero strings/protos/main.
+        // Any non-3 version must be rejected.
+        let data = [0x01u8];
+        let mut r = BytecodeReader::new(&data);
+        let err = r.read_bytecode_file().unwrap_err();
+        assert!(err.contains("version mismatch"), "got: {}", err);
+    }
+
+    #[test]
+    fn bytecode_compile_error_payload() {
+        // Version byte 0 means the runtime reports a compile error string.
+        let mut data = vec![0x00u8];
+        data.extend_from_slice(b"oops");
+        let mut r = BytecodeReader::new(&data);
+        let err = r.read_bytecode_file().unwrap_err();
+        assert!(err.contains("compile error"), "got: {}", err);
+        assert!(err.contains("oops"), "got: {}", err);
+    }
+
+    #[test]
+    fn sentinel_01_03_is_stripped() {
+        // `01 03 <rest>` must skip byte 0 (matches loadBuffer behaviour).
+        let data = [0x01u8, 0x03];
+        let mut r = BytecodeReader::new(&data);
+        // After skipping 0x01, we read 0x03 as version -> then fail reading
+        // strings because the buffer is truncated. The important thing is
+        // that the version check passes (offset advanced past 0x01).
+        let err = r.read_bytecode_file().unwrap_err();
+        assert!(
+            !err.contains("version mismatch"),
+            "sentinel not stripped, got: {}",
+            err
+        );
     }
 }

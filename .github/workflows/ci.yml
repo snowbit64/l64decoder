@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: cargo build + test + clippy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: luauc64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: luauc64
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Test
+        run: cargo test --verbose
+
+      - name: Clippy (non-blocking for now)
+        run: cargo clippy --all-targets -- -D warnings
+        continue-on-error: true
+
+      - name: Rustfmt check
+        run: cargo fmt --all -- --check
+        continue-on-error: true
