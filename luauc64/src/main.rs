@@ -1,6 +1,7 @@
 mod bytecode;
 mod decompiler;
 mod l64;
+mod source;
 
 use std::ffi::OsStr;
 use std::fs;
@@ -72,6 +73,11 @@ struct InputArgs {
     /// Emit JSON sidecar metadata (<output>.json)
     #[arg(long, default_value_t = false)]
     emit_json: bool,
+
+    /// Also emit the raw bytecode disassembly alongside the reconstructed
+    /// source (`<output>.disasm.txt`). Disabled by default.
+    #[arg(long, default_value_t = false)]
+    emit_disasm: bool,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
@@ -199,9 +205,7 @@ fn decompile_one(
 
     let bytecode_file = parse_bytecode_with_fallback(&bytecode_data, args.verbose)?;
 
-    let mut decompiler = Decompiler::new();
-    let luau = decompiler
-        .decompile_file(&bytecode_file)
+    let luau = source::reconstruct(&bytecode_file)
         .map_err(|e| format!("decompile failed: {e}"))?;
 
     let out_path = output_override
@@ -209,6 +213,15 @@ fn decompile_one(
         .unwrap_or_else(|| input.with_extension("luau"));
 
     write_file(&out_path, luau.as_bytes(), args.overwrite)?;
+
+    if args.emit_disasm {
+        let mut decompiler = Decompiler::new();
+        let disasm = decompiler
+            .decompile_file(&bytecode_file)
+            .map_err(|e| format!("disassembly failed: {e}"))?;
+        let disasm_path = out_path.with_extension("disasm.txt");
+        write_file(&disasm_path, disasm.as_bytes(), args.overwrite)?;
+    }
 
     if args.emit_json {
         let json_path = out_path.with_extension("json");
