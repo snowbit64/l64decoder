@@ -48,8 +48,18 @@ fn startparams_reconstructs_to_editable_luau_source() {
     // Top-level script should at least reference the StartParams namespace
     // and declare its methods.
     assert!(src.contains("StartParams"));
-    assert!(src.contains("StartParams.init = function"));
-    assert!(src.contains("StartParams.getValue = function"));
+    // Idiomatic method-sugar rendering: instance methods render with
+    // colon syntax, static helpers with dot syntax.
+    assert!(
+        src.contains("function StartParams:init")
+            || src.contains("function StartParams.init"),
+        "expected StartParams.init function declaration in reconstructed source"
+    );
+    assert!(
+        src.contains("function StartParams:getValue")
+            || src.contains("function StartParams.getValue"),
+        "expected StartParams.getValue function declaration in reconstructed source"
+    );
     // Sanity: no lingering `r0`/`pc0000` style disassembly rows leak into
     // non-comment lines.
     for line in src.lines() {
