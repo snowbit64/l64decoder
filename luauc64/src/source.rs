@@ -159,6 +159,7 @@ fn binop_prec(op: &str) -> Prec {
 
 /// Expression AST node. Kept deliberately small.
 #[derive(Debug, Clone)]
+#[derive(PartialEq)]
 pub enum Expr {
     Nil,
     Bool(bool),
@@ -345,6 +346,96 @@ fn proto_header(proto: &Proto) -> String {
     format!("function({})", params.join(", "))
 }
 
+/// Render `X.name = function(...) ... end` as the idiomatic
+/// `function X.name(...) ... end`, and `X.name = function(self, ...) ... end`
+/// as `function X:name(...) ... end`. Returns `None` (and lets the
+/// generic assignment path handle it) if the target/value shape does
+/// not fit the pattern.
+fn try_render_function_assign(
+    target: &Expr,
+    value: &Expr,
+    pad: &str,
+    file: &BytecodeFile,
+    indent: usize,
+) -> Option<String> {
+    let child_idx = match value {
+        Expr::Closure(idx) => *idx,
+        _ => return None,
+    };
+    let child = file.protos.get(child_idx)?;
+
+    // Walk the target and split it into a dotted "base" prefix plus an
+    // optional final `.name` (which we can turn into `:name` if the
+    // proto is a method).
+    let (base_expr, final_name) = match target {
+        Expr::Field(base, name) if is_identifier(name) => {
+            (base.as_ref().clone(), Some(name.clone()))
+        }
+        Expr::Index(base, key) => match key.as_ref() {
+            Expr::Str(s) if is_identifier(s) => {
+                (base.as_ref().clone(), Some(s.clone()))
+            }
+            _ => return None,
+        },
+        Expr::Global(_) => (target.clone(), None),
+        _ => return None,
+    };
+
+    // The base expression must render to something reasonable as a
+    // prefix for a function declaration. Globals and dotted chains
+    // qualify; anything producing a call or non-primary expr doesn't.
+    let base_str = match &base_expr {
+        Expr::Global(name) => name.clone(),
+        Expr::Field(_, _) | Expr::Index(_, _) => {
+            render_expr(&base_expr, Prec::Primary, file, indent)
+        }
+        _ if final_name.is_none() => {
+            // Top-level `function X()` — target itself is the name.
+            render_expr(&base_expr, Prec::Primary, file, indent)
+        }
+        _ => return None,
+    };
+
+    let method = final_name.is_some() && looks_like_method(child);
+    let qualified = match &final_name {
+        Some(n) if method => format!("{}:{}", base_str, n),
+        Some(n) => format!("{}.{}", base_str, n),
+        None => base_str,
+    };
+
+    let header = proto_header_named(child, &qualified, method);
+    let body = match reconstruct_proto_body(file, child, indent + 1) {
+        Ok(b) => b,
+        Err(e) => format!("{}  -- reconstruction error: {}\n", pad, e),
+    };
+    // When rendered as a method, reconstruct_proto_body already
+    // performed the v0→self substitution on the body. The `function
+    // X:name()` header itself already omits `self` from the signature.
+
+    let mut out = String::new();
+    out.push_str(pad);
+    out.push_str(&header);
+    out.push('\n');
+    out.push_str(&body);
+    out.push_str(pad);
+    out.push_str("end\n");
+    Some(out)
+}
+
+/// Render a header like `function Foo.bar(...)` or `function Foo:bar(...)`.
+/// When `method` is true, the first parameter is absorbed into the
+/// receiver (via the `:` separator) and dropped from the signature.
+fn proto_header_named(proto: &Proto, qualified: &str, method: bool) -> String {
+    let start: u8 = if method { 1 } else { 0 };
+    let mut params: Vec<String> = (start..proto.numparams)
+        .map(|i| format!("v{}", i))
+        .collect();
+    if proto.is_vararg != 0 {
+        params.push("...".to_string());
+    }
+    format!("function {}({})", qualified, params.join(", "))
+}
+
 /// Heuristic: the proto is a method if its first register (v0) is used
 /// as the receiver of a `NAMECALL` or as the table in a `GETTABLEKS` /
 /// `SETTABLEKS` / `GETTABLE` / `SETTABLE` anywhere in its code.
@@ -454,7 +545,7 @@ fn reconstruct_proto_body(
     }
     let mut pending_captures: Vec<Capture> = Vec::new();
 
-    let stmts = lift_range(
+    let mut stmts = lift_range(
         file,
         proto,
         &instrs,
@@ -467,6 +558,10 @@ fn reconstruct_proto_body(
         &LoopContext::default(),
     )?;
 
+    // Post-processing: idiomatic rewrites that are hard to do during
+    // lifting but trivial to spot on the finished statement tree.
+    post_process_stmts(&mut stmts, /* is_proto_body */ true);
+
     // Render statements to text.
     let mut out = String::new();
     let pad = "  ".repeat(indent);
@@ -477,6 +572,178 @@ fn reconstruct_proto_body(
         out = rename_reg0_to_self(&out);
     }
     Ok(out)
+}
+
+/// Apply idiomatic-Luau rewrites over a block of statements. Runs
+/// recursively through nested blocks (if/while/for/repeat bodies)
+/// before touching the current level so transforms see already-
+/// normalised children.
+fn post_process_stmts(stmts: &mut Vec<Stmt>, is_proto_body: bool) {
+    // Recurse into nested blocks first.
+    for s in stmts.iter_mut() {
+        match s {
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                post_process_stmts(then_block, false);
+                if let Some(e) = else_block {
+                    post_process_stmts(e, false);
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::Repeat { body, .. }
+            | Stmt::ForNum { body, .. }
+            | Stmt::ForGen { body, .. } => {
+                post_process_stmts(body, false);
+            }
+            _ => {}
+        }
+    }
+
+    fold_empty_table_field_assigns(stmts);
+    fold_compound_and_if(stmts);
+    inline_return_local(stmts);
+    if is_proto_body {
+        strip_trailing_bare_return(stmts);
+    }
+}
+
+/// `local v<k> = <expr>` immediately followed by `return v<k>` → just
+/// `return <expr>`. Only applies when the local isn't used between the
+/// two statements (enforced by adjacency).
+fn inline_return_local(stmts: &mut Vec<Stmt>) {
+    if stmts.len() < 2 {
+        return;
+    }
+    let n = stmts.len();
+    let ret_reg = match &stmts[n - 1] {
+        Stmt::Return(values) if values.len() == 1 => match &values[0] {
+            Expr::Reg(r) => *r,
+            _ => return,
+        },
+        _ => return,
+    };
+    let (name_matches, value) = match &stmts[n - 2] {
+        Stmt::LocalList {
+            names,
+            value,
+            extra,
+        } if *extra == 0 && names.len() == 1 => {
+            (names[0] == format!("v{}", ret_reg), value.clone())
+        }
+        _ => return,
+    };
+    if !name_matches {
+        return;
+    }
+    stmts.truncate(n - 2);
+    stmts.push(Stmt::Return(vec![value]));
+}
+
+/// Strip a trailing bare `return` from the very end of a function body.
+/// Lua inserts one implicitly, so it is visual noise when decompiled.
+fn strip_trailing_bare_return(stmts: &mut Vec<Stmt>) {
+    if matches!(stmts.last(), Some(Stmt::Return(v)) if v.is_empty()) {
+        stmts.pop();
+    }
+}
+
+/// Collapse `Assign { target: T, value: {} }` immediately followed by
+/// one or more `Assign { target: Field/Index(T, k), value: V }` whose
+/// base is lexically equal to `T`, merging them into a single
+/// `Assign { target: T, value: { ..., k = V } }`.
+fn fold_empty_table_field_assigns(stmts: &mut Vec<Stmt>) {
+    let mut i = 0;
+    while i < stmts.len() {
+        let is_empty_init = matches!(
+            &stmts[i],
+            Stmt::Assign {
+                value: Expr::Table { array, hash },
+                ..
+            } if array.is_empty() && hash.is_empty()
+        );
+        if !is_empty_init {
+            i += 1;
+            continue;
+        }
+        let anchor = match &stmts[i] {
+            Stmt::Assign { target, .. } => target.clone(),
+            _ => unreachable!(),
+        };
+        let array: Vec<Expr> = Vec::new();
+        let mut hash: Vec<(Expr, Expr)> = Vec::new();
+        let mut consumed = 0usize;
+        while i + 1 + consumed < stmts.len() {
+            let (key, val) = match &stmts[i + 1 + consumed] {
+                Stmt::Assign { target, value } => {
+                    // Don't fold closures into a table literal — those
+                    // render better as separate `function X.name(...)`
+                    // declarations.
+                    if matches!(value, Expr::Closure(_)) {
+                        break;
+                    }
+                    match target {
+                        Expr::Field(b, name) if **b == anchor => {
+                            (Expr::Str(name.clone()), value.clone())
+                        }
+                        Expr::Index(b, k) if **b == anchor => {
+                            ((**k).clone(), value.clone())
+                        }
+                        _ => break,
+                    }
+                }
+                _ => break,
+            };
+            hash.push((key, val));
+            consumed += 1;
+        }
+        if consumed == 0 {
+            i += 1;
+            continue;
+        }
+        // Replace the run with a single Assign carrying the merged table.
+        let new_stmt = Stmt::Assign {
+            target: anchor,
+            value: Expr::Table { array, hash },
+        };
+        stmts.splice(i..i + 1 + consumed, std::iter::once(new_stmt));
+        i += 1;
+    }
+}
+
+/// `if A then if B then body end end` (no else on either) →
+/// `if A and B then body end`. Applied iteratively so triples collapse
+/// as well.
+fn fold_compound_and_if(stmts: &mut Vec<Stmt>) {
+    for s in stmts.iter_mut() {
+        if let Stmt::If {
+            cond,
+            then_block,
+            else_block: None,
+        } = s
+        {
+            // Drain what we need before re-borrowing.
+            if then_block.len() == 1 {
+                if let Stmt::If {
+                    cond: inner_cond,
+                    then_block: inner_then,
+                    else_block: None,
+                } = &then_block[0]
+                {
+                    let new_cond = Expr::BinOp {
+                        op: "and",
+                        lhs: Box::new(cond.clone()),
+                        rhs: Box::new(inner_cond.clone()),
+                    };
+                    let new_then = inner_then.clone();
+                    *cond = new_cond;
+                    *then_block = new_then;
+                }
+            }
+        }
+    }
 }
 
 /// Context passed through nested `lift_range` calls so that a bare
@@ -1967,14 +2234,20 @@ fn render_stmt(
 ) -> Result<(), String> {
     match s {
         Stmt::Assign { target, value } => {
-            writeln!(
-                out,
-                "{}{} = {}",
-                pad,
-                render_expr(target, Prec::Lowest, file, indent),
-                render_expr(value, Prec::Lowest, file, indent)
-            )
-            .map_err(|e| e.to_string())?;
+            if let Some(rendered) =
+                try_render_function_assign(target, value, pad, file, indent)
+            {
+                out.push_str(&rendered);
+            } else {
+                writeln!(
+                    out,
+                    "{}{} = {}",
+                    pad,
+                    render_expr(target, Prec::Lowest, file, indent),
+                    render_expr(value, Prec::Lowest, file, indent)
+                )
+                .map_err(|e| e.to_string())?;
+            }
         }
         Stmt::MultiAssign { targets, value } => {
             let rendered: Vec<String> = targets
@@ -1993,6 +2266,33 @@ fn render_stmt(
         Stmt::LocalList { names, value, extra } => {
             let all_names = names.clone();
             let _ = extra;
+            if names.len() == 1 {
+                if let Expr::Closure(child_idx) = value {
+                    if let Some(child) = file.protos.get(*child_idx) {
+                        if !looks_like_method(child) {
+                            let header =
+                                proto_header_named(child, &names[0], false);
+                            let body = match reconstruct_proto_body(
+                                file,
+                                child,
+                                indent + 1,
+                            ) {
+                                Ok(b) => b,
+                                Err(e) => format!(
+                                    "{}  -- reconstruction error: {}\n",
+                                    pad, e
+                                ),
+                            };
+                            writeln!(out, "{}local {}", pad, header)
+                                .map_err(|e| e.to_string())?;
+                            out.push_str(&body);
+                            writeln!(out, "{}end", pad)
+                                .map_err(|e| e.to_string())?;
+                            return Ok(());
+                        }
+                    }
+                }
+            }
             writeln!(
                 out,
                 "{}local {} = {}",
