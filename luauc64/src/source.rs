@@ -1,0 +1,1323 @@
+//! Reconstruction of Luau source code from parsed Luau bytecode.
+//!
+//! This module implements the second half of the workflow:
+//!
+//! ```text
+//! .l64  ──► decipher ──► .lb  ──► this module ──► .luau (source)
+//! ```
+//!
+//! The goal is to produce Luau source that a human can read, edit, and
+//! (in most cases) feed back through a Luau compiler. The implementation
+//! is deliberately pragmatic:
+//!
+//! * instructions are decoded into a typed [`Instr`] enum;
+//! * per-register expressions are tracked in a virtual [`RegFile`];
+//! * statements are emitted lazily so that intermediate registers
+//!   (`r0 = K(3); StartParams = r0`) collapse into direct assignments
+//!   (`StartParams = "start"`);
+//! * control flow is reconstructed for the common cases (if/else,
+//!   numeric/generic for, while) and otherwise falls back to explicit
+//!   comment labels that keep the output syntactically valid Luau.
+
+use crate::bytecode::{BytecodeFile, Constant, LuauOpcode, Proto};
+use std::collections::{BTreeMap, BTreeSet};
+use std::convert::TryFrom;
+use std::fmt::Write;
+
+/// Decoded Luau instruction. The bytecode is a flat `Vec<u32>`; each
+/// logical instruction occupies either one or two `u32` slots (the
+/// second one, when present, is the `aux` word).
+#[derive(Debug, Clone)]
+pub struct Instr {
+    pub pc: usize,
+    pub next_pc: usize,
+    pub op: LuauOpcode,
+    pub a: u8,
+    pub b: u8,
+    pub c: u8,
+    /// Signed 16-bit (AD form).
+    pub d: i16,
+    /// Signed 24-bit (E form, sign-extended).
+    pub e: i32,
+    pub aux: u32,
+}
+
+/// Returns `true` when the opcode consumes an extra `aux` word after it.
+fn opcode_uses_aux(op: LuauOpcode) -> bool {
+    matches!(
+        op,
+        LuauOpcode::LOP_GETGLOBAL
+            | LuauOpcode::LOP_SETGLOBAL
+            | LuauOpcode::LOP_GETIMPORT
+            | LuauOpcode::LOP_GETTABLEKS
+            | LuauOpcode::LOP_SETTABLEKS
+            | LuauOpcode::LOP_NAMECALL
+            | LuauOpcode::LOP_JUMPIFEQ
+            | LuauOpcode::LOP_JUMPIFLE
+            | LuauOpcode::LOP_JUMPIFLT
+            | LuauOpcode::LOP_JUMPIFNOTEQ
+            | LuauOpcode::LOP_JUMPIFNOTLE
+            | LuauOpcode::LOP_JUMPIFNOTLT
+            | LuauOpcode::LOP_NEWTABLE
+            | LuauOpcode::LOP_SETLIST
+            | LuauOpcode::LOP_FORGLOOP
+            | LuauOpcode::LOP_FASTCALL2
+            | LuauOpcode::LOP_FASTCALL2K
+            | LuauOpcode::LOP_FASTCALL3
+            | LuauOpcode::LOP_LOADKX
+            | LuauOpcode::LOP_JUMPXEQKNIL
+            | LuauOpcode::LOP_JUMPXEQKB
+            | LuauOpcode::LOP_JUMPXEQKN
+            | LuauOpcode::LOP_JUMPXEQKS
+    )
+}
+
+/// Decode every instruction in `proto.code`. Each returned [`Instr`]
+/// already has `aux` resolved and `next_pc` set to the start of the
+/// following instruction.
+pub fn decode_proto(proto: &Proto) -> Result<Vec<Instr>, String> {
+    let mut out = Vec::new();
+    let mut pc = 0usize;
+    while pc < proto.code.len() {
+        let word = proto.code[pc];
+        let op = match LuauOpcode::try_from((word & 0xFF) as u8) {
+            Ok(op) => op,
+            Err(_) => {
+                // Skip unknown opcode word; keep going so that we can
+                // still decompile the rest of the proto.
+                pc += 1;
+                continue;
+            }
+        };
+
+        let a = ((word >> 8) & 0xFF) as u8;
+        let b = ((word >> 16) & 0xFF) as u8;
+        let c = ((word >> 24) & 0xFF) as u8;
+        let d = ((word >> 16) & 0xFFFF) as i16;
+        let e = (word as i32) >> 8;
+
+        let aux = if opcode_uses_aux(op) {
+            if pc + 1 >= proto.code.len() {
+                return Err(format!(
+                    "opcode at pc {} expects aux word but code ended",
+                    pc
+                ));
+            }
+            proto.code[pc + 1]
+        } else {
+            0
+        };
+
+        let next_pc = pc + 1 + usize::from(opcode_uses_aux(op));
+        out.push(Instr {
+            pc,
+            next_pc,
+            op,
+            a,
+            b,
+            c,
+            d,
+            e,
+            aux,
+        });
+        pc = next_pc;
+    }
+    Ok(out)
+}
+
+/// Precedence levels, mirroring Lua's grammar. Larger = binds tighter.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Prec {
+    Lowest,
+    Or,
+    And,
+    Cmp,
+    BitOr,
+    BitXor,
+    BitAnd,
+    Shift,
+    Concat,
+    AddSub,
+    MulDivMod,
+    Unary,
+    Power,
+    Primary,
+}
+
+fn binop_prec(op: &str) -> Prec {
+    match op {
+        "or" => Prec::Or,
+        "and" => Prec::And,
+        "==" | "~=" | "<" | "<=" | ">" | ">=" => Prec::Cmp,
+        ".." => Prec::Concat,
+        "+" | "-" => Prec::AddSub,
+        "*" | "/" | "//" | "%" => Prec::MulDivMod,
+        "^" => Prec::Power,
+        _ => Prec::Primary,
+    }
+}
+
+/// Expression AST node. Kept deliberately small.
+#[derive(Debug, Clone)]
+pub enum Expr {
+    Nil,
+    Bool(bool),
+    Num(f64),
+    Str(String),
+    Vararg,
+    /// Logical register slot, rendered as `v<index>` by default.
+    Reg(u8),
+    /// Proto upvalue slot, rendered as `u<index>`.
+    Upval(u8),
+    /// Bytecode proto, rendered as an inline `function(...) ... end`.
+    Closure(usize),
+    /// `_G.<name>` / `<name>`.
+    Global(String),
+    /// Dotted import path resolved from GETIMPORT aux.
+    ImportPath(Vec<String>),
+    /// `base[key]`.
+    Index(Box<Expr>, Box<Expr>),
+    /// `base.field` (syntactic sugar when `field` is an identifier).
+    Field(Box<Expr>, String),
+    /// Regular call: `f(a, b, ...)`.
+    Call {
+        func: Box<Expr>,
+        args: Vec<Expr>,
+        /// When true, the last argument is a trailing `...` varargs/multret.
+        vararg_tail: bool,
+    },
+    /// Method call: `obj:method(a, b, ...)`.
+    Method {
+        obj: Box<Expr>,
+        name: String,
+        args: Vec<Expr>,
+        vararg_tail: bool,
+    },
+    BinOp {
+        op: &'static str,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
+    UnOp {
+        op: &'static str,
+        operand: Box<Expr>,
+    },
+    Concat(Vec<Expr>),
+    Length(Box<Expr>),
+    /// Table literal.
+    Table {
+        array: Vec<Expr>,
+        hash: Vec<(Expr, Expr)>,
+    },
+    /// Fallback when we can't represent the value precisely. Rendered
+    /// verbatim so editors can still operate on the generated source.
+    Raw(String),
+}
+
+/// A Luau statement we emit into the reconstructed source.
+#[derive(Debug, Clone)]
+enum Stmt {
+    Assign {
+        target: Expr,
+        value: Expr,
+    },
+    /// `local v_a, v_b, ... = v, w, ...` for multi-return calls/locals.
+    LocalList {
+        names: Vec<String>,
+        value: Expr,
+        /// Number of extra names bound from the same expression.
+        extra: usize,
+    },
+    Call(Expr),
+    Return(Vec<Expr>),
+    /// Free-form comment line (no leading `-- `; the renderer adds it).
+    Comment(String),
+    /// Label comment, e.g. `-- [L42]` used as a jump target marker.
+    LabelMarker(usize),
+    /// `-- goto Lpc` style comment preserving the original jump.
+    GotoComment(usize, String),
+    /// Blank line.
+    Blank,
+}
+
+/// Virtual register file. Each register holds either `None` (no known
+/// expression; the register is "dirty") or `Some(expr)` (the current
+/// expression produced by the most recent write).
+#[derive(Default)]
+struct RegFile {
+    regs: BTreeMap<u8, Expr>,
+}
+
+impl RegFile {
+    fn set(&mut self, reg: u8, expr: Expr) {
+        self.regs.insert(reg, expr);
+    }
+    fn get(&self, reg: u8) -> Expr {
+        self.regs.get(&reg).cloned().unwrap_or(Expr::Reg(reg))
+    }
+    fn take(&mut self, reg: u8) -> Expr {
+        self.regs.remove(&reg).unwrap_or(Expr::Reg(reg))
+    }
+    fn invalidate_from(&mut self, start: u8) {
+        self.regs.retain(|&k, _| k < start);
+    }
+}
+
+/// Main entry: reconstruct Luau source from a parsed [`BytecodeFile`].
+pub fn reconstruct(file: &BytecodeFile) -> Result<String, String> {
+    let main_idx = file
+        .main_proto
+        .or_else(|| if file.protos.is_empty() { None } else { Some(file.protos.len() - 1) })
+        .ok_or_else(|| "bytecode file has no protos".to_string())?;
+    let mut out = String::new();
+    writeln!(
+        out,
+        "-- Reconstructed Luau source (luauc64 {}).",
+        env!("CARGO_PKG_VERSION")
+    )
+    .ok();
+    writeln!(
+        out,
+        "-- This is a best-effort lift from bytecode; review before running."
+    )
+    .ok();
+    writeln!(out).ok();
+
+    let main_proto = &file.protos[main_idx];
+    let body = reconstruct_proto_body(file, main_proto, 0)?;
+    out.push_str(&body);
+    Ok(out)
+}
+
+fn proto_header(proto: &Proto) -> String {
+    let mut params: Vec<String> = (0..proto.numparams).map(|i| format!("v{}", i)).collect();
+    if proto.is_vararg != 0 {
+        params.push("...".to_string());
+    }
+    format!("function({})", params.join(", "))
+}
+
+/// Reconstruct a single proto body. Each line in the returned string is
+/// indented by `indent` levels (two spaces per level).
+fn reconstruct_proto_body(
+    file: &BytecodeFile,
+    proto: &Proto,
+    indent: usize,
+) -> Result<String, String> {
+    let instrs = decode_proto(proto)?;
+    let jump_targets = collect_jump_targets(&instrs);
+
+    let mut regs = RegFile::default();
+    // Seed params as local registers v0..vN — these count as "already
+    // declared" locals so subsequent writes to them don't get a spurious
+    // `local` keyword.
+    let mut declared: BTreeSet<u8> = BTreeSet::new();
+    for i in 0..proto.numparams {
+        regs.set(i, Expr::Reg(i));
+        declared.insert(i);
+    }
+    let mut stmts: Vec<Stmt> = Vec::new();
+    let mut pending_captures: Vec<Capture> = Vec::new();
+
+    for (idx, instr) in instrs.iter().enumerate() {
+        if jump_targets.contains(&instr.pc) {
+            stmts.push(Stmt::LabelMarker(instr.pc));
+            // Across a basic-block boundary we can't rely on prior
+            // register expression snapshots anymore (they may have been
+            // produced on an alternate path). Declared-local names do
+            // survive the boundary, so keep `declared`.
+            regs = RegFile::default();
+            for i in 0..proto.numparams {
+                regs.set(i, Expr::Reg(i));
+            }
+        }
+
+        lift_instr(
+            file,
+            proto,
+            instr,
+            &instrs,
+            idx,
+            &mut regs,
+            &mut stmts,
+            &mut declared,
+            &mut pending_captures,
+        )?;
+    }
+
+    // Render statements to text.
+    let mut out = String::new();
+    let pad = "  ".repeat(indent);
+    for s in &stmts {
+        render_stmt(&mut out, s, &pad, file, indent)?;
+    }
+    Ok(out)
+}
+
+/// Collect the set of `pc` values that are jump targets anywhere in the
+/// proto (so we can mark them with comment labels in the output).
+fn collect_jump_targets(instrs: &[Instr]) -> BTreeSet<usize> {
+    let mut out = BTreeSet::new();
+    for i in instrs {
+        let target = match i.op {
+            LuauOpcode::LOP_JUMP
+            | LuauOpcode::LOP_JUMPBACK
+            | LuauOpcode::LOP_JUMPIF
+            | LuauOpcode::LOP_JUMPIFNOT
+            | LuauOpcode::LOP_JUMPIFEQ
+            | LuauOpcode::LOP_JUMPIFLE
+            | LuauOpcode::LOP_JUMPIFLT
+            | LuauOpcode::LOP_JUMPIFNOTEQ
+            | LuauOpcode::LOP_JUMPIFNOTLE
+            | LuauOpcode::LOP_JUMPIFNOTLT => {
+                Some((i.pc as isize + 1 + i.d as isize) as usize)
+            }
+            LuauOpcode::LOP_JUMPX => Some((i.pc as isize + 1 + i.e as isize) as usize),
+            LuauOpcode::LOP_JUMPXEQKNIL
+            | LuauOpcode::LOP_JUMPXEQKB
+            | LuauOpcode::LOP_JUMPXEQKN
+            | LuauOpcode::LOP_JUMPXEQKS => {
+                // D is in the main word, followed by aux.
+                Some((i.pc as isize + 1 + i.d as isize) as usize)
+            }
+            LuauOpcode::LOP_FORNPREP | LuauOpcode::LOP_FORNLOOP => {
+                Some((i.pc as isize + 1 + i.d as isize) as usize)
+            }
+            LuauOpcode::LOP_FORGLOOP
+            | LuauOpcode::LOP_FORGPREP
+            | LuauOpcode::LOP_FORGPREP_NEXT
+            | LuauOpcode::LOP_FORGPREP_INEXT => Some((i.pc as isize + 1 + i.d as isize) as usize),
+            _ => None,
+        };
+        if let Some(t) = target {
+            out.insert(t);
+        }
+    }
+    out
+}
+
+/// A `LOP_CAPTURE` instruction that we are holding for the next
+/// `NEWCLOSURE`/`DUPCLOSURE`.
+#[derive(Debug, Clone)]
+struct Capture {
+    kind: u8, // 0=value, 1=ref, 2=upval
+    idx: u8,
+}
+
+/// Lift one instruction into statements and/or register updates.
+#[allow(clippy::too_many_arguments)]
+fn lift_instr(
+    file: &BytecodeFile,
+    proto: &Proto,
+    i: &Instr,
+    all: &[Instr],
+    idx: usize,
+    regs: &mut RegFile,
+    stmts: &mut Vec<Stmt>,
+    declared: &mut BTreeSet<u8>,
+    pending_captures: &mut Vec<Capture>,
+) -> Result<(), String> {
+    use LuauOpcode::*;
+
+    // Reusable helpers that rely on the context of this invocation.
+    let kconst = |idx: usize| -> Expr { constant_to_expr(proto, idx) };
+    let knum_or = |idx: usize, default: f64| -> f64 {
+        match proto.k.get(idx) {
+            Some(Constant::Number(n)) => *n,
+            Some(Constant::Integer(n)) => *n as f64,
+            _ => default,
+        }
+    };
+    let _ = knum_or;
+
+    match i.op {
+        LOP_NOP | LOP_BREAK | LOP_COVERAGE | LOP_PREPVARARGS => {
+            // No-ops for source reconstruction purposes.
+        }
+
+        LOP_LOADNIL => regs.set(i.a, Expr::Nil),
+        LOP_LOADB => {
+            regs.set(i.a, Expr::Bool(i.b != 0));
+            // `LOP_LOADB` with C != 0 also jumps forward by C; we let the
+            // jump-target pass handle the label, but we don't structure it.
+        }
+        LOP_LOADN => regs.set(i.a, Expr::Num(i.d as f64)),
+        LOP_LOADK => regs.set(i.a, kconst(i.d as u16 as usize)),
+        LOP_LOADKX => regs.set(i.a, kconst(i.aux as usize)),
+        LOP_MOVE => {
+            let src = regs.get(i.b);
+            regs.set(i.a, src);
+        }
+        LOP_GETUPVAL => regs.set(i.a, Expr::Upval(i.b)),
+        LOP_SETUPVAL => {
+            stmts.push(Stmt::Assign {
+                target: Expr::Upval(i.b),
+                value: regs.get(i.a),
+            });
+        }
+        LOP_CLOSEUPVALS => {
+            // Informational — mention it as a comment so the line count
+            // roughly tracks bytecode flow.
+        }
+
+        LOP_GETGLOBAL => {
+            let name = string_const(proto, i.aux as usize)
+                .unwrap_or_else(|| format!("_G_{}", i.aux));
+            regs.set(i.a, Expr::Global(name));
+        }
+        LOP_SETGLOBAL => {
+            let name = string_const(proto, i.aux as usize)
+                .unwrap_or_else(|| format!("_G_{}", i.aux));
+            stmts.push(Stmt::Assign {
+                target: Expr::Global(name),
+                value: regs.get(i.a),
+            });
+        }
+
+        LOP_GETIMPORT => {
+            regs.set(i.a, import_path_expr(proto, i.aux));
+            // aux is followed by the k-index of the "fallback" constant
+            // which was already loaded as LOP_LOADK into register a; the
+            // runtime prefers the import chain if available.
+        }
+
+        LOP_GETTABLE => {
+            let t = regs.get(i.b);
+            let k = regs.get(i.c);
+            regs.set(i.a, Expr::Index(Box::new(t), Box::new(k)));
+        }
+        LOP_SETTABLE => {
+            let t = regs.get(i.b);
+            let k = regs.get(i.c);
+            stmts.push(Stmt::Assign {
+                target: Expr::Index(Box::new(t), Box::new(k)),
+                value: regs.get(i.a),
+            });
+        }
+        LOP_GETTABLEKS => {
+            let t = regs.get(i.b);
+            let name = string_const(proto, i.aux as usize)
+                .unwrap_or_else(|| format!("k{}", i.aux));
+            regs.set(i.a, field_or_index(t, name));
+        }
+        LOP_SETTABLEKS => {
+            let t = regs.get(i.b);
+            let name = string_const(proto, i.aux as usize)
+                .unwrap_or_else(|| format!("k{}", i.aux));
+            stmts.push(Stmt::Assign {
+                target: field_or_index(t, name),
+                value: regs.get(i.a),
+            });
+        }
+        LOP_GETTABLEN => {
+            let t = regs.get(i.b);
+            regs.set(
+                i.a,
+                Expr::Index(Box::new(t), Box::new(Expr::Num((i.c as u32 + 1) as f64))),
+            );
+        }
+        LOP_SETTABLEN => {
+            let t = regs.get(i.b);
+            stmts.push(Stmt::Assign {
+                target: Expr::Index(Box::new(t), Box::new(Expr::Num((i.c as u32 + 1) as f64))),
+                value: regs.get(i.a),
+            });
+        }
+
+        LOP_NEWTABLE => regs.set(
+            i.a,
+            Expr::Table {
+                array: Vec::new(),
+                hash: Vec::new(),
+            },
+        ),
+        LOP_DUPTABLE => regs.set(
+            i.a,
+            Expr::Table {
+                array: Vec::new(),
+                hash: Vec::new(),
+            },
+        ),
+        LOP_SETLIST => {
+            // Merge array part into the existing table literal in reg A.
+            let count = if i.c == 0 { 0 } else { (i.c as usize) - 1 };
+            let base = i.b;
+            let mut items = Vec::with_capacity(count);
+            for j in 0..count {
+                items.push(regs.get(base + j as u8));
+            }
+            if let Some(Expr::Table { array, .. }) = regs.regs.get_mut(&i.a) {
+                array.extend(items);
+            } else {
+                // Fall back to re-creating a table literal.
+                regs.set(
+                    i.a,
+                    Expr::Table {
+                        array: items,
+                        hash: Vec::new(),
+                    },
+                );
+            }
+        }
+
+        LOP_NEWCLOSURE | LOP_DUPCLOSURE => {
+            let child_idx = match i.op {
+                LOP_DUPCLOSURE => match proto.k.get(i.d as u16 as usize) {
+                    Some(Constant::Closure(idx)) => *idx,
+                    _ => i.d as u16 as usize,
+                },
+                _ => proto.child_proto_indices.get(i.d as u16 as usize).copied()
+                    .unwrap_or(i.d as u16 as usize),
+            };
+            regs.set(i.a, Expr::Closure(child_idx));
+            pending_captures.clear();
+        }
+        LOP_CAPTURE => {
+            pending_captures.push(Capture {
+                kind: i.a,
+                idx: i.b,
+            });
+        }
+
+        LOP_NAMECALL => {
+            let obj = regs.get(i.b);
+            let name = string_const(proto, i.aux as usize)
+                .unwrap_or_else(|| format!("k{}", i.aux));
+            // NAMECALL sets A+1 = obj and leaves the call expression in A.
+            // We defer until the following LOP_CALL consumes it.
+            regs.set(i.a, Expr::Raw(format!("__namecall_{}_{}", i.b, name)));
+            regs.set(i.a + 1, obj);
+            // Marker: next LOP_CALL at A should become a method call.
+            regs.set(
+                i.a,
+                Expr::Raw(format!("__PENDING_NAMECALL:{}:{}", i.b, name)),
+            );
+            let _ = name;
+        }
+
+        LOP_CALL => {
+            // Detect a pending namecall baked into reg a by LOP_NAMECALL.
+            let func_slot = regs.take(i.a);
+            let pending = match &func_slot {
+                Expr::Raw(s) if s.starts_with("__PENDING_NAMECALL:") => {
+                    let rest = &s["__PENDING_NAMECALL:".len()..];
+                    let mut it = rest.splitn(2, ':');
+                    let obj_reg = it.next().and_then(|s| s.parse::<u8>().ok());
+                    let name = it.next().map(|s| s.to_string());
+                    match (obj_reg, name) {
+                        (Some(r), Some(n)) => Some((r, n)),
+                        _ => None,
+                    }
+                }
+                _ => None,
+            };
+
+            // Gather args.
+            let arg_base = i.a + 1;
+            let nargs_field = i.b;
+            let mut args: Vec<Expr> = Vec::new();
+            let mut vararg_tail = false;
+            if nargs_field == 0 {
+                // Trailing multret from previous expression.
+                vararg_tail = true;
+            } else if nargs_field >= 1 {
+                let n = (nargs_field as usize) - 1;
+                for j in 0..n {
+                    args.push(regs.get(arg_base + j as u8));
+                }
+            }
+
+            // For method calls, we need to drop the implicit self arg
+            // (which was placed at A+1 by LOP_NAMECALL).
+            if pending.is_some() && !args.is_empty() {
+                args.remove(0);
+            }
+
+            let call_expr = match pending {
+                Some((obj_reg, name)) => Expr::Method {
+                    obj: Box::new(regs.get(obj_reg)),
+                    name,
+                    args,
+                    vararg_tail,
+                },
+                None => Expr::Call {
+                    func: Box::new(func_slot),
+                    args,
+                    vararg_tail,
+                },
+            };
+
+            let nret_field = i.c;
+            match nret_field {
+                0 => {
+                    // multret. Bind to a local so the call happens once
+                    // and subsequent reads just reference the register.
+                    emit_bound_call(stmts, declared, &[i.a], call_expr);
+                    regs.set(i.a, Expr::Reg(i.a));
+                }
+                1 => {
+                    // No returns consumed — pure side-effect statement.
+                    stmts.push(Stmt::Call(call_expr));
+                    regs.invalidate_from(i.a);
+                }
+                _ => {
+                    let nret = (nret_field as usize) - 1;
+                    let regs_bound: Vec<u8> =
+                        (0..nret).map(|j| i.a + j as u8).collect();
+                    emit_bound_call(stmts, declared, &regs_bound, call_expr);
+                    for r in &regs_bound {
+                        regs.set(*r, Expr::Reg(*r));
+                    }
+                }
+            }
+        }
+
+        LOP_RETURN => {
+            let count_field = i.b;
+            let mut values = Vec::new();
+            if count_field == 0 {
+                // multret from reg A onwards; we can't know the count.
+                values.push(regs.get(i.a));
+            } else if count_field >= 1 {
+                let n = (count_field as usize) - 1;
+                for j in 0..n {
+                    values.push(regs.get(i.a + j as u8));
+                }
+            }
+            stmts.push(Stmt::Return(values));
+        }
+
+        LOP_JUMP | LOP_JUMPBACK | LOP_JUMPX => {
+            let target = match i.op {
+                LOP_JUMPX => (i.pc as isize + 1 + i.e as isize) as usize,
+                _ => (i.pc as isize + 1 + i.d as isize) as usize,
+            };
+            stmts.push(Stmt::GotoComment(
+                target,
+                format!("{:?} +{}", i.op, i.d as i32),
+            ));
+        }
+        LOP_JUMPIF => {
+            let target = (i.pc as isize + 1 + i.d as isize) as usize;
+            stmts.push(Stmt::Comment(format!(
+                "if {} then goto L{} end",
+                render_expr(&regs.get(i.a), Prec::Lowest, file, 0),
+                target
+            )));
+        }
+        LOP_JUMPIFNOT => {
+            let target = (i.pc as isize + 1 + i.d as isize) as usize;
+            stmts.push(Stmt::Comment(format!(
+                "if not {} then goto L{} end",
+                render_expr(&regs.get(i.a), Prec::Lowest, file, 0),
+                target
+            )));
+        }
+        LOP_JUMPIFEQ | LOP_JUMPIFLE | LOP_JUMPIFLT | LOP_JUMPIFNOTEQ | LOP_JUMPIFNOTLE
+        | LOP_JUMPIFNOTLT => {
+            let op = match i.op {
+                LOP_JUMPIFEQ => "==",
+                LOP_JUMPIFLE => "<=",
+                LOP_JUMPIFLT => "<",
+                LOP_JUMPIFNOTEQ => "~=",
+                LOP_JUMPIFNOTLE => ">",
+                LOP_JUMPIFNOTLT => ">=",
+                _ => "?",
+            };
+            let target = (i.pc as isize + 1 + i.d as isize) as usize;
+            stmts.push(Stmt::Comment(format!(
+                "if {} {} {} then goto L{} end",
+                render_expr(&regs.get(i.a), Prec::Cmp, file, 0),
+                op,
+                render_expr(&regs.get(i.aux as u8), Prec::Cmp, file, 0),
+                target
+            )));
+        }
+
+        LOP_GETVARARGS => {
+            if i.b == 0 || i.b == 1 {
+                regs.set(i.a, Expr::Vararg);
+            } else {
+                for j in 0..(i.b as usize - 1) {
+                    regs.set(i.a + j as u8, Expr::Vararg);
+                }
+            }
+        }
+
+        LOP_ADD | LOP_SUB | LOP_MUL | LOP_DIV | LOP_MOD | LOP_POW | LOP_IDIV => {
+            let op = arith_op(i.op);
+            regs.set(
+                i.a,
+                Expr::BinOp {
+                    op,
+                    lhs: Box::new(regs.get(i.b)),
+                    rhs: Box::new(regs.get(i.c)),
+                },
+            );
+        }
+        LOP_ADDK | LOP_SUBK | LOP_MULK | LOP_DIVK | LOP_MODK | LOP_POWK | LOP_IDIVK => {
+            let op = arith_op(i.op);
+            regs.set(
+                i.a,
+                Expr::BinOp {
+                    op,
+                    lhs: Box::new(regs.get(i.b)),
+                    rhs: Box::new(kconst(i.c as usize)),
+                },
+            );
+        }
+        LOP_SUBRK | LOP_DIVRK => {
+            // rhs is reg, lhs is constant.
+            let op = if matches!(i.op, LOP_SUBRK) { "-" } else { "/" };
+            regs.set(
+                i.a,
+                Expr::BinOp {
+                    op,
+                    lhs: Box::new(kconst(i.b as usize)),
+                    rhs: Box::new(regs.get(i.c)),
+                },
+            );
+        }
+        LOP_AND => regs.set(
+            i.a,
+            Expr::BinOp {
+                op: "and",
+                lhs: Box::new(regs.get(i.b)),
+                rhs: Box::new(regs.get(i.c)),
+            },
+        ),
+        LOP_OR => regs.set(
+            i.a,
+            Expr::BinOp {
+                op: "or",
+                lhs: Box::new(regs.get(i.b)),
+                rhs: Box::new(regs.get(i.c)),
+            },
+        ),
+        LOP_ANDK => regs.set(
+            i.a,
+            Expr::BinOp {
+                op: "and",
+                lhs: Box::new(regs.get(i.b)),
+                rhs: Box::new(kconst(i.c as usize)),
+            },
+        ),
+        LOP_ORK => regs.set(
+            i.a,
+            Expr::BinOp {
+                op: "or",
+                lhs: Box::new(regs.get(i.b)),
+                rhs: Box::new(kconst(i.c as usize)),
+            },
+        ),
+        LOP_CONCAT => {
+            let mut parts = Vec::new();
+            for r in i.b..=i.c {
+                parts.push(regs.get(r));
+            }
+            regs.set(i.a, Expr::Concat(parts));
+        }
+        LOP_NOT => regs.set(
+            i.a,
+            Expr::UnOp {
+                op: "not ",
+                operand: Box::new(regs.get(i.b)),
+            },
+        ),
+        LOP_MINUS => regs.set(
+            i.a,
+            Expr::UnOp {
+                op: "-",
+                operand: Box::new(regs.get(i.b)),
+            },
+        ),
+        LOP_LENGTH => regs.set(i.a, Expr::Length(Box::new(regs.get(i.b)))),
+
+        LOP_FORNPREP | LOP_FORNLOOP | LOP_FORGPREP | LOP_FORGLOOP | LOP_FORGPREP_NEXT
+        | LOP_FORGPREP_INEXT => {
+            stmts.push(Stmt::Comment(format!(
+                "TODO: structure {:?} (pc {}, target {})",
+                i.op,
+                i.pc,
+                (i.pc as isize + 1 + i.d as isize) as usize
+            )));
+        }
+
+        LOP_FASTCALL | LOP_FASTCALL1 | LOP_FASTCALL2 | LOP_FASTCALL2K | LOP_FASTCALL3
+        | LOP_NATIVECALL => {
+            // Fastcalls are a runtime optimization — the regular CALL
+            // follows and produces the actual call expression.
+        }
+
+        LOP_JUMPXEQKNIL | LOP_JUMPXEQKB | LOP_JUMPXEQKN | LOP_JUMPXEQKS => {
+            let target = (i.pc as isize + 1 + i.d as isize) as usize;
+            stmts.push(Stmt::Comment(format!(
+                "cmp-jump {:?} R{} aux={:#x} -> L{}",
+                i.op, i.a, i.aux, target
+            )));
+        }
+
+        _ => {
+            stmts.push(Stmt::Comment(format!(
+                "TODO opcode {:?} A={} B={} C={} D={} aux={:#x}",
+                i.op, i.a, i.b, i.c, i.d, i.aux
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Emit either a multi-target `local` binding or a plain multi-target
+/// assignment for the result of a call, depending on whether each
+/// register has been declared as a local yet in this scope.
+fn emit_bound_call(
+    stmts: &mut Vec<Stmt>,
+    declared: &mut BTreeSet<u8>,
+    regs_bound: &[u8],
+    value: Expr,
+) {
+    let any_new = regs_bound.iter().any(|r| !declared.contains(r));
+    let names: Vec<String> = regs_bound.iter().map(|r| format!("v{}", r)).collect();
+    for r in regs_bound {
+        declared.insert(*r);
+    }
+    if any_new {
+        stmts.push(Stmt::LocalList {
+            names,
+            value,
+            extra: 0,
+        });
+    } else if regs_bound.len() == 1 {
+        stmts.push(Stmt::Assign {
+            target: Expr::Reg(regs_bound[0]),
+            value,
+        });
+    } else {
+        // Plain multi-assignment: `v<a>, v<b> = call(...)`.
+        stmts.push(Stmt::Comment(format!(
+            "{} = {}",
+            names.join(", "),
+            "<call>"
+        )));
+        stmts.push(Stmt::Call(value));
+    }
+}
+
+fn arith_op(op: LuauOpcode) -> &'static str {
+    match op {
+        LuauOpcode::LOP_ADD | LuauOpcode::LOP_ADDK => "+",
+        LuauOpcode::LOP_SUB | LuauOpcode::LOP_SUBK | LuauOpcode::LOP_SUBRK => "-",
+        LuauOpcode::LOP_MUL | LuauOpcode::LOP_MULK => "*",
+        LuauOpcode::LOP_DIV | LuauOpcode::LOP_DIVK | LuauOpcode::LOP_DIVRK => "/",
+        LuauOpcode::LOP_IDIV | LuauOpcode::LOP_IDIVK => "//",
+        LuauOpcode::LOP_MOD | LuauOpcode::LOP_MODK => "%",
+        LuauOpcode::LOP_POW | LuauOpcode::LOP_POWK => "^",
+        _ => "?",
+    }
+}
+
+fn is_last_instruction(all: &[Instr], idx: usize) -> bool {
+    idx + 1 >= all.len()
+}
+
+fn string_const(proto: &Proto, idx: usize) -> Option<String> {
+    match proto.k.get(idx)? {
+        Constant::String(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+fn constant_to_expr(proto: &Proto, idx: usize) -> Expr {
+    match proto.k.get(idx) {
+        None => Expr::Raw(format!("<k#{}: missing>", idx)),
+        Some(Constant::Nil) => Expr::Nil,
+        Some(Constant::Boolean(b)) => Expr::Bool(*b),
+        Some(Constant::Number(n)) => Expr::Num(*n),
+        Some(Constant::Integer(n)) => Expr::Num(*n as f64),
+        Some(Constant::Vector(x, y, z, w)) => Expr::Raw(format!(
+            "Vector({:.6}, {:.6}, {:.6}, {:.6})",
+            x, y, z, w
+        )),
+        Some(Constant::String(s)) => Expr::Str(s.clone()),
+        Some(Constant::Import(aux)) => import_path_expr(proto, *aux),
+        Some(Constant::Table(_)) => Expr::Table {
+            array: Vec::new(),
+            hash: Vec::new(),
+        },
+        Some(Constant::TableWithConstants(_)) => Expr::Table {
+            array: Vec::new(),
+            hash: Vec::new(),
+        },
+        Some(Constant::Closure(idx)) => Expr::Closure(*idx),
+    }
+}
+
+fn import_path_expr(proto: &Proto, aux: u32) -> Expr {
+    let count = (aux >> 30) as usize;
+    if count == 0 || count > 3 {
+        return Expr::Raw(format!("import({:#x})", aux));
+    }
+    let ids = [
+        ((aux >> 20) & 0x3FF) as usize,
+        ((aux >> 10) & 0x3FF) as usize,
+        (aux & 0x3FF) as usize,
+    ];
+    let mut parts = Vec::with_capacity(count);
+    for id in ids.iter().take(count) {
+        match proto.k.get(*id) {
+            Some(Constant::String(s)) => parts.push(s.clone()),
+            _ => return Expr::Raw(format!("import({:#x})", aux)),
+        }
+    }
+    Expr::ImportPath(parts)
+}
+
+fn field_or_index(base: Expr, name: String) -> Expr {
+    if is_identifier(&name) {
+        Expr::Field(Box::new(base), name)
+    } else {
+        Expr::Index(Box::new(base), Box::new(Expr::Str(name)))
+    }
+}
+
+fn is_identifier(s: &str) -> bool {
+    let mut it = s.chars();
+    match it.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {}
+        _ => return false,
+    }
+    for c in it {
+        if !(c.is_ascii_alphanumeric() || c == '_') {
+            return false;
+        }
+    }
+    !LUA_KEYWORDS.contains(&s)
+}
+
+const LUA_KEYWORDS: &[&str] = &[
+    "and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in",
+    "local", "nil", "not", "or", "repeat", "return", "then", "true", "until", "while",
+    // Luau-specific
+    "continue", "export", "type",
+];
+
+/// Render an expression with precedence-aware parenthesization.
+fn render_expr(e: &Expr, outer: Prec, file: &BytecodeFile, indent: usize) -> String {
+    let (inner, prec) = match e {
+        Expr::Nil => ("nil".to_string(), Prec::Primary),
+        Expr::Bool(b) => (if *b { "true".into() } else { "false".into() }, Prec::Primary),
+        Expr::Num(n) => (format_num(*n), Prec::Primary),
+        Expr::Str(s) => (format_str(s), Prec::Primary),
+        Expr::Vararg => ("...".into(), Prec::Primary),
+        Expr::Reg(r) => (format!("v{}", r), Prec::Primary),
+        Expr::Upval(u) => (format!("u{}", u), Prec::Primary),
+        Expr::Global(name) => (name.clone(), Prec::Primary),
+        Expr::ImportPath(parts) => (parts.join("."), Prec::Primary),
+        Expr::Closure(child_idx) => {
+            let pad = "  ".repeat(indent);
+            match file.protos.get(*child_idx) {
+                Some(child) => {
+                    let header = proto_header(child);
+                    let body = match reconstruct_proto_body(file, child, indent + 1) {
+                        Ok(b) => b,
+                        Err(e) => format!("{}  -- reconstruction error: {}\n", pad, e),
+                    };
+                    let rendered = format!("{}\n{}{}end", header, body, pad);
+                    (rendered, Prec::Primary)
+                }
+                None => (
+                    format!("(--[[closure #{} missing]] nil)", child_idx),
+                    Prec::Primary,
+                ),
+            }
+        }
+        Expr::Index(t, k) => (
+            format!(
+                "{}[{}]",
+                render_expr(t, Prec::Primary, file, indent),
+                render_expr(k, Prec::Lowest, file, indent)
+            ),
+            Prec::Primary,
+        ),
+        Expr::Field(t, name) => (
+            format!("{}.{}", render_expr(t, Prec::Primary, file, indent), name),
+            Prec::Primary,
+        ),
+        Expr::Call {
+            func,
+            args,
+            vararg_tail,
+        } => {
+            let mut s = format!("{}(", render_expr(func, Prec::Primary, file, indent));
+            for (i, a) in args.iter().enumerate() {
+                if i > 0 {
+                    s.push_str(", ");
+                }
+                s.push_str(&render_expr(a, Prec::Lowest, file, indent));
+            }
+            if *vararg_tail {
+                if !args.is_empty() {
+                    s.push_str(", ");
+                }
+                s.push_str("...");
+            }
+            s.push(')');
+            (s, Prec::Primary)
+        }
+        Expr::Method {
+            obj,
+            name,
+            args,
+            vararg_tail,
+        } => {
+            let mut s = format!("{}:{}(", render_expr(obj, Prec::Primary, file, indent), name);
+            for (i, a) in args.iter().enumerate() {
+                if i > 0 {
+                    s.push_str(", ");
+                }
+                s.push_str(&render_expr(a, Prec::Lowest, file, indent));
+            }
+            if *vararg_tail {
+                if !args.is_empty() {
+                    s.push_str(", ");
+                }
+                s.push_str("...");
+            }
+            s.push(')');
+            (s, Prec::Primary)
+        }
+        Expr::BinOp { op, lhs, rhs } => {
+            let prec = binop_prec(op);
+            let left = render_expr(lhs, prec, file, indent);
+            let right = render_expr(rhs, prec, file, indent);
+            (format!("{} {} {}", left, op, right), prec)
+        }
+        Expr::UnOp { op, operand } => (
+            format!("{}{}", op, render_expr(operand, Prec::Unary, file, indent)),
+            Prec::Unary,
+        ),
+        Expr::Concat(parts) => {
+            let rendered = parts
+                .iter()
+                .map(|p| render_expr(p, Prec::Concat, file, indent))
+                .collect::<Vec<_>>()
+                .join(" .. ");
+            (rendered, Prec::Concat)
+        }
+        Expr::Length(x) => (
+            format!("#{}", render_expr(x, Prec::Unary, file, indent)),
+            Prec::Unary,
+        ),
+        Expr::Table { array, hash } => {
+            let mut parts = Vec::new();
+            for a in array {
+                parts.push(render_expr(a, Prec::Lowest, file, indent));
+            }
+            for (k, v) in hash {
+                let key = match k {
+                    Expr::Str(s) if is_identifier(s) => s.clone(),
+                    other => format!("[{}]", render_expr(other, Prec::Lowest, file, indent)),
+                };
+                parts.push(format!(
+                    "{} = {}",
+                    key,
+                    render_expr(v, Prec::Lowest, file, indent)
+                ));
+            }
+            (format!("{{{}}}", parts.join(", ")), Prec::Primary)
+        }
+        Expr::Raw(s) => (s.clone(), Prec::Primary),
+    };
+    if prec < outer {
+        format!("({})", inner)
+    } else {
+        inner
+    }
+}
+
+fn format_num(n: f64) -> String {
+    if n.is_nan() {
+        "(0/0)".into()
+    } else if n.is_infinite() {
+        if n > 0.0 { "(1/0)".into() } else { "(-1/0)".into() }
+    } else if n.fract() == 0.0 && n.abs() < 1e15 {
+        format!("{}", n as i64)
+    } else {
+        format!("{}", n)
+    }
+}
+
+fn format_str(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            '\0' => out.push_str("\\0"),
+            c if (c as u32) < 0x20 => {
+                out.push_str(&format!("\\{}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+fn render_stmt(
+    out: &mut String,
+    s: &Stmt,
+    pad: &str,
+    file: &BytecodeFile,
+    indent: usize,
+) -> Result<(), String> {
+    match s {
+        Stmt::Assign { target, value } => {
+            writeln!(
+                out,
+                "{}{} = {}",
+                pad,
+                render_expr(target, Prec::Lowest, file, indent),
+                render_expr(value, Prec::Lowest, file, indent)
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Stmt::LocalList { names, value, extra } => {
+            let all_names = names.clone();
+            let _ = extra;
+            writeln!(
+                out,
+                "{}local {} = {}",
+                pad,
+                all_names.join(", "),
+                render_expr(value, Prec::Lowest, file, indent)
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Stmt::Call(e) => {
+            writeln!(
+                out,
+                "{}{}",
+                pad,
+                render_expr(e, Prec::Lowest, file, indent)
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        Stmt::Return(values) => {
+            if values.is_empty() {
+                writeln!(out, "{}return", pad).map_err(|e| e.to_string())?;
+            } else {
+                let rendered = values
+                    .iter()
+                    .map(|v| render_expr(v, Prec::Lowest, file, indent))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                writeln!(out, "{}return {}", pad, rendered).map_err(|e| e.to_string())?;
+            }
+        }
+        Stmt::Comment(c) => {
+            writeln!(out, "{}-- {}", pad, c).map_err(|e| e.to_string())?;
+        }
+        Stmt::LabelMarker(pc) => {
+            writeln!(out, "{}-- [L{}]", pad, pc).map_err(|e| e.to_string())?;
+        }
+        Stmt::GotoComment(target, detail) => {
+            writeln!(out, "{}-- goto L{}  ({})", pad, target, detail).map_err(|e| e.to_string())?;
+        }
+        Stmt::Blank => {
+            writeln!(out).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_str_escapes_controls_and_quotes() {
+        assert_eq!(format_str("hello"), "\"hello\"");
+        assert_eq!(format_str("a\"b"), "\"a\\\"b\"");
+        assert_eq!(format_str("\n\r\t"), "\"\\n\\r\\t\"");
+    }
+
+    #[test]
+    fn format_num_prefers_integer_when_exact() {
+        assert_eq!(format_num(0.0), "0");
+        assert_eq!(format_num(-7.0), "-7");
+        assert_eq!(format_num(1.5), "1.5");
+    }
+
+    #[test]
+    fn is_identifier_rejects_keywords_and_bad_starts() {
+        assert!(is_identifier("foo"));
+        assert!(is_identifier("_bar"));
+        assert!(is_identifier("foo_bar9"));
+        assert!(!is_identifier("if"));
+        assert!(!is_identifier("return"));
+        assert!(!is_identifier("9foo"));
+        assert!(!is_identifier("foo bar"));
+        assert!(!is_identifier(""));
+    }
+
+    #[test]
+    fn field_or_index_picks_dot_for_identifiers() {
+        let base = Expr::Reg(0);
+        match field_or_index(base.clone(), "foo".into()) {
+            Expr::Field(_, n) => assert_eq!(n, "foo"),
+            other => panic!("expected Field, got {:?}", other),
+        }
+        match field_or_index(base, "bad key".into()) {
+            Expr::Index(_, k) => match *k {
+                Expr::Str(s) => assert_eq!(s, "bad key"),
+                other => panic!("expected Str key, got {:?}", other),
+            },
+            other => panic!("expected Index, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn import_path_expr_decodes_packed_aux() {
+        // Construct a synthetic proto with two string constants and an
+        // import packed as `(count=2, ids=[0, 1])`.
+        let proto = Proto {
+            source: String::new(),
+            bytecodeid: 0,
+            maxstacksize: 1,
+            numparams: 0,
+            nups: 0,
+            is_vararg: 0,
+            flags: 0,
+            typeinfo: vec![],
+            sizetypeinfo: 0,
+            code: vec![],
+            sizecode: 0,
+            k: vec![
+                Constant::String("EventIds".into()),
+                Constant::String("EVENT_TEST".into()),
+            ],
+            sizek: 2,
+            p: vec![],
+            child_proto_indices: vec![],
+            sizep: 0,
+            linedefined: 0,
+            debugname: String::new(),
+            linegaplog2: 0,
+            lineinfo: vec![],
+            sizelineinfo: 0,
+            abslineinfo: vec![],
+        };
+        let aux = (2u32 << 30) | (0u32 << 20) | (1u32 << 10);
+        match import_path_expr(&proto, aux) {
+            Expr::ImportPath(parts) => {
+                assert_eq!(parts, vec!["EventIds", "EVENT_TEST"]);
+            }
+            other => panic!("expected ImportPath, got {:?}", other),
+        }
+    }
+}

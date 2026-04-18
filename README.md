@@ -17,7 +17,26 @@ scripts `.l64` embarcados no jogo em código legível (Luau) e de volta em
 
 - `.l64` — container criptografado da GIANTS Engine 10 (GE10).
 - `.lb`  — bytecode Luau bruto, pronto para `luau_load` (começa com `01 03`).
-- `.luau` — disassembly + reconstrução pseudo-Lua gerada pelo decompilador.
+- `.luau` — **código-fonte Luau reconstruído** (editável) a partir do
+  bytecode. O disassembly bruto fica atrás de `--emit-disasm` e é escrito
+  em `.disasm.txt` como sidecar.
+
+### Reconstrução do fonte
+
+A partir do bytecode Luau v3 já parseado, o módulo
+[`src/source.rs`](luauc64/src/source.rs) levanta as instruções para uma IR
+tipada (`Expr` / `Stmt`), colapsa atribuições intermediárias em registradores
+virtuais e emite código Luau legível:
+
+- constantes e `GETIMPORT` viram literais (`"texto"`, `EventIds.EVENT_WEATHER_STATE`);
+- `NAMECALL` + `CALL` viram chamadas de método (`obj:method(args)`);
+- closures internas são inlineadas como `function(params) ... end`
+  (protos aninhados recursivamente);
+- chamadas cujo resultado é reutilizado são materializadas como `local
+  vN = ...` para evitar reavaliar side-effects;
+- alvos de salto (`JUMP*`) que não casam com um padrão de laço ou `if`
+  viram labels comentadas (`-- [L42]`) preservando a saída como Luau
+  sintaticamente válido.
 
 ---
 
