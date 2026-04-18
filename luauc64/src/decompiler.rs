@@ -7,6 +7,12 @@ pub struct Decompiler {
     output: String,
 }
 
+#[derive(Default, Debug)]
+struct TableNode {
+    children: BTreeMap<String, TableNode>,
+    leaf: bool,
+}
+
 #[derive(Clone)]
 struct DecodedInstruction {
     pc: usize,
@@ -215,6 +221,40 @@ impl Decompiler {
         }
     }
 
+    /// Decode a Luau `GETIMPORT` AUX word into a dotted path like `foo.bar.baz`.
+    ///
+    /// The encoding is `(count << 30) | (id0 << 20) | (id1 << 10) | id2` where
+    /// each id is a 10-bit index into the current proto's constant table (the
+    /// values must be strings). See the LBC v3 `luau_load` pseudoC
+    /// (`pseudoC/luau_load_00f2508c.c`, constant tag `\x04`) for the runtime
+    /// implementation.
+    fn decode_import_path(&self, proto: &Proto, aux: u32) -> Option<String> {
+        let count = (aux >> 30) as usize;
+        if count == 0 || count > 3 {
+            return None;
+        }
+        let ids = [
+            ((aux >> 20) & 0x3FF) as usize,
+            ((aux >> 10) & 0x3FF) as usize,
+            (aux & 0x3FF) as usize,
+        ];
+        let mut parts = Vec::with_capacity(count);
+        for id in ids.iter().take(count) {
+            match proto.k.get(*id) {
+                Some(Constant::String(s)) => parts.push(s.clone()),
+                _ => return None,
+            }
+        }
+        Some(parts.join("."))
+    }
+
+    fn format_import_aux(&self, proto: &Proto, aux: u32) -> String {
+        match self.decode_import_path(proto, aux) {
+            Some(path) => format!("{} ; {:#x}", path, aux),
+            None => format!("{:#x}", aux),
+        }
+    }
+
     fn reconstruct_pseudolua(
         &mut self,
         proto: &Proto,
@@ -295,6 +335,12 @@ impl Decompiler {
                 }
                 LuauOpcode::LOP_GETGLOBAL => {
                     regs[a] = self.identifier_or_literal(proto, di.instruction.aux as usize, strings);
+                    writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
+                }
+                LuauOpcode::LOP_GETIMPORT => {
+                    regs[a] = self
+                        .decode_import_path(proto, di.instruction.aux)
+                        .unwrap_or_else(|| format!("import({:#x})", di.instruction.aux));
                     writeln!(self.output, "r{} = {}", a, regs[a]).map_err(|e| e.to_string())?;
                 }
                 LuauOpcode::LOP_SETGLOBAL => {
@@ -549,8 +595,10 @@ impl Decompiler {
             }
             LuauOpcode::LOP_GETIMPORT => write!(
                 instruction_str,
-                " R({}), AUX({})",
-                instruction.a, instruction.aux
+                " R({}), AUX({}) ; {}",
+                instruction.a,
+                instruction.aux,
+                self.format_import_aux(proto, instruction.aux)
             )
             .map_err(|e| e.to_string())?,
             LuauOpcode::LOP_GETTABLE => write!(

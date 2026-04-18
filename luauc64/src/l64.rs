@@ -110,3 +110,63 @@ pub fn encode_l64(
 
     Ok(normalized)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_bytecode() -> Vec<u8> {
+        // `01 03 <payload>` matches what luau_load expects after loadBuffer.
+        let mut v = vec![0x01, 0x03];
+        v.extend_from_slice(b"hello-luau-bytecode-\x00\x01\x02\x03");
+        v
+    }
+
+    #[test]
+    fn roundtrip_key2() {
+        let bc = sample_bytecode();
+        let enc = encode_l64(&bc, L64Variant::Ge10Key2, 0xEF).unwrap();
+        assert_eq!(enc[0], 0x02);
+        assert_eq!(enc[1], 0xEF);
+
+        let dec = decode_l64(&enc, false).unwrap();
+        assert_eq!(dec.variant, L64Variant::Ge10Key2);
+        // After decode the header is normalized back to `01 03`.
+        assert_eq!(&dec.bytecode[..2], &[0x01, 0x03]);
+        assert_eq!(&dec.bytecode[2..], &bc[2..]);
+    }
+
+    #[test]
+    fn roundtrip_key3() {
+        let bc = sample_bytecode();
+        let enc = encode_l64(&bc, L64Variant::Ge10Key3, 0xFD).unwrap();
+        assert_eq!(enc[0], 0x03);
+        assert_eq!(enc[1], 0xFD);
+
+        let dec = decode_l64(&enc, false).unwrap();
+        assert_eq!(dec.variant, L64Variant::Ge10Key3);
+        assert_eq!(&dec.bytecode[..2], &[0x01, 0x03]);
+        assert_eq!(&dec.bytecode[2..], &bc[2..]);
+    }
+
+    #[test]
+    fn decode_strips_leading_sentinel_when_requested() {
+        let bc = sample_bytecode();
+        let enc = encode_l64(&bc, L64Variant::Ge10Key3, 0xFD).unwrap();
+        let dec = decode_l64(&enc, true).unwrap();
+        // With `luau_compatible_header=true` the 0x01 sentinel is dropped.
+        assert_eq!(dec.bytecode[0], 0x03);
+    }
+
+    #[test]
+    fn decode_rejects_unknown_header() {
+        let bad = [0xFFu8, 0xFF, 0x00];
+        assert!(decode_l64(&bad, false).is_err());
+    }
+
+    #[test]
+    fn decode_rejects_too_short() {
+        assert!(decode_l64(&[0x02], false).is_err());
+        assert!(decode_l64(&[], false).is_err());
+    }
+}

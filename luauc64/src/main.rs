@@ -375,31 +375,20 @@ fn parse_bytecode_with_fallback(
     data: &[u8],
     verbose: bool,
 ) -> Result<bytecode::BytecodeFile, String> {
+    // `BytecodeReader::read_bytecode_file` already strips the `0x01` sentinel
+    // written by `LuauScriptSystem::compileBufferAndSaveToFile` (see
+    // `pseudoC/loadBuffer_00bb6f84.c`), so we just parse directly here.
     let mut reader = BytecodeReader::new(data);
-    let mut result = reader.read_bytecode_file();
-
-    let should_try_fallback = data.len() > 1
-        && data[0] == 0x01
-        && data[1] == 0x03
-        && match &result {
-            Ok(file) => file.protos.is_empty(),
-            Err(_) => true,
-        };
-
-    if should_try_fallback {
-        if verbose {
-            println!("Parser fallback: retrying from byte offset +1 (01 03 header).");
-        }
-        let mut fallback = BytecodeReader::new(&data[1..]);
-        result = fallback.read_bytecode_file();
-    }
+    let result = reader.read_bytecode_file();
 
     if verbose {
         if let Ok(file) = &result {
-            if file.version != 3 {
+            if file.version != bytecode::LBC_VERSION_MIN {
                 eprintln!(
-                    "Warning: bytecode version {} (runtime pseudoC indica suporte principal para v3)",
-                    file.version
+                    "Warning: bytecode version {} outside FS23 runtime range [{}..{}]",
+                    file.version,
+                    bytecode::LBC_VERSION_MIN,
+                    bytecode::LBC_VERSION_MAX,
                 );
             }
         }

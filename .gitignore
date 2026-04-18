@@ -1,0 +1,6 @@
+/luauc64/target/
+**/*.rs.bk
+
+# Decipher/decompile outputs generated alongside .l64 test files
+scripts/**/*.lb
+scripts/**/*.luau
