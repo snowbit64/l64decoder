@@ -1,0 +1,4 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
+GameState = {STARTING = 1, MENU_MAIN = 2, LOADING = 3, PAUSED = 4, PLAY = 5, MENU_SHOP_CONFIG = 6, MENU_ANIMAL_SHOP = 7, MENU_INGAME = 8, MENU_SHOP = 9}
