@@ -1,0 +1,42 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
+VectorTest = {}
+function VectorTest.test_eulerToDirection()
+  local v3, v4, v5 = MathUtil.eulerToDirection(0, math.pi * 0.5)
+  Assert.areRoughlyEqual(v3, 0)
+  Assert.areRoughlyEqual(v4, -1)
+  Assert.areRoughlyEqual(v5, 0)
+  v3, v4, v5 = MathUtil.eulerToDirection(0, math.pi * -0.5)
+  Assert.areRoughlyEqual(v3, 0)
+  Assert.areRoughlyEqual(v4, 1)
+  Assert.areRoughlyEqual(v5, 0)
+  v3, v4, v5 = MathUtil.eulerToDirection(math.pi * 0.5, 0)
+  Assert.areRoughlyEqual(v3, 1)
+  Assert.areRoughlyEqual(v4, 0)
+  Assert.areRoughlyEqual(v5, 0)
+  v3, v4, v5 = MathUtil.eulerToDirection(math.pi * -0.5, 0)
+  Assert.areRoughlyEqual(v3, -1)
+  Assert.areRoughlyEqual(v4, 0)
+  Assert.areRoughlyEqual(v5, 0)
+  v3, v4, v5 = MathUtil.eulerToDirection(0, 0)
+  Assert.areRoughlyEqual(v3, 0)
+  Assert.areRoughlyEqual(v4, 0)
+  Assert.areRoughlyEqual(v5, 1)
+  v3, v4, v5 = MathUtil.eulerToDirection(math.pi, 0)
+  Assert.areRoughlyEqual(v3, 0)
+  Assert.areRoughlyEqual(v4, 0)
+  Assert.areRoughlyEqual(v5, -1)
+  v3 = createTransformGroup("test")
+  -- TODO: structure LOP_FORNPREP (pc 162, target 211)
+  for v9 = -math.pi, math.pi, math.pi / 12 do
+    setWorldRotation(v3, v6, v9, 0)
+    local v10, v11, v12 = MathUtil.eulerToDirection(v9, v6)
+    v10, v11, v12 = localDirectionToWorld(v3, 0, 0, 1)
+    Assert.areRoughlyEqual(v10, v10)
+    Assert.areRoughlyEqual(v11, v11)
+    Assert.areRoughlyEqual(v12, v12)
+    -- TODO: structure LOP_FORNLOOP (pc 209, target 172)
+  end
+  delete(v3)
+end
