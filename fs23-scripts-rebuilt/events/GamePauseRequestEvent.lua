@@ -1,25 +1,31 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
 GamePauseRequestEvent = {}
 local GamePauseRequestEvent_mt = Class(GamePauseRequestEvent, Event)
+
 InitStaticEventClass(GamePauseRequestEvent, "GamePauseRequestEvent", EventIds.EVENT_GAME_PAUSE_REQUEST)
+
 function GamePauseRequestEvent.emptyNew()
-  return Event.new(u0)
+	local self = Event.new(GamePauseRequestEvent_mt)
+
+	return self
 end
+
 function GamePauseRequestEvent.new(pause)
-  local v1 = GamePauseRequestEvent.emptyNew()
-  v1.pause = pause
-  return v1
+	local self = GamePauseRequestEvent.emptyNew()
+	self.pause = pause
+
+	return self
 end
+
 function GamePauseRequestEvent:readStream(streamId, connection)
-  local v3 = streamReadBool(streamId)
-  self.pause = v3
-  self:run(connection)
+	self.pause = streamReadBool(streamId)
+
+	self:run(connection)
 end
+
 function GamePauseRequestEvent:writeStream(streamId, connection)
-  streamWriteBool(streamId, self.pause)
+	streamWriteBool(streamId, self.pause)
 end
+
 function GamePauseRequestEvent:run(connection)
-  v2:setManualPause(self.pause)
+	g_currentMission:setManualPause(self.pause)
 end

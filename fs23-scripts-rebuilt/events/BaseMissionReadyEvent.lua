@@ -1,25 +1,31 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
 BaseMissionReadyEvent = {}
 local BaseMissionReadyEvent_mt = Class(BaseMissionReadyEvent, Event)
+
 InitStaticEventClass(BaseMissionReadyEvent, "BaseMissionReadyEvent", EventIds.EVENT_READY_EVENT)
+
 function BaseMissionReadyEvent.emptyNew()
-  return Event.new(u0)
+	local self = Event.new(BaseMissionReadyEvent_mt)
+
+	return self
 end
+
 function BaseMissionReadyEvent.new()
-  return BaseMissionReadyEvent.emptyNew()
+	local self = BaseMissionReadyEvent.emptyNew()
+
+	return self
 end
+
 function BaseMissionReadyEvent:readStream(streamId, connection)
-  self:run(connection)
+	self:run(connection)
 end
-function BaseMissionReadyEvent.writeStream(v0, v1, v2)
+
+function BaseMissionReadyEvent:writeStream(streamId, connection)
 end
-function BaseMissionReadyEvent.run(v0, v1)
-  local v2 = v1:getIsServer()
-  if v2 then
-    v2:onFinishedReceivingDynamicData(v1)
-    return
-  end
-  v2:onConnectionReady(v1)
+
+function BaseMissionReadyEvent:run(connection)
+	if connection:getIsServer() then
+		g_currentMission:onFinishedReceivingDynamicData(connection)
+	else
+		g_currentMission:onConnectionReady(connection)
+	end
 end
