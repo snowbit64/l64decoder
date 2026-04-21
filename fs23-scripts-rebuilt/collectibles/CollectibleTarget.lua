@@ -1,24 +1,27 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
 CollectibleTarget = {}
 local CollectibleTarget_mt = Class(CollectibleTarget)
-function CollectibleTarget.onCreate(v0, v1)
-  local v4 = CollectibleTarget.new(v1)
-  v2:addNonUpdateable(...)
+
+function CollectibleTarget:onCreate(node)
+	g_currentMission:addNonUpdateable(CollectibleTarget.new(node))
 end
+
 function CollectibleTarget.new(node)
-  local v1 = setmetatable({}, u0)
-  v1.node = node
-  v2:addCollectibleTarget(v1)
-  return v1
+	local self = setmetatable({}, CollectibleTarget_mt)
+	self.node = node
+
+	g_currentMission.collectiblesSystem:addCollectibleTarget(self)
+
+	return self
 end
-function CollectibleTarget.delete(v0)
-  v1:removeCollectibleTarget(v0)
+
+function CollectibleTarget:delete()
+	g_currentMission.collectiblesSystem:removeCollectibleTarget(self)
 end
+
 function CollectibleTarget:setState(itemName, visible)
-  local v3 = getChild(self.node, itemName)
-  if v3 ~= nil then
-    setVisibility(v3, visible)
-  end
+	local node = getChild(self.node, itemName)
+
+	if node ~= nil then
+		setVisibility(node, visible)
+	end
 end
