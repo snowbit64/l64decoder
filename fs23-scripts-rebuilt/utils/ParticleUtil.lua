@@ -1,392 +1,469 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
+ParticleUtil = {
+	loadParticleSystemData = function (xmlFile, data, baseString)
+		if type(xmlFile) == "table" then
+			xmlFile = xmlFile.handle
+		end
 
-ParticleUtil = {}
-function ParticleUtil:loadParticleSystemData(v1, v2)
-  local v3 = type(self)
-  if v3 == "table" then
-  end
-  v3 = getXMLString(self, v2 .. "#node")
-  v1.nodeStr = v3
-  v3 = getXMLString(self, v2 .. "#file")
-  v1.psFile = v3
-  local v4 = getXMLString(self, v2 .. "#position")
-  local v3, v4, v5 = string.getVector(...)
-  v1.posX = v3
-  v1.posY = v4
-  v1.posZ = v5
-  v4 = getXMLString(self, v2 .. "#rotation")
-  v3, v4, v5 = string.getVector(...)
-  v1.rotX = v3
-  v1.rotY = v4
-  v1.rotZ = v5
-  v3 = MathUtil.degToRad(v1.rotX)
-  v1.rotX = v3
-  v3 = MathUtil.degToRad(v1.rotY)
-  v1.rotY = v3
-  v3 = MathUtil.degToRad(v1.rotZ)
-  v1.rotZ = v3
-  v4 = getXMLBool(self, v2 .. "#worldSpace")
-  v3 = Utils.getNoNil(v4, true)
-  v1.worldSpace = v3
-  v3 = getXMLString(self, v2 .. "#particleNode")
-  v1.psRootNodeStr = v3
-  v4 = getXMLBool(self, v2 .. "#forceFullLifespan")
-  v3 = Utils.getNoNil(v4, false)
-  v1.forceFullLifespan = v3
-  v4 = getXMLBool(self, v2 .. "#useEmitterVisibility")
-  v3 = Utils.getNoNil(v4, false)
-  v1.useEmitterVisibility = v3
-end
+		data.nodeStr = getXMLString(xmlFile, baseString .. "#node")
+		data.psFile = getXMLString(xmlFile, baseString .. "#file")
+		data.posX, data.posY, data.posZ = string.getVector(getXMLString(xmlFile, baseString .. "#position"))
+		data.rotX, data.rotY, data.rotZ = string.getVector(getXMLString(xmlFile, baseString .. "#rotation"))
+		data.rotX = MathUtil.degToRad(data.rotX)
+		data.rotY = MathUtil.degToRad(data.rotY)
+		data.rotZ = MathUtil.degToRad(data.rotZ)
+		data.worldSpace = Utils.getNoNil(getXMLBool(xmlFile, baseString .. "#worldSpace"), true)
+		data.psRootNodeStr = getXMLString(xmlFile, baseString .. "#particleNode")
+		data.forceFullLifespan = Utils.getNoNil(getXMLBool(xmlFile, baseString .. "#forceFullLifespan"), false)
+		data.useEmitterVisibility = Utils.getNoNil(getXMLBool(xmlFile, baseString .. "#useEmitterVisibility"), false)
+	end
+}
+
 function ParticleUtil.loadParticleSystem(xmlFile, particleSystem, baseString, linkNodes, defaultEmittingState, defaultPsFile, baseDir, defaultLinkNode)
-  ParticleUtil.loadParticleSystemData(xmlFile, {}, baseString)
-  return ParticleUtil.loadParticleSystemFromData({}, particleSystem, linkNodes, defaultEmittingState, defaultPsFile, baseDir, defaultLinkNode)
+	local data = {}
+
+	ParticleUtil.loadParticleSystemData(xmlFile, data, baseString)
+
+	return ParticleUtil.loadParticleSystemFromData(data, particleSystem, linkNodes, defaultEmittingState, defaultPsFile, baseDir, defaultLinkNode)
 end
-function ParticleUtil:loadParticleSystemFromData(v1, v2, v3, v4, v5, v6)
-  if v6 == nil then
-    local v7 = type(v2)
-    if v7 == "table" then
-    end
-  end
-  local v8 = I3DUtil.indexToObject(v2, self.nodeStr)
-  v7 = Utils.getNoNil(v8, v6)
-  if self.psFile == nil then
-  end
-  if v8 == nil then
-    return
-  end
-  local v9 = Utils.getFilename(v8, v5)
-  v1.isValid = false
-  local v10 = v10:loadSharedI3DFileAsync(v9, true, true, ParticleUtil.particleI3DFileLoaded, ParticleUtil, {data = self, particleSystem = v1, linkNode = v7, psFile = v9, defaultEmittingState = v3})
-  v1.sharedLoadRequestId = v10
-  return true
+
+function ParticleUtil.loadParticleSystemFromData(data, particleSystem, linkNodes, defaultEmittingState, defaultPsFile, baseDir, defaultLinkNode)
+	if defaultLinkNode == nil then
+		defaultLinkNode = linkNodes
+
+		if type(linkNodes) == "table" then
+			defaultLinkNode = linkNodes[1].node
+		end
+	end
+
+	local linkNode = Utils.getNoNil(I3DUtil.indexToObject(linkNodes, data.nodeStr), defaultLinkNode)
+	local psFile = data.psFile
+
+	if psFile == nil then
+		psFile = defaultPsFile
+	end
+
+	if psFile == nil then
+		return
+	end
+
+	psFile = Utils.getFilename(psFile, baseDir)
+	particleSystem.isValid = false
+	local arguments = {
+		data = data,
+		particleSystem = particleSystem,
+		linkNode = linkNode,
+		psFile = psFile,
+		defaultEmittingState = defaultEmittingState
+	}
+	particleSystem.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(psFile, true, true, ParticleUtil.particleI3DFileLoaded, ParticleUtil, arguments)
+
+	return true
 end
+
 function ParticleUtil.particleI3DFileLoaded(_, i3dNode, failedReason, args)
-  if i3dNode == 0 then
-    print("Error: failed to load particle system " .. args.psFile)
-    return
-  end
-  if v4.psRootNodeStr ~= nil then
-    local v10 = I3DUtil.indexToObject(v9, v4.psRootNodeStr)
-    -- cmp-jump LOP_JUMPXEQKNIL R10 aux=0x0 -> L40
-  else
-    v10 = getChildAt(i3dNode, 0)
-  end
-  if v6 ~= nil then
-    link(v6, v9)
-  end
-  if v4.posX ~= nil and v4.posY ~= nil and v4.posZ ~= nil then
-    setTranslation(v9, v4.posX, v4.posY, v4.posZ)
-  end
-  if v4.rotX ~= nil and v4.rotY ~= nil and v4.rotZ ~= nil then
-    setRotation(v9, v4.rotX, v4.rotY, v4.rotZ)
-  end
-  ParticleUtil.loadParticleSystemFromNode(v9, v5, v8, v4.worldSpace, v4.forceFullLifespan, v7)
-  if v9 ~= i3dNode then
-    delete(i3dNode)
-  end
+	local data = args.data
+	local particleSystem = args.particleSystem
+	local linkNode = args.linkNode
+	local psFile = args.psFile
+	local defaultEmittingState = args.defaultEmittingState
+	local rootNode = i3dNode
+
+	if rootNode == 0 then
+		print("Error: failed to load particle system " .. psFile)
+
+		return
+	end
+
+	if data.psRootNodeStr ~= nil then
+		local newRootNode = I3DUtil.indexToObject(rootNode, data.psRootNodeStr)
+
+		if newRootNode ~= nil then
+			rootNode = newRootNode
+		end
+	else
+		rootNode = getChildAt(i3dNode, 0)
+	end
+
+	if linkNode ~= nil then
+		link(linkNode, rootNode)
+	end
+
+	local posX = data.posX
+	local posY = data.posY
+	local posZ = data.posZ
+
+	if posX ~= nil and posY ~= nil and posZ ~= nil then
+		setTranslation(rootNode, posX, posY, posZ)
+	end
+
+	local rotX = data.rotX
+	local rotY = data.rotY
+	local rotZ = data.rotZ
+
+	if rotX ~= nil and rotY ~= nil and rotZ ~= nil then
+		setRotation(rootNode, rotX, rotY, rotZ)
+	end
+
+	ParticleUtil.loadParticleSystemFromNode(rootNode, particleSystem, defaultEmittingState, data.worldSpace, data.forceFullLifespan, psFile)
+
+	if rootNode ~= i3dNode then
+		delete(i3dNode)
+	end
 end
+
 function ParticleUtil.loadParticleSystemFromNode(rootNode, particleSystem, defaultEmittingState, worldSpace, forceFullLifespan, file)
-  if defaultEmittingState == nil then
-  end
-  local v6 = getHasClassId(rootNode, ClassIds.SHAPE)
-  if v6 then
-    v6 = getGeometry(rootNode)
-    if v6 ~= 0 then
-      local v7 = getHasClassId(v6, ClassIds.PARTICLE_SYSTEM)
-      if v7 then
-        v7 = getEmitterShape(v6)
-        particleSystem.emitterShape = v7
-        v7 = getEmitterSurfaceSize(v6)
-        particleSystem.emitterShapeSize = v7
-        v7 = getEmitterSurfaceSize(v6)
-        particleSystem.defaultEmitterShapeSize = v7
-        if worldSpace then
-          v7 = getParent(rootNode)
-          if particleSystem.emitterShape ~= 0 then
-            local v8 = getParent(particleSystem.emitterShape)
-            if v8 == rootNode then
-              local v8, v9, v10 = getScale(particleSystem.emitterShape)
-              local v15 = getWorldTranslation(particleSystem.emitterShape)
-              local v13 = worldToLocal(...)
-              setTranslation(...)
-              v13 = localDirectionToWorld(particleSystem.emitterShape, 0, 0, 1)
-              local v11, v12, v13 = worldDirectionToLocal(...)
-              local v16 = localDirectionToWorld(particleSystem.emitterShape, 0, 1, 0)
-              local v14, v15, v16 = worldDirectionToLocal(...)
-              setDirection(particleSystem.emitterShape, v11, v12, v13, v14, v15, v16)
-              link(v7, particleSystem.emitterShape)
-              setScale(particleSystem.emitterShape, v8, v9, v10)
-            end
-          end
-          v9 = getRootNode()
-          link(v9, rootNode)
-          setTranslation(rootNode, 0, 0, 0)
-          setRotation(rootNode, 0, 0, 0)
-        end
-        setObjectMask(rootNode, 16711807)
-        particleSystem.geometry = v6
-        particleSystem.shape = rootNode
-        particleSystem.worldSpace = worldSpace
-        particleSystem.forceFullLifespan = forceFullLifespan
-        v7 = getParticleSystemLifespan(v6)
-        particleSystem.originalLifespan = v7
-        particleSystem.isValid = true
-        setEmittingState(v6, defaultEmittingState)
-      end
-    end
-  end
-  particleSystem.isEmitting = defaultEmittingState
-  return rootNode
+	if defaultEmittingState == nil then
+		defaultEmittingState = true
+	end
+
+	if getHasClassId(rootNode, ClassIds.SHAPE) then
+		local geometry = getGeometry(rootNode)
+
+		if geometry ~= 0 and getHasClassId(geometry, ClassIds.PARTICLE_SYSTEM) then
+			particleSystem.emitterShape = getEmitterShape(geometry)
+			particleSystem.emitterShapeSize = getEmitterSurfaceSize(geometry)
+			particleSystem.defaultEmitterShapeSize = getEmitterSurfaceSize(geometry)
+
+			if worldSpace then
+				local parent = getParent(rootNode)
+
+				if particleSystem.emitterShape ~= 0 and getParent(particleSystem.emitterShape) == rootNode then
+					local x, y, z = getScale(particleSystem.emitterShape)
+
+					setTranslation(particleSystem.emitterShape, worldToLocal(parent, getWorldTranslation(particleSystem.emitterShape)))
+
+					local dx, dy, dz = worldDirectionToLocal(rootNode, localDirectionToWorld(particleSystem.emitterShape, 0, 0, 1))
+					local upx, upy, upz = worldDirectionToLocal(rootNode, localDirectionToWorld(particleSystem.emitterShape, 0, 1, 0))
+
+					setDirection(particleSystem.emitterShape, dx, dy, dz, upx, upy, upz)
+					link(parent, particleSystem.emitterShape)
+					setScale(particleSystem.emitterShape, x, y, z)
+				end
+
+				link(getRootNode(), rootNode)
+				setTranslation(rootNode, 0, 0, 0)
+				setRotation(rootNode, 0, 0, 0)
+			end
+
+			setObjectMask(rootNode, 16711807)
+
+			particleSystem.geometry = geometry
+			particleSystem.shape = rootNode
+			particleSystem.worldSpace = worldSpace
+			particleSystem.forceFullLifespan = forceFullLifespan
+			particleSystem.originalLifespan = getParticleSystemLifespan(geometry)
+			particleSystem.isValid = true
+
+			setEmittingState(geometry, defaultEmittingState)
+		end
+	end
+
+	particleSystem.isEmitting = defaultEmittingState
+
+	return rootNode
 end
-function ParticleUtil:deleteParticleSystem()
-  if self ~= nil and self.shape ~= nil then
-    local v1 = entityExists(self.shape)
-    if v1 then
-      delete(self.shape)
-    end
-    self.shape = nil
-    if self.sharedLoadRequestId ~= nil then
-      v1:releaseSharedI3DFile(self.sharedLoadRequestId)
-      self.sharedLoadRequestId = nil
-    end
-  end
+
+function ParticleUtil.deleteParticleSystem(particleSystem)
+	if particleSystem ~= nil and particleSystem.shape ~= nil then
+		if entityExists(particleSystem.shape) then
+			delete(particleSystem.shape)
+		end
+
+		particleSystem.shape = nil
+
+		if particleSystem.sharedLoadRequestId ~= nil then
+			g_i3DManager:releaseSharedI3DFile(particleSystem.sharedLoadRequestId)
+
+			particleSystem.sharedLoadRequestId = nil
+		end
+	end
 end
+
 function ParticleUtil.deleteParticleSystems(particleSystems)
-  if particleSystems ~= nil then
-    for v4, v5 in pairs(particleSystems) do
-      ParticleUtil.deleteParticleSystem(v5)
-    end
-  end
+	if particleSystems ~= nil then
+		for _, ps in pairs(particleSystems) do
+			ParticleUtil.deleteParticleSystem(ps)
+		end
+	end
 end
-function ParticleUtil:setEmittingState(v1, v2, v3)
-  if self ~= nil and self.isValid and self.isEmitting ~= v1 then
-    self.isEmitting = v1
-    if v2 == nil then
-    end
-    if v3 == nil then
-    end
-    if v1 then
-      -- if not v2 then goto L31 end
-      resetEmitStartTimer(self.geometry)
-    elseif v3 then
-      resetEmitStopTimer(self.geometry)
-    end
-    setEmittingState(self.geometry, v1)
-    if v1 and self.useEmitterVisibility then
-      local v6 = getEffectiveVisibility(self.emitterShape)
-      setVisibility(...)
-    end
-  end
+
+function ParticleUtil.setEmittingState(particleSystem, state, resetStartTimer, resetStopTimer)
+	if particleSystem ~= nil and particleSystem.isValid and particleSystem.isEmitting ~= state then
+		particleSystem.isEmitting = state
+
+		if resetStartTimer == nil then
+			resetStartTimer = true
+		end
+
+		if resetStopTimer == nil then
+			resetStopTimer = true
+		end
+
+		if state then
+			if resetStartTimer then
+				resetEmitStartTimer(particleSystem.geometry)
+			end
+		elseif resetStopTimer then
+			resetEmitStopTimer(particleSystem.geometry)
+		end
+
+		setEmittingState(particleSystem.geometry, state)
+
+		if state and particleSystem.useEmitterVisibility then
+			setVisibility(particleSystem.shape, getEffectiveVisibility(particleSystem.emitterShape))
+		end
+	end
 end
-function ParticleUtil:getParticleSystemAverageSpeed()
-  if self ~= nil and self.isValid then
-    return getParticleSystemAverageSpeed(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemAverageSpeed(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemAverageSpeed(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemTimeScale(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemTimeScale(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemTimeScale(particleSystem, scale)
+	if particleSystem ~= nil and particleSystem.isValid and scale ~= nil then
+		setParticleSystemTimeScale(particleSystem.geometry, scale)
+	end
 end
-function ParticleUtil:setEmitCountScale(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setEmitCountScale(self.geometry, v1)
-  end
+
+function ParticleUtil.setEmitCountScale(particleSystem, scale)
+	if particleSystem ~= nil and particleSystem.isValid and scale ~= nil then
+		setEmitCountScale(particleSystem.geometry, scale)
+	end
 end
-function ParticleUtil:setParticleLifespan(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemLifespan(self.geometry, v1, true)
-  end
+
+function ParticleUtil.setParticleLifespan(particleSystem, lifespan)
+	if particleSystem ~= nil and particleSystem.isValid and lifespan ~= nil then
+		setParticleSystemLifespan(particleSystem.geometry, lifespan, true)
+	end
 end
-function ParticleUtil:addParticleSystemSimulationTime(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    addParticleSystemSimulationTime(self.geometry, v1)
-  end
+
+function ParticleUtil.addParticleSystemSimulationTime(particleSystem, simTime)
+	if particleSystem ~= nil and particleSystem.isValid and simTime ~= nil then
+		addParticleSystemSimulationTime(particleSystem.geometry, simTime)
+	end
 end
-function ParticleUtil:setParticleStartStopTime(v1, v2)
-  if self ~= nil and self.isValid and v1 ~= nil and v2 ~= nil then
-    setEmitStartTime(self.geometry, v1 * 1000)
-    setEmitStopTime(self.geometry, v2 * 1000)
-  end
+
+function ParticleUtil.setParticleStartStopTime(particleSystem, startTime, stopTime)
+	if particleSystem ~= nil and particleSystem.isValid and startTime ~= nil and stopTime ~= nil then
+		setEmitStartTime(particleSystem.geometry, startTime * 1000)
+		setEmitStopTime(particleSystem.geometry, stopTime * 1000)
+	end
 end
-function ParticleUtil:getParticleSystemSpeed()
-  if self ~= nil and self.isValid then
-    return getParticleSystemSpeed(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemSpeed(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemSpeed(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemSpeed(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemSpeed(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemSpeed(particleSystem, speed)
+	if particleSystem ~= nil and particleSystem.isValid and speed ~= nil then
+		setParticleSystemSpeed(particleSystem.geometry, speed)
+	end
 end
-function ParticleUtil:getParticleSystemSpeedRandom()
-  if self ~= nil and self.isValid then
-    return getParticleSystemSpeedRandom(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemSpeedRandom(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemSpeedRandom(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemSpeedRandom(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemSpeedRandom(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemSpeedRandom(particleSystem, randomSpeed)
+	if particleSystem ~= nil and particleSystem.isValid and randomSpeed ~= nil then
+		setParticleSystemSpeedRandom(particleSystem.geometry, randomSpeed)
+	end
 end
-function ParticleUtil:getParticleSystemNormalSpeed()
-  if self ~= nil and self.isValid then
-    return getParticleSystemNormalSpeed(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemNormalSpeed(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemNormalSpeed(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemNormalSpeed(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemNormalSpeed(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemNormalSpeed(particleSystem, normalSpeed)
+	if particleSystem ~= nil and particleSystem.isValid and normalSpeed ~= nil then
+		setParticleSystemNormalSpeed(particleSystem.geometry, normalSpeed)
+	end
 end
-function ParticleUtil:getParticleSystemTangentSpeed()
-  if self ~= nil and self.isValid then
-    return getParticleSystemTangentSpeed(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemTangentSpeed(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemTangentSpeed(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemTangentSpeed(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemTangentSpeed(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemTangentSpeed(particleSystem, tangentSpeed)
+	if particleSystem ~= nil and particleSystem.isValid and tangentSpeed ~= nil then
+		setParticleSystemTangentSpeed(particleSystem.geometry, tangentSpeed)
+	end
 end
-function ParticleUtil:getParticleSystemSpriteScaleX()
-  if self ~= nil and self.isValid then
-    return getParticleSystemSpriteScaleX(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemSpriteScaleX(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemSpriteScaleX(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemSpriteScaleX(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemSpriteScaleX(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemSpriteScaleX(particleSystem, spriteScaleX)
+	if particleSystem ~= nil and particleSystem.isValid and spriteScaleX ~= nil then
+		setParticleSystemSpriteScaleX(particleSystem.geometry, spriteScaleX)
+	end
 end
-function ParticleUtil:getParticleSystemSpriteScaleY()
-  if self ~= nil and self.isValid then
-    return getParticleSystemSpriteScaleY(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemSpriteScaleY(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemSpriteScaleY(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemSpriteScaleY(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemSpriteScaleY(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemSpriteScaleY(particleSystem, spriteScaleY)
+	if particleSystem ~= nil and particleSystem.isValid and spriteScaleY ~= nil then
+		setParticleSystemSpriteScaleY(particleSystem.geometry, spriteScaleY)
+	end
 end
-function ParticleUtil:getParticleSystemSpriteScaleXGain()
-  if self ~= nil and self.isValid then
-    return getParticleSystemSpriteScaleXGain(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemSpriteScaleXGain(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemSpriteScaleXGain(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemSpriteScaleXGain(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemSpriteScaleXGain(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemSpriteScaleXGain(particleSystem, spriteScaleXGain)
+	if particleSystem ~= nil and particleSystem.isValid and spriteScaleXGain ~= nil then
+		setParticleSystemSpriteScaleXGain(particleSystem.geometry, spriteScaleXGain)
+	end
 end
-function ParticleUtil:getParticleSystemSpriteScaleYGain()
-  if self ~= nil and self.isValid then
-    return getParticleSystemSpriteScaleYGain(self.geometry)
-  end
+
+function ParticleUtil.getParticleSystemSpriteScaleYGain(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getParticleSystemSpriteScaleYGain(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setParticleSystemSpriteScaleYGain(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setParticleSystemSpriteScaleYGain(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemSpriteScaleYGain(particleSystem, spriteScaleYGain)
+	if particleSystem ~= nil and particleSystem.isValid and spriteScaleYGain ~= nil then
+		setParticleSystemSpriteScaleYGain(particleSystem.geometry, spriteScaleYGain)
+	end
 end
-function ParticleUtil:getParticleSystemVelocityScale()
-  if self ~= nil and self.isValid then
-    return getEmitterShapeVelocityScale(self.geometry)
-  end
-  return nil
+
+function ParticleUtil.getParticleSystemVelocityScale(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		return getEmitterShapeVelocityScale(particleSystem.geometry)
+	end
+
+	return nil
 end
-function ParticleUtil:setParticleSystemVelocityScale(v1)
-  if self ~= nil and self.isValid and v1 ~= nil then
-    setEmitterShapeVelocityScale(self.geometry, v1)
-  end
+
+function ParticleUtil.setParticleSystemVelocityScale(particleSystem, velocityScale)
+	if particleSystem ~= nil and particleSystem.isValid and velocityScale ~= nil then
+		setEmitterShapeVelocityScale(particleSystem.geometry, velocityScale)
+	end
 end
-function ParticleUtil:resetNumOfEmittedParticles()
-  if self ~= nil and self.isValid then
-    resetNumOfEmittedParticles(self.geometry)
-  end
+
+function ParticleUtil.resetNumOfEmittedParticles(particleSystem)
+	if particleSystem ~= nil and particleSystem.isValid then
+		resetNumOfEmittedParticles(particleSystem.geometry)
+	end
 end
-function ParticleUtil:setEmitterShape(v1)
-  if self ~= nil and self.isValid and v1 ~= nil and self.geometry ~= nil and self.geometry ~= 0 then
-    local v2 = getHasClassId(self.geometry, ClassIds.PARTICLE_SYSTEM)
-    if v2 then
-      setEmitterShape(self.geometry, v1)
-      self.emitterShape = v1
-      v2 = getEmitterSurfaceSize(self.geometry)
-      self.emitterShapeSize = v2
-    end
-  end
+
+function ParticleUtil.setEmitterShape(particleSystem, emitterShape)
+	if particleSystem ~= nil and particleSystem.isValid and emitterShape ~= nil and particleSystem.geometry ~= nil and particleSystem.geometry ~= 0 and getHasClassId(particleSystem.geometry, ClassIds.PARTICLE_SYSTEM) then
+		setEmitterShape(particleSystem.geometry, emitterShape)
+
+		particleSystem.emitterShape = emitterShape
+		particleSystem.emitterShapeSize = getEmitterSurfaceSize(particleSystem.geometry)
+	end
 end
-function ParticleUtil:initEmitterScale(v1)
-  if self ~= nil and self.isValid then
-    local v5 = getNumOfParticlesToEmitPerMs(self.geometry)
-    setNumOfParticlesToEmitPerMs(self.geometry, v5 * v1)
-    local v6 = getMaxNumOfParticles(self.geometry)
-    local v4 = math.ceil(v6 * v1)
-    setMaxNumOfParticles(...)
-  end
+
+function ParticleUtil.initEmitterScale(particleSystem, scale)
+	if particleSystem ~= nil and particleSystem.isValid then
+		setNumOfParticlesToEmitPerMs(particleSystem.geometry, getNumOfParticlesToEmitPerMs(particleSystem.geometry) * scale)
+		setMaxNumOfParticles(particleSystem.geometry, math.ceil(getMaxNumOfParticles(particleSystem.geometry) * scale))
+	end
 end
-function ParticleUtil:setMaterial(v1)
-  if self ~= nil and self.isValid then
-    setMaterial(self.shape, v1, 0)
-  end
+
+function ParticleUtil.setMaterial(particleSystem, material)
+	if particleSystem ~= nil and particleSystem.isValid then
+		setMaterial(particleSystem.shape, material, 0)
+	end
 end
-function ParticleUtil:copyParticleSystem(v1, v2, v3)
-  if v1 ~= nil then
-    local v5 = self:getValue(v1 .. "#worldSpace", {worldSpace = true, emitCountScale = 1, useEmitterVisibility = false}.worldSpace)
-    v5 = self:getValue(v1 .. "#emitCountScale", {worldSpace = true, emitCountScale = 1, useEmitterVisibility = false, worldSpace = v5}.emitCountScale)
-    v5 = self:getValue(v1 .. "#delay")
-    v5 = self:getValue(v1 .. "#startTime", {worldSpace = true, emitCountScale = 1, useEmitterVisibility = false, worldSpace = v5, emitCountScale = v5, delay = v5}.delay)
-    v5 = self:getValue(v1 .. "#stopTime", {worldSpace = true, emitCountScale = 1, useEmitterVisibility = false, worldSpace = v5, emitCountScale = v5, delay = v5, startTime = v5}.delay)
-    v5 = self:getValue(v1 .. "#lifespan")
-    v5 = self:getValue(v1 .. "#useEmitterVisibility", {worldSpace = true, emitCountScale = 1, useEmitterVisibility = false, worldSpace = v5, emitCountScale = v5, delay = v5, startTime = v5, stopTime = v5, lifespan = v5}.useEmitterVisibility)
-  end
-  v4.isValid = true
-  v5 = clone(v2.shape, true, false, true)
-  setObjectMask(v5, 16711807)
-  ParticleUtil.loadParticleSystemFromNode(v5, v4, false, v4.worldSpace, v2.forceFullLifespan)
-  if v3 ~= nil then
-    ParticleUtil.setEmitterShape(v4, v3)
-    ParticleUtil.initEmitterScale(v4, v4.emitterShapeSize / v4.defaultEmitterShapeSize * v4.emitCountScale)
-    ParticleUtil.setEmitCountScale(v4, 1)
-    if v4.lifespan ~= nil then
-      ParticleUtil.setParticleLifespan(v4, v4.lifespan * 1000)
-      v4.originalLifespan = v4.lifespan * 1000
-    end
-    ParticleUtil.setParticleStartStopTime(v4, v4.startTime, v4.stopTime)
-    if not v4.worldSpace then
-      local v8 = getParent(v3)
-      local v10 = getChildIndex(v3)
-      link(...)
-      local v9 = getTranslation(v3)
-      setTranslation(...)
-      v9 = getRotation(v3)
-      setRotation(...)
-      link(v4.shape, v3)
-      setTranslation(v3, 0, 0, 0)
-      setRotation(v3, 0, 0, 0)
-    end
-  end
-  return v4
+
+function ParticleUtil.copyParticleSystem(xmlFile, key, particleSystem, emitterShape)
+	local currentPS = {
+		worldSpace = true,
+		emitCountScale = 1,
+		useEmitterVisibility = false
+	}
+
+	if key ~= nil then
+		currentPS.worldSpace = xmlFile:getValue(key .. "#worldSpace", currentPS.worldSpace)
+		currentPS.emitCountScale = xmlFile:getValue(key .. "#emitCountScale", currentPS.emitCountScale)
+		currentPS.delay = xmlFile:getValue(key .. "#delay")
+		currentPS.startTime = xmlFile:getValue(key .. "#startTime", currentPS.delay)
+		currentPS.stopTime = xmlFile:getValue(key .. "#stopTime", currentPS.delay)
+		currentPS.lifespan = xmlFile:getValue(key .. "#lifespan")
+		currentPS.useEmitterVisibility = xmlFile:getValue(key .. "#useEmitterVisibility", currentPS.useEmitterVisibility)
+	end
+
+	currentPS.isValid = true
+	local psClone = clone(particleSystem.shape, true, false, true)
+
+	setObjectMask(psClone, 16711807)
+	ParticleUtil.loadParticleSystemFromNode(psClone, currentPS, false, currentPS.worldSpace, particleSystem.forceFullLifespan)
+
+	if emitterShape ~= nil then
+		ParticleUtil.setEmitterShape(currentPS, emitterShape)
+
+		local scale = currentPS.emitterShapeSize / currentPS.defaultEmitterShapeSize * currentPS.emitCountScale
+
+		ParticleUtil.initEmitterScale(currentPS, scale)
+		ParticleUtil.setEmitCountScale(currentPS, 1)
+
+		if currentPS.lifespan ~= nil then
+			ParticleUtil.setParticleLifespan(currentPS, currentPS.lifespan * 1000)
+
+			currentPS.originalLifespan = currentPS.lifespan * 1000
+		end
+
+		ParticleUtil.setParticleStartStopTime(currentPS, currentPS.startTime, currentPS.stopTime)
+
+		if not currentPS.worldSpace then
+			link(getParent(emitterShape), currentPS.shape, getChildIndex(emitterShape))
+			setTranslation(currentPS.shape, getTranslation(emitterShape))
+			setRotation(currentPS.shape, getRotation(emitterShape))
+			link(currentPS.shape, emitterShape)
+			setTranslation(emitterShape, 0, 0, 0)
+			setRotation(emitterShape, 0, 0, 0)
+		end
+	end
+
+	return currentPS
 end
-function ParticleUtil:registerParticleXMLPaths(v1, v2)
-  self:setXMLSharedRegistration("ParticleSystem", v1)
-  self:register(XMLValueType.STRING, v1 .. "." .. v2 .. "#node", "Particle link node")
-  self:register(XMLValueType.STRING, v1 .. "." .. v2 .. "#file", "Particle file name")
-  self:register(XMLValueType.VECTOR_TRANS, v1 .. "." .. v2 .. "#position", "Particle position")
-  self:register(XMLValueType.VECTOR_ROT, v1 .. "." .. v2 .. "#rotation", "Particle rotation")
-  self:register(XMLValueType.BOOL, v1 .. "." .. v2 .. "#worldSpace", "Is world space", true)
-  self:register(XMLValueType.STRING, v1 .. "." .. v2 .. "#particleNode", "Particle node in loaded file")
-  self:register(XMLValueType.BOOL, v1 .. "." .. v2 .. "#forceFullLifespan", "Force full lifespan", false)
-  self:register(XMLValueType.BOOL, v1 .. "." .. v2 .. "#useEmitterVisibility", "Use emitter visibility to show/hide particles", false)
-  self:setXMLSharedRegistration()
+
+function ParticleUtil.registerParticleXMLPaths(schema, basePath, name)
+	schema:setXMLSharedRegistration("ParticleSystem", basePath)
+
+	basePath = basePath .. "." .. name
+
+	schema:register(XMLValueType.STRING, basePath .. "#node", "Particle link node")
+	schema:register(XMLValueType.STRING, basePath .. "#file", "Particle file name")
+	schema:register(XMLValueType.VECTOR_TRANS, basePath .. "#position", "Particle position")
+	schema:register(XMLValueType.VECTOR_ROT, basePath .. "#rotation", "Particle rotation")
+	schema:register(XMLValueType.BOOL, basePath .. "#worldSpace", "Is world space", true)
+	schema:register(XMLValueType.STRING, basePath .. "#particleNode", "Particle node in loaded file")
+	schema:register(XMLValueType.BOOL, basePath .. "#forceFullLifespan", "Force full lifespan", false)
+	schema:register(XMLValueType.BOOL, basePath .. "#useEmitterVisibility", "Use emitter visibility to show/hide particles", false)
+	schema:setXMLSharedRegistration()
 end
-function ParticleUtil:registerParticleCopyXMLPaths(v1)
-  self:register(XMLValueType.BOOL, v1 .. "#worldSpace", "Is world space", true)
-  self:register(XMLValueType.FLOAT, v1 .. "#emitCountScale", "Emit count scale", 1)
-  self:register(XMLValueType.FLOAT, v1 .. "#delay", "Activation delay")
-  self:register(XMLValueType.FLOAT, v1 .. "#startTime", "Start time", "Delay value")
-  self:register(XMLValueType.FLOAT, v1 .. "#stopTime", "Stop time", "Delay value")
-  self:register(XMLValueType.FLOAT, v1 .. "#lifespan", "Lifespan")
-  self:register(XMLValueType.BOOL, v1 .. "#useEmitterVisibility", "use emitter shape visibility", true)
+
+function ParticleUtil.registerParticleCopyXMLPaths(schema, basePath)
+	schema:register(XMLValueType.BOOL, basePath .. "#worldSpace", "Is world space", true)
+	schema:register(XMLValueType.FLOAT, basePath .. "#emitCountScale", "Emit count scale", 1)
+	schema:register(XMLValueType.FLOAT, basePath .. "#delay", "Activation delay")
+	schema:register(XMLValueType.FLOAT, basePath .. "#startTime", "Start time", "Delay value")
+	schema:register(XMLValueType.FLOAT, basePath .. "#stopTime", "Stop time", "Delay value")
+	schema:register(XMLValueType.FLOAT, basePath .. "#lifespan", "Lifespan")
+	schema:register(XMLValueType.BOOL, basePath .. "#useEmitterVisibility", "use emitter shape visibility", true)
 end

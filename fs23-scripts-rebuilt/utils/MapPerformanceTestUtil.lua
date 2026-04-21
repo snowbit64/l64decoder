@@ -1,171 +1,251 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
+local localDeleteFile = deleteFile
 MapPerformanceTestUtil = {}
 local MapPerformanceTestUtil_mt = Class(MapPerformanceTestUtil)
+
 function MapPerformanceTestUtil.new()
-  setmetatable({}, u0)
-  v1:addUpdateable({isPrepared = false, isRunning = false})
-  addConsoleCommand("gsBenchmarkMapPerformanceTest", "Runs a basic performance test for the current map", "runMapPerformanceTest", {isPrepared = false, isRunning = false})
-  return {isPrepared = false, isRunning = false}
+	local self = {}
+
+	setmetatable(self, MapPerformanceTestUtil_mt)
+
+	self.isPrepared = false
+	self.isRunning = false
+
+	g_currentMission:addUpdateable(self)
+	addConsoleCommand("gsBenchmarkMapPerformanceTest", "Runs a basic performance test for the current map", "runMapPerformanceTest", self)
+
+	return self
 end
+
 function MapPerformanceTestUtil:delete()
-  if self.testCamera ~= nil then
-    delete(self.testCamera)
-  end
-  removeConsoleCommand("gsBenchmarkMapPerformanceTest")
+	if self.testCamera ~= nil then
+		delete(self.testCamera)
+	end
+
+	removeConsoleCommand("gsBenchmarkMapPerformanceTest")
 end
+
 function MapPerformanceTestUtil:update(dt)
-  if self.runTest and self.isPrepared then
-    self.isRunning = true
-    if self.testProps.xStepCurrent <= self.testProps.xStepCount and self.testProps.zStepCurrent <= self.testProps.zStepCount then
-      local v4 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, self.testProps.xStart + self.testProps.xStepIncrement * (self.testProps.xStepCurrent - 1), 0, self.testProps.zStart + self.testProps.zStepIncrement * (self.testProps.zStepCurrent - 1))
-      setTranslation(self.testCamera, self.testProps.xStart + self.testProps.xStepIncrement * (self.testProps.xStepCurrent - 1), v4 + 5, self.testProps.zStart + self.testProps.zStepIncrement * (self.testProps.zStepCurrent - 1))
-      setRotation(self.testCamera, 0, 2 * math.pi * (self.testProps.angleCurrent - 1) / self.testProps.angleCount + math.pi, 0)
-      setCamera(self.testCamera)
-      self.testProps.measureTimeCurrent = self.testProps.measureTimeCurrent + dt
-      if self.testProps.measureTimePerAngle < self.testProps.measureTimeCurrent then
-        self.testProps.measureTimeCurrent = 0
-        self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].meanFps[self.testProps.angleCurrent] = self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalFrames[self.testProps.angleCurrent] / self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalTime[self.testProps.angleCurrent]
-        self.testProps.angleCurrent = self.testProps.angleCurrent + 1
-        -- if v0.testProps.angleCount >= v0.testProps.angleCurrent then goto L349 end
-        self.testProps.angleCurrent = 1
-        self.testProps.zStepCurrent = self.testProps.zStepCurrent + 1
-        -- if v0.testProps.zStepCount >= v0.testProps.zStepCurrent then goto L349 end
-        self.testProps.zStepCurrent = 1
-        self.testProps.xStepCurrent = self.testProps.xStepCurrent + 1
-        -- if v0.testProps.xStepCount >= v0.testProps.xStepCurrent then goto L349 end
-        self.runTest = false
-        self.isRunning = false
-        g_currentMission.player.walkingIsLocked = false
-        self:writeTestDataToFile()
-        return
-      end
-      self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalTime[self.testProps.angleCurrent] = self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalTime[self.testProps.angleCurrent] + 0.001 * dt
-      self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalFrames[self.testProps.angleCurrent] = self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalFrames[self.testProps.angleCurrent] + 1
-    end
-  end
+	if self.runTest and self.isPrepared then
+		self.isRunning = true
+
+		if self.testProps.xStepCurrent <= self.testProps.xStepCount and self.testProps.zStepCurrent <= self.testProps.zStepCount then
+			local x = self.testProps.xStart + self.testProps.xStepIncrement * (self.testProps.xStepCurrent - 1)
+			local z = self.testProps.zStart + self.testProps.zStepIncrement * (self.testProps.zStepCurrent - 1)
+			local terrainHeight = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, x, 0, z)
+			local angle = 2 * math.pi * (self.testProps.angleCurrent - 1) / self.testProps.angleCount
+
+			setTranslation(self.testCamera, x, terrainHeight + 5, z)
+			setRotation(self.testCamera, 0, angle + math.pi, 0)
+			setCamera(self.testCamera)
+
+			self.testProps.measureTimeCurrent = self.testProps.measureTimeCurrent + dt
+
+			if self.testProps.measureTimePerAngle < self.testProps.measureTimeCurrent then
+				self.testProps.measureTimeCurrent = 0
+				self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].meanFps[self.testProps.angleCurrent] = self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalFrames[self.testProps.angleCurrent] / self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalTime[self.testProps.angleCurrent]
+				self.testProps.angleCurrent = self.testProps.angleCurrent + 1
+
+				if self.testProps.angleCount < self.testProps.angleCurrent then
+					self.testProps.angleCurrent = 1
+					self.testProps.zStepCurrent = self.testProps.zStepCurrent + 1
+
+					if self.testProps.zStepCount < self.testProps.zStepCurrent then
+						self.testProps.zStepCurrent = 1
+						self.testProps.xStepCurrent = self.testProps.xStepCurrent + 1
+
+						if self.testProps.xStepCount < self.testProps.xStepCurrent then
+							self.runTest = false
+							self.isRunning = false
+							g_currentMission.player.walkingIsLocked = false
+
+							self:writeTestDataToFile()
+						end
+					end
+				end
+			else
+				self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalTime[self.testProps.angleCurrent] = self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalTime[self.testProps.angleCurrent] + 0.001 * dt
+				self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalFrames[self.testProps.angleCurrent] = self.testData[self.testProps.xStepCurrent][self.testProps.zStepCurrent].totalFrames[self.testProps.angleCurrent] + 1
+			end
+		end
+	end
 end
+
 function MapPerformanceTestUtil:runMapPerformanceTest(xStart, zStart, xSize, zSize, xSteps, zSteps)
-  local v8 = tonumber(xStart)
-  local v7 = Utils.getNoNil(v8, 0)
-  v8 = tonumber(zStart)
-  v7 = Utils.getNoNil(v8, 0)
-  v8 = tonumber(xSize)
-  v7 = Utils.getNoNil(v8, 100)
-  v8 = tonumber(zSize)
-  v7 = Utils.getNoNil(v8, 100)
-  v8 = tonumber(xSteps)
-  v7 = Utils.getNoNil(v8, 3)
-  v8 = tonumber(zSteps)
-  v7 = Utils.getNoNil(v8, 3)
-  self.runTest = not self.runTest
-  if self.runTest then
-    -- if v0.isPrepared then goto L381 end
-    if g_currentMission.missionInfo ~= nil then
-      v8 = tostring(g_currentMission.missionInfo.name)
-      v8 = v8:getMapById(g_currentMission.missionInfo.mapId)
-      if v8 ~= nil then
-        local v9 = v9:isa(FSCareerMissionInfo)
-        if v9 then
-        end
-      end
-    end
-    v8 = string.gsub(v7, " ", "")
-    local v11 = getUserProfileAppPath()
-    createFolder(v11 .. "mapPerformaceTests/")
-    local v14 = tostring(v8)
-    v14 = getDate("_%Y_%m_%d")
-    deleteFile(v11 .. "mapPerformaceTests/" .. v14 .. v14 .. ".ppm")
-    local v10 = createFile(v11 .. "mapPerformaceTests/" .. v14 .. v14 .. ".ppm", FileAccess.WRITE)
-    self.fileId = v10
-    if self.fileId ~= nil and self.fileId ~= 0 then
-      for v13, v14 in pairs(g_currentMission.vehicles) do
-        if not (v14.stopCurrentAIJob ~= nil) then
-          continue
-        end
-        local v17 = AIMessageSuccessStoppedByUser.new()
-        v14:stopCurrentAIJob(...)
-      end
-      if g_currentMission.controlledVehicle ~= nil then
-        v10:leaveVehicle()
-        g_currentMission.player.walkingIsLocked = true
-      end
-      v10 = createCamera("MapPerformanceTestCamera", 1.0471975511965976, 0.15, 6000)
-      self.testCamera = v10
-      v11 = getRootNode()
-      link(v11, self.testCamera)
-      self.testProps = {angleCount = 8, angleCurrent = 1, measureTimePerAngle = 1000, measureTimeCurrent = 0, xStart = xStart + xSize, xEnd = xStart - xSize, zStart = zStart + zSize, zEnd = zStart - zSize, xStepCount = xSteps, zStepCount = zSteps, xStepIncrement = (self.testProps.xEnd - self.testProps.xStart) / (self.testProps.xStepCount - 1), zStepIncrement = (self.testProps.zEnd - self.testProps.zStart) / (self.testProps.zStepCount - 1), xStepCurrent = 1, zStepCurrent = 1}
-      self.testData = {}
-      -- TODO: structure LOP_FORNPREP (pc 304, target 362)
-      self.testData[1] = {}
-      for v15 = 1, self.testProps.zStepCount do
-        -- TODO: structure LOP_FORNPREP (pc 337, target 351)
-        {totalTime = {}, totalFrames = {}, meanFps = {}}.totalTime[1] = 0
-        {totalTime = {}, totalFrames = {}, meanFps = {}}.totalFrames[1] = 0
-        {totalTime = {}, totalFrames = {}, meanFps = {}}.meanFps[1] = 0
-        -- TODO: structure LOP_FORNLOOP (pc 350, target 338)
-        table.insert(self.testData[v12], {totalTime = {}, totalFrames = {}, meanFps = {}})
-        -- TODO: structure LOP_FORNLOOP (pc 360, target 317)
-      end
-      self.isPrepared = true
-      -- goto L381  (LOP_JUMP +15)
-    end
-    v15 = tostring(v9)
-    print("Could not create file '" .. v15 .. "'. Aborting MapPerformanceTestUtil")
-  else
-    self.isPrepared = false
-  end
-  if self.runTest then
-    return "PerformanceTest started"
-  end
-  return "PerformanceTest stopped"
+	xStart = Utils.getNoNil(tonumber(xStart), 0)
+	zStart = Utils.getNoNil(tonumber(zStart), 0)
+	xSize = Utils.getNoNil(tonumber(xSize), 100)
+	zSize = Utils.getNoNil(tonumber(zSize), 100)
+	xSteps = Utils.getNoNil(tonumber(xSteps), 3)
+	zSteps = Utils.getNoNil(tonumber(zSteps), 3)
+	self.runTest = not self.runTest
+
+	if self.runTest then
+		if not self.isPrepared then
+			local mapName = ""
+
+			if g_currentMission.missionInfo ~= nil then
+				mapName = tostring(g_currentMission.missionInfo.name)
+				local map = g_mapManager:getMapById(g_currentMission.missionInfo.mapId)
+
+				if map ~= nil and g_currentMission.missionInfo:isa(FSCareerMissionInfo) then
+					mapName = map.title
+				end
+			end
+
+			mapName = string.gsub(mapName, " ", "")
+			local foldername = getUserProfileAppPath() .. "mapPerformaceTests/"
+
+			createFolder(foldername)
+
+			local filename = foldername .. tostring(mapName) .. getDate("_%Y_%m_%d") .. ".ppm"
+
+			localDeleteFile(filename)
+
+			self.fileId = createFile(filename, FileAccess.WRITE)
+
+			if self.fileId ~= nil and self.fileId ~= 0 then
+				for _, vehicle in pairs(g_currentMission.vehicles) do
+					if vehicle.stopCurrentAIJob ~= nil then
+						vehicle:stopCurrentAIJob(AIMessageSuccessStoppedByUser.new())
+					end
+				end
+
+				if g_currentMission.controlledVehicle ~= nil then
+					g_currentMission.controlledVehicle:leaveVehicle()
+
+					g_currentMission.player.walkingIsLocked = true
+				end
+
+				self.testCamera = createCamera("MapPerformanceTestCamera", math.rad(60), 0.15, 6000)
+
+				link(getRootNode(), self.testCamera)
+
+				self.testProps = {
+					angleCount = 8,
+					angleCurrent = 1,
+					measureTimePerAngle = 1000,
+					measureTimeCurrent = 0,
+					xStart = xStart + xSize,
+					xEnd = xStart - xSize,
+					zStart = zStart + zSize,
+					zEnd = zStart - zSize,
+					xStepCount = xSteps,
+					zStepCount = zSteps
+				}
+				self.testProps.xStepIncrement = (self.testProps.xEnd - self.testProps.xStart) / (self.testProps.xStepCount - 1)
+				self.testProps.zStepIncrement = (self.testProps.zEnd - self.testProps.zStart) / (self.testProps.zStepCount - 1)
+				self.testProps.xStepCurrent = 1
+				self.testProps.zStepCurrent = 1
+				self.testData = {}
+
+				for x = 1, self.testProps.xStepCount do
+					self.testData[x] = {}
+
+					for _ = 1, self.testProps.zStepCount do
+						local entry = {
+							totalTime = {},
+							totalFrames = {},
+							meanFps = {}
+						}
+
+						for i = 1, self.testProps.angleCount do
+							entry.totalTime[i] = 0
+							entry.totalFrames[i] = 0
+							entry.meanFps[i] = 0
+						end
+
+						table.insert(self.testData[x], entry)
+					end
+				end
+
+				self.isPrepared = true
+			else
+				print("Could not create file '" .. tostring(filename) .. "'. Aborting MapPerformanceTestUtil")
+			end
+		end
+	else
+		self.isPrepared = false
+	end
+
+	if self.runTest then
+		return "PerformanceTest started"
+	else
+		return "PerformanceTest stopped"
+	end
 end
+
 function MapPerformanceTestUtil:writeTestDataToFile()
-  if self.fileId ~= nil and self.fileId ~= 0 then
-    local v5 = string.format("P3\n%d %d\n#comment, could contain PC specs\n255\n", 512, 512)
-    fileWrite(...)
-    -- TODO: structure LOP_FORNPREP (pc 27, target 46)
-    {}[1] = {}
-    for v9 = 1, 512 do
-      v3[v6][v9] = {0, 0, 0}
-      -- TODO: structure LOP_FORNLOOP (pc 44, target 35)
-    end
-    -- TODO: structure LOP_FORNPREP (pc 52, target 226)
-    for v10 = 1, self.testProps.zStepCount do
-      local v12 = math.floor(v7 / v2 * 256 + 256 + 0.5)
-      local v13 = math.floor((self.testProps.zStart + self.testProps.zStepIncrement * (v10 - 1)) / v2 * 256 + 256 + 0.5)
-      -- TODO: structure LOP_FORNPREP (pc 104, target 212)
-      local v21 = math.sin(2 * math.pi * (1 - 1) / self.testProps.angleCount)
-      local v18 = math.floor(v12 + v21 + 0.5)
-      local v22 = math.cos(2 * math.pi * (1 - 1) / self.testProps.angleCount)
-      local v19 = math.floor(v13 + v22 + 0.5)
-      if 60 < self.testData[v6][v10].meanFps[1] then
-        local v23 = math.min(60, self.testData[v6][v10].meanFps[1] - 60)
-        v21 = math.max(...)
-        v3[v19][v18][1] = 255 * (1 - v21 / 60)
-        v3[v19][v18][2] = 255
-        v3[v19][v18][3] = 0
-      else
-        v21 = math.max(0, self.testData[v6][v10].meanFps[1])
-        v3[v19][v18][1] = 255
-        v3[v19][v18][2] = 255 * v21 / 60
-        v3[v19][v18][3] = 0
-      end
-      -- TODO: structure LOP_FORNLOOP (pc 211, target 105)
-      v3[v13][v12][1] = 125
-      v3[v13][v12][2] = 125
-      v3[v13][v12][3] = 125
-      -- TODO: structure LOP_FORNLOOP (pc 224, target 71)
-    end
-    -- TODO: structure LOP_FORNPREP (pc 229, target 260)
-    -- TODO: structure LOP_FORNPREP (pc 234, target 251)
-    v12 = string.format("%d %d %d ", v3[1][1][1], v3[1][1][2], v3[1][1][3])
-    -- TODO: structure LOP_FORNLOOP (pc 250, target 235)
-    fileWrite(self.fileId, "" .. v12 .. "\n")
-    -- TODO: structure LOP_FORNLOOP (pc 259, target 230)
-    self.testProps = {}
-    return
-  end
-  print("Error: Could not write to file")
+	if self.fileId ~= nil and self.fileId ~= 0 then
+		local terrainSize = g_currentMission.terrainSize
+		local terrainSize_2 = terrainSize / 2
+		local imageSize = 512
+		local imageSize_2 = imageSize / 2
+
+		fileWrite(self.fileId, string.format([[
+P3
+%d %d
+#comment, could contain PC specs
+255
+]], imageSize, imageSize))
+
+		local imageData = {}
+
+		for xi = 1, imageSize do
+			imageData[xi] = {}
+
+			for zi = 1, imageSize do
+				imageData[xi][zi] = {
+					0,
+					0,
+					0
+				}
+			end
+		end
+
+		for xi = 1, self.testProps.xStepCount do
+			local x0 = self.testProps.xStart + self.testProps.xStepIncrement * (xi - 1)
+
+			for zi = 1, self.testProps.zStepCount do
+				local z0 = self.testProps.zStart + self.testProps.zStepIncrement * (zi - 1)
+				local xImage = math.floor(x0 / terrainSize_2 * imageSize_2 + imageSize_2 + 0.5)
+				local zImage = math.floor(z0 / terrainSize_2 * imageSize_2 + imageSize_2 + 0.5)
+
+				for i = 1, self.testProps.angleCount do
+					local angle = 2 * math.pi * (i - 1) / self.testProps.angleCount
+					local x = math.floor(xImage + math.sin(angle) + 0.5)
+					local z = math.floor(zImage + math.cos(angle) + 0.5)
+
+					if self.testData[xi][zi].meanFps[i] > 60 then
+						local value = math.max(0, math.min(60, self.testData[xi][zi].meanFps[i] - 60)) / 60
+						imageData[z][x][1] = 255 * (1 - value)
+						imageData[z][x][2] = 255
+						imageData[z][x][3] = 0
+					else
+						local value = math.max(0, self.testData[xi][zi].meanFps[i]) / 60
+						imageData[z][x][1] = 255
+						imageData[z][x][2] = 255 * value
+						imageData[z][x][3] = 0
+					end
+				end
+
+				imageData[zImage][xImage][1] = 125
+				imageData[zImage][xImage][2] = 125
+				imageData[zImage][xImage][3] = 125
+			end
+		end
+
+		for xi = 1, imageSize do
+			local lineString = ""
+
+			for zi = 1, imageSize do
+				lineString = lineString .. string.format("%d %d %d ", imageData[xi][zi][1], imageData[xi][zi][2], imageData[xi][zi][3])
+			end
+
+			fileWrite(self.fileId, lineString .. "\n")
+		end
+
+		self.testProps = {}
+	else
+		print("Error: Could not write to file")
+	end
 end
