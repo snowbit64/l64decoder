@@ -1,36 +1,54 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
+RaycastUtil = {
+	getCameraPickingRay = function (cursorX, cursorY, cameraNode)
+		local camX, camY, camZ = getWorldTranslation(cameraNode)
+		local pickX, pickY, pickZ = unProject(cursorX, cursorY, 1)
+		local dirX = pickX - camX
+		local dirY = pickY - camY
+		local dirZ = pickZ - camZ
 
-RaycastUtil = {}
-function RaycastUtil.getCameraPickingRay(v0, v1, v2)
-  local v3, v4, v5 = getWorldTranslation(v2)
-  local v6, v7, v8 = unProject(v0, v1, 1)
-  return v3, v4, v5, v6 - v3, v7 - v4, v8 - v5
-end
+		return camX, camY, camZ, dirX, dirY, dirZ
+	end
+}
+
 function RaycastUtil.raycastClosest(x, y, z, dx, dy, dz, maxDistance, collisionMask)
-  RaycastUtil.closestId = nil
-  RaycastUtil.closestX = nil
-  RaycastUtil.closestY = nil
-  RaycastUtil.closestZ = nil
-  raycastClosest(x, y, z, dx, dy, dz, "raycastClosestCallback", maxDistance, RaycastUtil, collisionMask)
-  return RaycastUtil.closestId, RaycastUtil.closestX, RaycastUtil.closestY, RaycastUtil.closestZ, RaycastUtil.distance
+	RaycastUtil.closestId = nil
+	RaycastUtil.closestZ = nil
+	RaycastUtil.closestY = nil
+	RaycastUtil.closestX = nil
+
+	raycastClosest(x, y, z, dx, dy, dz, "raycastClosestCallback", maxDistance, RaycastUtil, collisionMask)
+
+	return RaycastUtil.closestId, RaycastUtil.closestX, RaycastUtil.closestY, RaycastUtil.closestZ, RaycastUtil.distance
 end
+
 function RaycastUtil.raycastClosestCallback(_, hitObjectId, x, y, z, distance)
-  RaycastUtil.closestId = hitObjectId
-  RaycastUtil.distance = distance
-  RaycastUtil.closestX = x
-  RaycastUtil.closestY = y
-  RaycastUtil.closestZ = z
+	RaycastUtil.closestId = hitObjectId
+	RaycastUtil.distance = distance
+	RaycastUtil.closestZ = z
+	RaycastUtil.closestY = y
+	RaycastUtil.closestX = x
 end
+
 function RaycastUtil.raycastBox(x, y, z, rx, ry, rz, ex, ey, ez, collisionMask)
-  overlapBox(x, y, z, rx, ry, rz, ex, ey, ez, "boxOverlapCallback", RaycastUtil, collisionMask, true, true, true)
+	local dynamics = true
+	local statics = true
+	local exact = true
+
+	overlapBox(x, y, z, rx, ry, rz, ex, ey, ez, "boxOverlapCallback", RaycastUtil, collisionMask, dynamics, statics, exact)
 end
+
 function RaycastUtil.boxOverlapCallback(_, hitObjectId, x, y, z, distance)
-  log("BOX HIT", hitObjectId, x, y, z, distance)
+	log("BOX HIT", hitObjectId, x, y, z, distance)
 end
+
 function RaycastUtil.raycastSphere(x, y, z, radius, collisionMask)
-  overlapBox(x, y, z, radius, "sphereOverlapCallback", RaycastUtil, collisionMask, true, true, true)
+	local dynamics = true
+	local statics = true
+	local exact = true
+
+	overlapBox(x, y, z, radius, "sphereOverlapCallback", RaycastUtil, collisionMask, dynamics, statics, exact)
 end
+
 function RaycastUtil.sphereOverlapCallback(_, hitObjectId, x, y, z, distance)
-  log("SPHERE HIT", hitObjectId, x, y, z, distance)
+	log("SPHERE HIT", hitObjectId, x, y, z, distance)
 end

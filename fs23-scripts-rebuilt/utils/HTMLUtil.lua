@@ -1,23 +1,110 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
+HTMLUtil = {
+	encodeEntities = {
+		["Ö"] = "&Ouml;",
+		["è"] = "&egrave;",
+		["ù"] = "&ugrave;",
+		["œ"] = "&oelig;",
+		["î"] = "&icirc;",
+		["È"] = "&Egrave;",
+		["Ô"] = "&Ocirc;",
+		["à"] = "&agrave;",
+		["»"] = "&raquo;",
+		["©"] = "&copy;",
+		["Œ"] = "&OElig;",
+		["æ"] = "&aelig;",
+		["Æ"] = "&AElig;",
+		["®"] = "&reg;",
+		["«"] = "&laquo;",
+		["Ÿ"] = "&Yuml;",
+		["Ç"] = "&Ccedil;",
+		["ë"] = "&euml;",
+		["ê"] = "&ecirc;",
+		["ö"] = "&ouml;",
+		["é"] = "&eacute;",
+		[">"] = "&gt;",
+		["<"] = "&lt;",
+		["ô"] = "&ocirc;",
+		["Â"] = "&Acirc;",
+		["Î"] = "&Icirc;",
+		["Ï"] = "&Iuml;",
+		["Û"] = "&Ucirc;",
+		["ç"] = "&ccedil;",
+		["Ù"] = "&Ugrave;",
+		["ÿ"] = "&yuml;",
+		["À"] = "&Agrave;",
+		["ä"] = "&auml;",
+		["ü"] = "&uuml;",
+		["Ê"] = "&Ecirc;",
+		["Ë"] = "&Euml;",
+		["â"] = "&acirc;",
+		["É"] = "&Eacute;",
+		["ï"] = "&iuml;",
+		["û"] = "&ucirc;"
+	},
+	decodeEntities = {
+		Ocirc = "Ô",
+		auml = "ä",
+		ugrave = "ù",
+		acirc = "â",
+		Ccedil = "Ç",
+		ccedil = "ç",
+		Iuml = "Ï",
+		Euml = "Ë",
+		Eacute = "É",
+		Egrave = "È",
+		Icirc = "Î",
+		ecirc = "ê",
+		Ugrave = "Ù",
+		raquo = "»",
+		ouml = "ö",
+		laquo = "«",
+		egrave = "è",
+		Ucirc = "Û",
+		aelig = "æ",
+		yuml = "ÿ",
+		OElig = "Œ",
+		eacute = "é",
+		Agrave = "À",
+		agrave = "à",
+		oelig = "œ",
+		AElig = "Æ",
+		iuml = "ï",
+		reg = "®",
+		icirc = "î",
+		ocirc = "ô",
+		ucirc = "û",
+		copy = "©",
+		amp = "&",
+		euml = "ë",
+		Acirc = "Â",
+		uuml = "ü",
+		Ecirc = "Ê",
+		Ouml = "Ö",
+		Yuml = "Ÿ"
+	},
+	encodeToHTML = function (str, inCData)
+		local encodedString = str
 
-HTMLUtil = {encodeEntities = {["<"] = "&lt;", [">"] = "&gt;", ["ä"] = "&auml;", ["à"] = "&agrave;", ["â"] = "&acirc;", ["é"] = "&eacute;", ["è"] = "&egrave;", ["ê"] = "&ecirc;", ["ë"] = "&euml;", ["î"] = "&icirc;", ["ï"] = "&iuml;", ["ô"] = "&ocirc;", ["ö"] = "&ouml;", ["ù"] = "&ugrave;", ["û"] = "&ucirc;", ["ü"] = "&uuml;", ["ÿ"] = "&yuml;", ["À"] = "&Agrave;", ["Â"] = "&Acirc;", ["É"] = "&Eacute;", ["È"] = "&Egrave;", ["Ê"] = "&Ecirc;", ["Ë"] = "&Euml;", ["Î"] = "&Icirc;", ["Ï"] = "&Iuml;", ["Ô"] = "&Ocirc;", ["Ö"] = "&Ouml;", ["Ù"] = "&Ugrave;", ["Û"] = "&Ucirc;", ["ç"] = "&ccedil;", ["Ç"] = "&Ccedil;", ["Ÿ"] = "&Yuml;", ["«"] = "&laquo;", ["»"] = "&raquo;", ["©"] = "&copy;", ["®"] = "&reg;", ["æ"] = "&aelig;", ["Æ"] = "&AElig;", ["Œ"] = "&OElig;", ["œ"] = "&oelig;"}, decodeEntities = {amp = "&", auml = "ä", agrave = "à", acirc = "â", eacute = "é", egrave = "è", ecirc = "ê", euml = "ë", icirc = "î", iuml = "ï", ocirc = "ô", ouml = "ö", ugrave = "ù", ucirc = "û", uuml = "ü", yuml = "ÿ", Agrave = "À", Acirc = "Â", Eacute = "É", Egrave = "È", Ecirc = "Ê", Euml = "Ë", Icirc = "Î", Iuml = "Ï", Ocirc = "Ô", Ouml = "Ö", Ugrave = "Ù", Ucirc = "Û", ccedil = "ç", Ccedil = "Ç", Yuml = "Ÿ", laquo = "«", raquo = "»", copy = "©", reg = "®", aelig = "æ", AElig = "Æ", OElig = "Œ", oelig = "œ"}}
-function HTMLUtil.encodeToHTML(v0, v1)
-  if v1 then
-    return string.gsub(v0, "]]>", "]]]]><![CDATA[>")
-  end
-  v3 = string.gsub(v2, "&", "&amp;")
-  v3 = string.gsub(v3, "\"", "&quot;")
-  v3 = string.gsub(v3, "]", "&#93;")
-  v3 = string.gsub(v3, "<", "&lt;")
-  v3 = string.gsub(v3, ">", "&gt;")
-  v3 = string.gsub(v3, "\n", "&#10;")
-  v3 = string.gsub(v3, "\r", "&#13;")
-  return v3
-end
+		if inCData then
+			encodedString = string.gsub(encodedString, "]]>", "]]]]><![CDATA[>")
+		else
+			encodedString = string.gsub(encodedString, "&", "&amp;")
+			encodedString = string.gsub(encodedString, "\"", "&quot;")
+			encodedString = string.gsub(encodedString, "]", "&#93;")
+			encodedString = string.gsub(encodedString, "<", "&lt;")
+			encodedString = string.gsub(encodedString, ">", "&gt;")
+			encodedString = string.gsub(encodedString, "\n", "&#10;")
+			encodedString = string.gsub(encodedString, "\r", "&#13;")
+		end
+
+		return encodedString
+	end
+}
+
 function HTMLUtil.decodeFromHTML(str)
-  return string.gsub(str, "&%a+;", function(str)
-    local v4 = string.sub(str, 2, -2)
-    return HTMLUtil.decodeEntities[v4] or str
-  end)
+	local function ReplaceEntity(entity)
+		return HTMLUtil.decodeEntities[string.sub(entity, 2, -2)] or entity
+	end
+
+	return string.gsub(str, "&%a+;", ReplaceEntity)
 end
