@@ -1,40 +1,47 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
 GetAdminEvent = {}
 local GetAdminEvent_mt = Class(GetAdminEvent, Event)
+
 InitStaticEventClass(GetAdminEvent, "GetAdminEvent", EventIds.EVENT_GET_ADMIN)
+
 function GetAdminEvent.emptyNew()
-  return Event.new(u0)
+	local self = Event.new(GetAdminEvent_mt)
+
+	return self
 end
+
 function GetAdminEvent.new(password)
-  local v1 = GetAdminEvent.emptyNew()
-  v1.password = password
-  return v1
+	local self = GetAdminEvent.emptyNew()
+	self.password = password
+
+	return self
 end
+
 function GetAdminEvent:readStream(streamId, connection)
-  local v4 = v4:getIsServer()
-  assert(...)
-  local v3 = streamReadString(streamId)
-  self.password = v3
-  v3 = v3:getIsServer()
-  if v3 then
-    v3 = connection:getIsServer()
-    if not v3 then
-      if g_dedicatedServer ~= nil then
-        if g_dedicatedServer.adminPassword == self.password then
-          v4:addMasterUserByConnection(connection)
-        else
-        end
-      end
-      local v6 = GetAdminAnswerEvent.new(v3)
-      connection:sendEvent(...)
-    end
-  end
+	assert(g_currentMission:getIsServer())
+
+	self.password = streamReadString(streamId)
+
+	if g_currentMission:getIsServer() and not connection:getIsServer() then
+		local state = GetAdminAnswerEvent.NOT_SUPPORTED
+
+		if g_dedicatedServer ~= nil then
+			if g_dedicatedServer.adminPassword == self.password then
+				state = GetAdminAnswerEvent.ACCESS_GRANTED
+
+				g_currentMission.userManager:addMasterUserByConnection(connection)
+			else
+				state = GetAdminAnswerEvent.ACCESS_DENIED
+			end
+		end
+
+		connection:sendEvent(GetAdminAnswerEvent.new(state))
+	end
 end
+
 function GetAdminEvent:writeStream(streamId, connection)
-  streamWriteString(streamId, self.password)
+	streamWriteString(streamId, self.password)
 end
-function GetAdminEvent.run(v0, v1)
-  print("Error: GetAdminEvent is a client to server only event")
+
+function GetAdminEvent:run(connection)
+	print("Error: GetAdminEvent is a client to server only event")
 end

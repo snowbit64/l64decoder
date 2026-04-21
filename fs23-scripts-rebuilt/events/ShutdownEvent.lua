@@ -1,20 +1,27 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
 ShutdownEvent = {}
 local ShutdownEvent_mt = Class(ShutdownEvent, Event)
+
 InitStaticEventClass(ShutdownEvent, "ShutdownEvent", EventIds.EVENT_SHUTDOWN)
+
 function ShutdownEvent.emptyNew()
-  return Event.new(u0)
+	local self = Event.new(ShutdownEvent_mt)
+
+	return self
 end
+
 function ShutdownEvent.new()
-  return ShutdownEvent.emptyNew()
+	local self = ShutdownEvent.emptyNew()
+
+	return self
 end
+
 function ShutdownEvent:readStream(streamId, connection)
-  self:run(connection)
+	self:run(connection)
 end
-function ShutdownEvent.writeStream(v0, v1, v2)
+
+function ShutdownEvent:writeStream(streamId, connection)
 end
-function ShutdownEvent.run(v0, v1)
-  v2:onShutdownEvent(v1)
+
+function ShutdownEvent:run(connection)
+	g_currentMission:onShutdownEvent(connection)
 end
