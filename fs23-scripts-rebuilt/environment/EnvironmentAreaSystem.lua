@@ -1,330 +1,510 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
-EnvironmentAreaSystem = {WATER_THRESHOLD = 0.4}
+EnvironmentAreaSystem = {
+	WATER_THRESHOLD = 0.4
+}
 local EnvironmentAreaSystem_mt = Class(EnvironmentAreaSystem)
+
 function EnvironmentAreaSystem.getName(index)
-  for v4, v5 in pairs(EnvironmentAreaSystem) do
-    if not (index == v5) then
-      continue
-    end
-    return v4
-  end
-  return ""
+	for name, id in pairs(EnvironmentAreaSystem) do
+		if index == id then
+			return name
+		end
+	end
+
+	return ""
 end
-function EnvironmentAreaSystem:new(v1)
-  if not v1 then
-  end
-  local v2 = v2(v3, v4)
-  v2.mission = self
-  local v3 = getCamera(0)
-  v2.referenceNode = v3
-  v2.currentAreaType = AreaType.OPEN_FIELD
-  v2.waterYRequests = {}
-  v2.waterCheckPosition = {0, 0, 0}
-  v2.raycastsXZMaxDistance = 30
-  v2.raycastsYMaxDistance = 30
-  local v6 = MathUtil.vector3Normalize(0, 0, 1)
-  local v7 = MathUtil.vector3Normalize(1, 0, 0)
-  local v8 = MathUtil.vector3Normalize(0, 0, -1)
-  local v9 = MathUtil.vector3Normalize(-1, 0, 0)
-  local v10 = MathUtil.vector3Normalize(1, 0, 1)
-  local v11 = MathUtil.vector3Normalize(1, 0, -1)
-  local v12 = MathUtil.vector3Normalize(-1, 0, -1)
-  local v13 = MathUtil.vector3Normalize(-1, 0, 1)
-  v2.raycastsXZ = {{dir = {}}, {dir = {}}, {dir = {}}, {dir = {}}, {dir = {}}, {dir = {}}, {dir = {}}, {dir = {}}}
-  v6 = MathUtil.vector3Normalize(0, 1, 0)
-  v7 = MathUtil.vector3Normalize(0, 1.5, 1)
-  v8 = MathUtil.vector3Normalize(1, 1.5, 0)
-  v9 = MathUtil.vector3Normalize(0, 1.5, -1)
-  v10 = MathUtil.vector3Normalize(-1, 1.5, 0)
-  v11 = MathUtil.vector3Normalize(0, 1, 0)
-  v12 = MathUtil.vector3Normalize(1, 1.5, 1)
-  v13 = MathUtil.vector3Normalize(1, 1.5, -1)
-  local v14 = MathUtil.vector3Normalize(-1, 1.5, -1)
-  local v15 = MathUtil.vector3Normalize(-1, 1.5, 1)
-  v2.raycastsY = {{dir = {}, isTopRaycast = true}, {dir = {}, isTopRaycast = false}, {dir = {}, isTopRaycast = false}, {dir = {}, isTopRaycast = false}, {dir = {}, isTopRaycast = false}, {dir = {}, isTopRaycast = true}, {dir = {}, isTopRaycast = false}, {dir = {}, isTopRaycast = false}, {dir = {}, isTopRaycast = false}, {dir = {}, isTopRaycast = false}}
-  v2.isDebugViewActive = false
-  v2.areaTypeWeights = {}
-  v2.lastAreaTypeWeights = {}
-  local v4 = AreaType.getAll()
-  for v6, v7 in pairs(...) do
-    v2.areaTypeWeights[v7] = 0
-    v2.lastAreaTypeWeights[v7] = 0
-  end
-  v2.areaTypeWeights[AreaType.OPEN_FIELD] = 1
-  v2.lastAreaTypeWeights[AreaType.OPEN_FIELD] = 1
-  v2.lastPosition = {x = 0, y = 0, z = 0}
-  v2.tileSize = 4
-  v3 = DynamicDataGrid.new(60, v2.tileSize)
-  v2.dataGrid = v3
-  v2.treeCheckRadius = 25
-  v2.maxNumForestThreshold = 10
-  v2.minNumForestThreshold = 3
-  v2.minTopCollisionDistanceThreshold = 10
-  v2.maxTopCollisionDistanceThreshold = 20
-  v2.minWallCollisionDistanceThreshold = 5
-  v2.maxWallCollisionDistanceThreshold = 15
-  v2.raycastCollisionMask = CollisionFlag.STATIC_OBJECT
-  v4 = self.ambientSoundSystem:registerModifier("inForest", nil)
-  v2.setIsInForest = v4
-  v4 = self.ambientSoundSystem:registerModifier("nearWater", nil)
-  v2.setIsNearWater = v4
-  addConsoleCommand("gsEnvironmentAreaSystemToggleDebugView", "Toggles the environment checker debug view", "consoleCommandToggleDebugView", v2)
-  return v2
+
+function EnvironmentAreaSystem.new(mission, customMt)
+	local self = setmetatable({}, customMt or EnvironmentAreaSystem_mt)
+	self.mission = mission
+	self.referenceNode = getCamera(0)
+	self.currentAreaType = AreaType.OPEN_FIELD
+	self.waterYRequests = {}
+	self.waterCheckPosition = {
+		0,
+		0,
+		0
+	}
+	self.raycastsXZMaxDistance = 30
+	self.raycastsYMaxDistance = 30
+	self.raycastsXZ = {
+		{
+			dir = {
+				MathUtil.vector3Normalize(0, 0, 1)
+			}
+		},
+		{
+			dir = {
+				MathUtil.vector3Normalize(1, 0, 0)
+			}
+		},
+		{
+			dir = {
+				MathUtil.vector3Normalize(0, 0, -1)
+			}
+		},
+		{
+			dir = {
+				MathUtil.vector3Normalize(-1, 0, 0)
+			}
+		},
+		{
+			dir = {
+				MathUtil.vector3Normalize(1, 0, 1)
+			}
+		},
+		{
+			dir = {
+				MathUtil.vector3Normalize(1, 0, -1)
+			}
+		},
+		{
+			dir = {
+				MathUtil.vector3Normalize(-1, 0, -1)
+			}
+		},
+		{
+			dir = {
+				MathUtil.vector3Normalize(-1, 0, 1)
+			}
+		}
+	}
+	self.raycastsY = {
+		{
+			isTopRaycast = true,
+			dir = {
+				MathUtil.vector3Normalize(0, 1, 0)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(0, 1.5, 1)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(1, 1.5, 0)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(0, 1.5, -1)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(-1, 1.5, 0)
+			}
+		},
+		{
+			isTopRaycast = true,
+			dir = {
+				MathUtil.vector3Normalize(0, 1, 0)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(1, 1.5, 1)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(1, 1.5, -1)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(-1, 1.5, -1)
+			}
+		},
+		{
+			isTopRaycast = false,
+			dir = {
+				MathUtil.vector3Normalize(-1, 1.5, 1)
+			}
+		}
+	}
+	self.isDebugViewActive = false
+	self.areaTypeWeights = {}
+	self.lastAreaTypeWeights = {}
+
+	for _, areaTypeIndex in pairs(AreaType.getAll()) do
+		self.areaTypeWeights[areaTypeIndex] = 0
+		self.lastAreaTypeWeights[areaTypeIndex] = 0
+	end
+
+	self.areaTypeWeights[AreaType.OPEN_FIELD] = 1
+	self.lastAreaTypeWeights[AreaType.OPEN_FIELD] = 1
+	self.lastPosition = {
+		z = 0,
+		x = 0,
+		y = 0
+	}
+	self.tileSize = 4
+	self.dataGrid = DynamicDataGrid.new(60, self.tileSize)
+	self.treeCheckRadius = 25
+	self.maxNumForestThreshold = 10
+	self.minNumForestThreshold = 3
+	self.minTopCollisionDistanceThreshold = 10
+	self.maxTopCollisionDistanceThreshold = 20
+	self.minWallCollisionDistanceThreshold = 5
+	self.maxWallCollisionDistanceThreshold = 15
+	self.raycastCollisionMask = CollisionFlag.STATIC_OBJECT
+	local ambientSoundSystem = mission.ambientSoundSystem
+	self.setIsInForest = ambientSoundSystem:registerModifier("inForest", nil)
+	self.setIsNearWater = ambientSoundSystem:registerModifier("nearWater", nil)
+
+	addConsoleCommand("gsEnvironmentAreaSystemToggleDebugView", "Toggles the environment checker debug view", "consoleCommandToggleDebugView", self)
+
+	return self
 end
+
 function EnvironmentAreaSystem:delete()
-  v1:removeDrawable(self)
-  removeConsoleCommand("gsEnvironmentAreaSystemToggleDebugView")
-  self.mission = nil
+	self.mission:removeDrawable(self)
+	removeConsoleCommand("gsEnvironmentAreaSystemToggleDebugView")
+
+	self.mission = nil
 end
+
 function EnvironmentAreaSystem:getAreaWeights()
-  return self.areaTypeWeights
+	return self.areaTypeWeights
 end
+
 function EnvironmentAreaSystem:update(dt)
-  local v2 = entityExists(self.referenceNode)
-  if not v2 then
-    v2 = getCamera(0)
-    self.referenceNode = v2
-  end
-  if self.currentCell ~= nil then
-    self:updateCellType(self.currentCell)
-    self:updateWeights()
-  end
-  if 0.1 >= self.areaTypeWeights[AreaType.WATER] then
-  end
-  v2(true)
-  if 0.25 >= self.areaTypeWeights[AreaType.FOREST] then
-  end
-  v2(true)
-  local v2, v3, v4 = getWorldTranslation(self.referenceNode)
-  v5:setWorldPosition(v2, v4)
-  local v5, v6, v7 = v5:getCellData(0, 0)
-  self.currentCell = v5
-  if v5.raycastIndexXZ == nil then
-    self:setupCell(v5)
-  else
-    v5.raycastIndexXZ = v5.raycastIndexXZ + 2
-  end
-  if #self.raycastsXZ <= v5.raycastIndexXZ then
-    v5.raycastIndexXZ = 0
-    v5.isDone = true
-    self.lastDoneCell = v5
-  end
-  raycastClosest(v2, v3, v4, self.raycastsXZ[v5.raycastIndexXZ + 1].dir[1], self.raycastsXZ[v5.raycastIndexXZ + 1].dir[2], self.raycastsXZ[v5.raycastIndexXZ + 1].dir[3], "raycastXZCallback1", self.raycastsXZMaxDistance, self, self.raycastCollisionMask, false, true)
-  raycastClosest(v2, v3, v4, self.raycastsXZ[v5.raycastIndexXZ + 2].dir[1], self.raycastsXZ[v5.raycastIndexXZ + 2].dir[2], self.raycastsXZ[v5.raycastIndexXZ + 2].dir[3], "raycastXZCallback2", self.raycastsXZMaxDistance, self, self.raycastCollisionMask, false, true)
-  if not v5.hasTopHit then
-    raycastClosest(v2, v3, v4, 0, 1, 0, "raycastYCallback", self.raycastsYMaxDistance, self, self.raycastCollisionMask, false, true)
-  end
-  if v5.treeCount == nil then
-    v5.treeCount = 0
-    overlapSphere(v6, v3, v7, self.treeCheckRadius, "forestCheckCallback", self, CollisionFlag.TREE, false, true, false, true)
-  end
-  if not self.waterCheckPending then
-    self.waterCheckPending = true
-    self.waterCheckPosition[1] = v2
-    self.waterCheckPosition[3] = v4
-    self:getWaterYAtWorldPositionAsync(v2, v3, v4, EnvironmentAreaSystem.onCellWaterCallback, self)
-  end
-  self.lastPosition.x = v2
-  self.lastPosition.y = v3
-  self.lastPosition.z = v4
+	if not entityExists(self.referenceNode) then
+		self.referenceNode = getCamera(0)
+	end
+
+	if self.currentCell ~= nil then
+		self:updateCellType(self.currentCell)
+		self:updateWeights()
+	end
+
+	self.setIsNearWater(self.areaTypeWeights[AreaType.WATER] > 0.1)
+	self.setIsInForest(self.areaTypeWeights[AreaType.FOREST] > 0.25)
+
+	local x, y, z = getWorldTranslation(self.referenceNode)
+
+	self.dataGrid:setWorldPosition(x, z)
+
+	local cell, wx, wz = self.dataGrid:getCellData(0, 0)
+	self.currentCell = cell
+
+	if cell.raycastIndexXZ == nil then
+		self:setupCell(cell)
+	else
+		cell.raycastIndexXZ = cell.raycastIndexXZ + 2
+	end
+
+	if cell.raycastIndexXZ >= #self.raycastsXZ then
+		cell.raycastIndexXZ = 0
+		cell.isDone = true
+		self.lastDoneCell = cell
+	end
+
+	local raycastXZ1 = self.raycastsXZ[cell.raycastIndexXZ + 1]
+
+	raycastClosest(x, y, z, raycastXZ1.dir[1], raycastXZ1.dir[2], raycastXZ1.dir[3], "raycastXZCallback1", self.raycastsXZMaxDistance, self, self.raycastCollisionMask, false, true)
+
+	local raycastXZ2 = self.raycastsXZ[cell.raycastIndexXZ + 2]
+
+	raycastClosest(x, y, z, raycastXZ2.dir[1], raycastXZ2.dir[2], raycastXZ2.dir[3], "raycastXZCallback2", self.raycastsXZMaxDistance, self, self.raycastCollisionMask, false, true)
+
+	if not cell.hasTopHit then
+		raycastClosest(x, y, z, 0, 1, 0, "raycastYCallback", self.raycastsYMaxDistance, self, self.raycastCollisionMask, false, true)
+	end
+
+	if cell.treeCount == nil then
+		cell.treeCount = 0
+
+		overlapSphere(wx, y, wz, self.treeCheckRadius, "forestCheckCallback", self, CollisionFlag.TREE, false, true, false, true)
+	end
+
+	self.waterCheckPosition[1] = x
+	self.waterCheckPosition[3] = z
+
+	self:getWaterYAtWorldPositionAsync(x, y, z, EnvironmentAreaSystem.onCellWaterCallback, self, nil)
+
+	self.lastPosition.x = x
+	self.lastPosition.y = y
+	self.lastPosition.z = z
 end
+
 function EnvironmentAreaSystem:setupCell(cell)
-  cell.isValid = true
-  cell.isDone = false
-  cell.raycastIndexXZ = 0
-  cell.hitDataXZ = {}
-  cell.areaTypeWeights = {}
-  cell.treeCount = nil
-  for v5, v6 in pairs(self.areaTypeWeights) do
-    cell.areaTypeWeights[v5] = 0
-  end
+	cell.isValid = true
+	cell.isDone = false
+	cell.raycastIndexXZ = 0
+	cell.hitDataXZ = {}
+	cell.areaTypeWeights = {}
+	cell.treeCount = nil
+
+	for k, _ in pairs(self.areaTypeWeights) do
+		cell.areaTypeWeights[k] = 0
+	end
 end
+
 function EnvironmentAreaSystem:updateWeights()
-  for v5, v6 in pairs(self.areaTypeWeights) do
-    self.areaTypeWeights[v5] = 0
-  end
-  v2, v3, v4 = v2:getCellData(0, 0)
-  if not v2.isDone and self.lastDoneCell ~= nil and self.lastDoneCell.areaTypeWeights ~= nil then
-  end
-  -- TODO: structure LOP_FORNPREP (pc 38, target 100)
-  for v10 = 1, 3 do
-    local v11, v12, v13 = v11:getCellData(v7 - 2, v10 - 2)
-    if v11.areaTypeWeights ~= nil then
-      -- if v11.isDone then goto L59 end
-    end
-    local v15 = MathUtil.vector2Length(v12 - self.lastPosition.x, v13 - self.lastPosition.z)
-    local v16 = MathUtil.clamp(1 - v15 / self.tileSize, 0, 1)
-    for v20, v21 in pairs(v2.areaTypeWeights) do
-      self.areaTypeWeights[v20] = self.areaTypeWeights[v20] + v21 * v16
-    end
-    -- TODO: structure LOP_FORNLOOP (pc 98, target 43)
-  end
-  if 0 < v1 then
-    for v8, v9 in pairs(self.areaTypeWeights) do
-      self.areaTypeWeights[v8] = v9 / v1
-    end
-    return
-  end
-  self.areaTypeWeights[AreaType.OPEN_FIELD] = 1
+	local sum = 0
+
+	for k, weight in pairs(self.areaTypeWeights) do
+		self.areaTypeWeights[k] = 0
+	end
+
+	local fallbackCell, _, _ = self.dataGrid:getCellData(0, 0)
+
+	if not fallbackCell.isDone and self.lastDoneCell ~= nil and self.lastDoneCell.areaTypeWeights ~= nil then
+		fallbackCell = self.lastDoneCell
+	end
+
+	for i = 1, 3 do
+		for j = 1, 3 do
+			local cell, wx, wz = self.dataGrid:getCellData(i - 2, j - 2)
+			local weights = cell.areaTypeWeights
+
+			if weights == nil or not cell.isDone then
+				weights = fallbackCell.areaTypeWeights
+			end
+
+			local distance = MathUtil.vector2Length(wx - self.lastPosition.x, wz - self.lastPosition.z)
+			local weightFactor = MathUtil.clamp(1 - distance / self.tileSize, 0, 1)
+
+			for areaTypeIndex, weight in pairs(weights) do
+				local appliedWeight = weight * weightFactor
+				self.areaTypeWeights[areaTypeIndex] = self.areaTypeWeights[areaTypeIndex] + appliedWeight
+				sum = sum + appliedWeight
+			end
+		end
+	end
+
+	if sum > 0 then
+		for typeIndex, weight in pairs(self.areaTypeWeights) do
+			self.areaTypeWeights[typeIndex] = weight / sum
+		end
+	else
+		self.areaTypeWeights[AreaType.OPEN_FIELD] = 1
+	end
 end
+
 function EnvironmentAreaSystem:updateCellType(cell)
-  for v6, v7 in pairs(cell.areaTypeWeights) do
-    cell.areaTypeWeights[v6] = 0
-  end
-  if self.maxNumForestThreshold < cell.treeCount then
-    cell.areaTypeWeights[AreaType.FOREST] = 1
-    return
-  end
-  if cell.hasTopHit then
-    cell.areaTypeWeights[AreaType.HALL] = 1
-    return
-  end
-  if cell.isNearWater then
-    cell.areaTypeWeights[AreaType.WATER] = EnvironmentAreaSystem.WATER_THRESHOLD
-  end
-  if self.minNumForestThreshold < cell.treeCount then
-    v3 = MathUtil.inverseLerp(self.minNumForestThreshold, self.maxNumForestThreshold, cell.treeCount)
-    cell.areaTypeWeights[AreaType.FOREST] = v3
-  end
-  for v7, v8 in pairs(cell.hitDataXZ) do
-    local v9 = math.min(v3, v8.distance)
-  end
-  if v3 < self.maxWallCollisionDistanceThreshold then
-    v6 = MathUtil.inverseLerp(self.minWallCollisionDistanceThreshold, self.maxWallCollisionDistanceThreshold, v3)
-    cell.areaTypeWeights[AreaType.CITY] = 1 - v6
-  end
-  if 0 < v2 then
-    if 1 < v2 then
-      for v7, v8 in pairs(cell.areaTypeWeights) do
-        if not (v7 ~= AreaType.OPEN_FIELD) then
-          continue
-        end
-        cell.areaTypeWeights[v7] = v8 / v2
-      end
-      return
-    end
-    cell.areaTypeWeights[AreaType.OPEN_FIELD] = 1 - v2
-    return
-  end
-  cell.areaTypeWeights[AreaType.OPEN_FIELD] = 1
+	local sum = 0
+
+	for k, _ in pairs(cell.areaTypeWeights) do
+		cell.areaTypeWeights[k] = 0
+	end
+
+	if self.maxNumForestThreshold < cell.treeCount then
+		cell.areaTypeWeights[AreaType.FOREST] = 1
+
+		return
+	end
+
+	if cell.hasTopHit then
+		cell.areaTypeWeights[AreaType.HALL] = 1
+
+		return
+	end
+
+	if cell.isNearWater then
+		cell.areaTypeWeights[AreaType.WATER] = EnvironmentAreaSystem.WATER_THRESHOLD
+	end
+
+	if self.minNumForestThreshold < cell.treeCount then
+		local forestWeight = MathUtil.inverseLerp(self.minNumForestThreshold, self.maxNumForestThreshold, cell.treeCount)
+		cell.areaTypeWeights[AreaType.FOREST] = forestWeight
+		sum = sum + forestWeight
+	end
+
+	local nearestWallDistance = math.huge
+
+	for _, data in pairs(cell.hitDataXZ) do
+		nearestWallDistance = math.min(nearestWallDistance, data.distance)
+	end
+
+	if nearestWallDistance < self.maxWallCollisionDistanceThreshold then
+		local wallWeight = 1 - MathUtil.inverseLerp(self.minWallCollisionDistanceThreshold, self.maxWallCollisionDistanceThreshold, nearestWallDistance)
+		cell.areaTypeWeights[AreaType.CITY] = wallWeight
+		sum = sum + wallWeight
+	end
+
+	if sum > 0 then
+		if sum > 1 then
+			for k, weight in pairs(cell.areaTypeWeights) do
+				if k ~= AreaType.OPEN_FIELD then
+					cell.areaTypeWeights[k] = weight / sum
+				end
+			end
+		else
+			cell.areaTypeWeights[AreaType.OPEN_FIELD] = 1 - sum
+		end
+	else
+		cell.areaTypeWeights[AreaType.OPEN_FIELD] = 1
+	end
 end
+
 function EnvironmentAreaSystem:raycastXZCallback1(hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
-  self:handleRaycast(1, hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
+	self:handleRaycast(1, hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
 end
+
 function EnvironmentAreaSystem:raycastXZCallback2(hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
-  self:handleRaycast(2, hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
+	self:handleRaycast(2, hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
 end
+
 function EnvironmentAreaSystem:handleRaycast(indexOffset, hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
-  if hitObjectId ~= 0 then
-    local collisionMask = getCollisionMask(hitObjectId)
-    local v16 = Utils.isBitSet(collisionMask, CollisionFlag.AI_DRIVABLE)
-    if not v16 then
-      if self.currentCell.hitDataXZ[self.currentCell.raycastIndexXZ + indexOffset] ~= nil then
-        -- if v6 >= v0.currentCell.hitDataXZ[v0.currentCell.raycastIndexXZ + v1].distance then goto L48 end
-      end
-      local v18 = getName(hitObjectId)
-      v13.hitDataXZ[v14] = {name = v18, x = x, y = y, z = z, distance = distance}
-    end
-  end
+	local cell = self.currentCell
+	local raycastIndexXZ = cell.raycastIndexXZ + indexOffset
+
+	if hitObjectId ~= 0 then
+		local collisionMask = getCollisionMask(hitObjectId)
+
+		if not Utils.isBitSet(collisionMask, CollisionFlag.AI_DRIVABLE) and (cell.hitDataXZ[raycastIndexXZ] == nil or distance < cell.hitDataXZ[raycastIndexXZ].distance) then
+			cell.hitDataXZ[raycastIndexXZ] = {
+				name = getName(hitObjectId),
+				x = x,
+				y = y,
+				z = z,
+				distance = distance
+			}
+		end
+	end
 end
+
 function EnvironmentAreaSystem:raycastYCallback(hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
-  if hitObjectId ~= 0 then
-    self.currentCell.hasTopHit = true
-  end
+	local cell = self.currentCell
+
+	if hitObjectId ~= 0 then
+		cell.hasTopHit = true
+	end
 end
+
 function EnvironmentAreaSystem:setReferenceNode(node)
-  self.referenceNode = node
+	self.referenceNode = node
 end
+
 function EnvironmentAreaSystem:forestCheckCallback(transformId)
-  if transformId ~= 0 then
-    local v2 = getHasClassId(transformId, ClassIds.SHAPE)
-    if v2 then
-      v2 = getSplitType(transformId)
-      if v2 ~= 0 then
-        v2 = getIsSplitShapeSplit(transformId)
-        if not v2 then
-          self.currentCell.treeCount = self.currentCell.treeCount + 1
-        end
-      end
-    end
-  end
-  return true
+	if transformId ~= 0 and getHasClassId(transformId, ClassIds.SHAPE) and getSplitType(transformId) ~= 0 and not getIsSplitShapeSplit(transformId) then
+		self.currentCell.treeCount = self.currentCell.treeCount + 1
+	end
+
+	return true
 end
+
 function EnvironmentAreaSystem:onCellWaterCallback(waterY, args)
-  self.waterCheckPending = false
-  self.currentCell.isNearWater = false
-  if waterY ~= nil and g_currentMission ~= nil then
-    local v6 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, self.waterCheckPosition[1], 0, self.waterCheckPosition[3])
-    if v6 - 0.25 < waterY then
-      self.currentCell.isNearWater = true
-    end
-  end
+	local cell = self.currentCell
+	cell.isNearWater = false
+
+	if waterY ~= nil and g_currentMission ~= nil then
+		local x = self.waterCheckPosition[1]
+		local z = self.waterCheckPosition[3]
+		local y = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, x, 0, z)
+
+		if waterY > y - 0.25 then
+			cell.isNearWater = true
+		end
+	end
 end
+
 function EnvironmentAreaSystem:draw()
-  v1:drawDebug(function(self)
-    if not self.isValid then
-      return 1, 0, 0, 0.1
-    end
-    if not self.isDone then
-      return 0, 0, 1, 0.1
-    end
-    return 0, 1, 0, 0.1
-  end, function(self, v1, v2)
-    if self.treeCount ~= nil then
-      local v4 = string.format("%s\nTrees: %d", nil or "", self.treeCount)
-    end
-    if self.areaTypeWeights ~= nil then
-      for v7, v8 in pairs(self.areaTypeWeights) do
-        local v12 = AreaType.getName(v7)
-        local v9 = string.format("%s\n[%s] %.3f", v3 or "", v12, v8)
-      end
-    end
-    if v3 ~= nil then
-      v5 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, v1, 0, v2)
-      DebugUtil.drawDebugGizmoAtWorldPos(v1, v5 + 0.1, v2, 0, 0, 1, 0, 1, 0, v3, false, {1, 1, 1})
-    end
-    if self == u0.currentCell and self.hitDataXZ ~= nil then
-      for v7, v8 in pairs(self.hitDataXZ) do
-        local v19 = string.format("Raycast-XZ %d\n%.3f", v7, v8.distance)
-        DebugUtil.drawDebugGizmoAtWorldPos(v8.x, v8.y, v8.z, 0, 0, 1, 0, 1, 0, v19, false)
-      end
-    end
-  end)
-  setTextColor(1, 1, 1, 1)
-  for v5, v6 in ipairs(self.areaTypeWeights) do
-    local v7 = AreaType.getName(v5)
-    setTextAlignment(RenderText.ALIGN_RIGHT)
-    renderText(0.3, v1, 0.014, v7 .. ": ")
-    setTextAlignment(RenderText.ALIGN_LEFT)
-    local v12 = string.format("%.3f", v6)
-    renderText(...)
-  end
+	self.dataGrid:drawDebug(function (cell)
+		local alpha = 0.1
+
+		if not cell.isValid then
+			return 1, 0, 0, alpha
+		elseif not cell.isDone then
+			return 0, 0, 1, alpha
+		end
+
+		return 0, 1, 0, alpha
+	end, function (cell, cx, cz)
+		local text = nil
+
+		if cell.treeCount ~= nil then
+			text = string.format("%s\nTrees: %d", text or "", cell.treeCount)
+		end
+
+		if cell.areaTypeWeights ~= nil then
+			for k, weight in pairs(cell.areaTypeWeights) do
+				text = string.format("%s\n[%s] %.3f", text or "", AreaType.getName(k), weight)
+			end
+		end
+
+		if text ~= nil then
+			local cy = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, cx, 0, cz) + 0.1
+
+			DebugUtil.drawDebugGizmoAtWorldPos(cx, cy, cz, 0, 0, 1, 0, 1, 0, text, false, {
+				1,
+				1,
+				1
+			})
+		end
+
+		if cell == self.currentCell and cell.hitDataXZ ~= nil then
+			for k, data in pairs(cell.hitDataXZ) do
+				DebugUtil.drawDebugGizmoAtWorldPos(data.x, data.y, data.z, 0, 0, 1, 0, 1, 0, string.format("Raycast-XZ %d\n%.3f", k, data.distance), false)
+			end
+		end
+	end)
+	setTextColor(1, 1, 1, 1)
+
+	local posY = 0.6
+	local textSize = 0.014
+
+	for areaTypeIndex, weight in ipairs(self.areaTypeWeights) do
+		local typeName = AreaType.getName(areaTypeIndex)
+
+		setTextAlignment(RenderText.ALIGN_RIGHT)
+		renderText(0.3, posY, textSize, typeName .. ": ")
+		setTextAlignment(RenderText.ALIGN_LEFT)
+		renderText(0.3, posY, textSize, string.format("%.3f", weight))
+
+		posY = posY - 0.015
+	end
 end
+
 function EnvironmentAreaSystem:getWaterYAtWorldPosition(x, y, z)
-  self.waterY = nil
-  raycastClosest(x, (y or 100) + 100, z, 0, -1, 0, "onWaterRaycastCallback", 200, self, CollisionFlag.WATER, false, false)
-  return self.waterY
+	y = y or 100
+	self.waterY = nil
+
+	raycastClosest(x, y + 100, z, 0, -1, 0, "onWaterRaycastCallback", 200, self, CollisionFlag.WATER, false, false)
+
+	return self.waterY
 end
+
 function EnvironmentAreaSystem:onWaterRaycastCallback(hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast)
-  if hitObjectId ~= 0 then
-    self.waterY = y
-  end
+	if hitObjectId ~= 0 then
+		self.waterY = y
+	end
 end
-function EnvironmentAreaSystem.getWaterYAtWorldPositionAsync(v0, v1, v2, v3, v4, v5, v6, v7)
-  return v9:raycastClosestAsync(v1, v2 + 100, v3, 0, -1, 0, 200, false, CollisionFlag.WATER, v0, EnvironmentAreaSystem.onWaterRaycastCallbackAsync, v6, {callbackTarget = v5, callbackFunction = v4, arguments = v7})
+
+function EnvironmentAreaSystem.getWaterYAtWorldPositionAsync(self, x, y, z, asyncCallbackFunc, asyncCallbackTarget, asyncGroupId, asyncCallbackArgs)
+	return g_asyncEngineManager:raycastClosestAsync(x, y + 100, z, 0, -1, 0, 200, false, CollisionFlag.WATER, self, EnvironmentAreaSystem.onWaterRaycastCallbackAsync, asyncGroupId, {
+		callbackTarget = asyncCallbackTarget,
+		callbackFunction = asyncCallbackFunc,
+		arguments = asyncCallbackArgs
+	})
 end
-function EnvironmentAreaSystem.onWaterRaycastCallbackAsync(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9)
-  if v1 ~= 0 then
-  end
-  v9.callbackFunction(v9.callbackTarget, v10, v9.arguments)
+
+function EnvironmentAreaSystem.onWaterRaycastCallbackAsync(self, hitObjectId, x, y, z, distance, nx, ny, nz, subShapeIndex, shapeId, isLast, callbackData)
+	local waterY = nil
+
+	if hitObjectId ~= 0 then
+		waterY = y
+	end
+
+	callbackData.callbackFunction(callbackData.callbackTarget, waterY, callbackData.arguments)
 end
+
 function EnvironmentAreaSystem:consoleCommandToggleDebugView()
-  self.isDebugViewActive = not self.isDebugViewActive
-  if self.isDebugViewActive then
-    v1:addDrawable(self)
-    return
-  end
-  v1:removeDrawable(self)
+	self.isDebugViewActive = not self.isDebugViewActive
+
+	if self.isDebugViewActive then
+		self.mission:addDrawable(self)
+	else
+		self.mission:removeDrawable(self)
+	end
 end
