@@ -1,149 +1,185 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
 SprayType = nil
 SprayTypeManager = {}
 local SprayTypeManager_mt = Class(SprayTypeManager, AbstractManager)
+
 function SprayTypeManager.new(customMt)
-  if not customMt then
-  end
-  return v1(v2)
+	local self = AbstractManager.new(customMt or SprayTypeManager_mt)
+
+	return self
 end
+
 function SprayTypeManager:initDataStructures()
-  self.numSprayTypes = 0
-  self.sprayTypes = {}
-  self.nameToSprayType = {}
-  self.nameToIndex = {}
-  self.indexToName = {}
-  self.fillTypeIndexToSprayType = {}
-  SprayType = self.nameToIndex
+	self.numSprayTypes = 0
+	self.sprayTypes = {}
+	self.nameToSprayType = {}
+	self.nameToIndex = {}
+	self.indexToName = {}
+	self.fillTypeIndexToSprayType = {}
+	SprayType = self.nameToIndex
 end
+
 function SprayTypeManager:loadDefaultTypes()
-  local xmlFile = loadXMLFile("sprayTypes", "data/maps/maps_sprayTypes.xml")
-  self:loadSprayTypes(xmlFile, nil, true)
-  delete(xmlFile)
+	local xmlFile = loadXMLFile("sprayTypes", "data/maps/maps_sprayTypes.xml")
+
+	self:loadSprayTypes(xmlFile, nil, true)
+	delete(xmlFile)
 end
+
 function SprayTypeManager:loadMapData(xmlFile, missionInfo, baseDirectory)
-  local v5 = v5:superClass()
-  v5.loadMapData(self)
-  self:loadDefaultTypes()
-  return XMLUtil.loadDataFromMapXML(xmlFile, "sprayTypes", baseDirectory, self, self.loadSprayTypes, missionInfo)
+	SprayTypeManager:superClass().loadMapData(self)
+	self:loadDefaultTypes()
+
+	return XMLUtil.loadDataFromMapXML(xmlFile, "sprayTypes", baseDirectory, self, self.loadSprayTypes, missionInfo)
 end
+
 function SprayTypeManager:loadSprayTypes(xmlFile, missionInfo, isBaseType)
-  while true do
-    v5 = string.format("map.sprayTypes.sprayType(%d)", v4)
-    v6 = hasXMLProperty(xmlFile, v5)
-    if not v6 then
-      break
-    end
-    v6 = getXMLString(xmlFile, v5 .. "#name")
-    v7 = getXMLFloat(xmlFile, v5 .. "#litersPerSecond")
-    v8 = getXMLString(xmlFile, v5 .. "#type")
-    v11 = getXMLString(xmlFile, v5 .. "#sprayGroundType")
-    v9 = v9:getFieldSprayValueByName(...)
-    self:addSprayType(v6, v7, v8, v9, isBaseType)
-  end
-  return true
+	local i = 0
+
+	while true do
+		local key = string.format("map.sprayTypes.sprayType(%d)", i)
+
+		if not hasXMLProperty(xmlFile, key) then
+			break
+		end
+
+		local name = getXMLString(xmlFile, key .. "#name")
+		local litersPerSecond = getXMLFloat(xmlFile, key .. "#litersPerSecond")
+		local typeName = getXMLString(xmlFile, key .. "#type")
+		local sprayGroundType = g_currentMission.fieldGroundSystem:getFieldSprayValueByName(getXMLString(xmlFile, key .. "#sprayGroundType"))
+
+		self:addSprayType(name, litersPerSecond, typeName, sprayGroundType, isBaseType)
+
+		i = i + 1
+	end
+
+	return true
 end
+
 function SprayTypeManager:addSprayType(name, litersPerSecond, typeName, sprayGroundType, isBaseType)
-  local v6 = ClassUtil.getIsValidIndexName(name)
-  if not v6 then
-    local v11 = tostring(name)
-    print("Warning: '" .. v11 .. "' is not a valid name for a sprayType. Ignoring sprayType!")
-    return nil
-  end
-  v6 = name:upper()
-  v6 = v6:getFillTypeByName(v6)
-  if v6 == nil then
-    local v12 = tostring(v6)
-    print("Warning: Missing fillType '" .. v12 .. "' for sprayType definition. Ignoring sprayType!")
-    return
-  end
-  if isBaseType and self.nameToSprayType[name] ~= nil then
-    v12 = tostring(name)
-    print("Warning: SprayType '" .. v12 .. "' already exists. Ignoring sprayType!")
-    return nil
-  end
-  if self.nameToSprayType[name] == nil then
-    self.numSprayTypes = self.numSprayTypes + 1
-    local v8 = Utils.getNoNil(litersPerSecond, 0)
-    v8 = typeName:upper()
-    if v8 ~= "FERTILIZER" then
-    end
-    v7.isFertilizer = true
-    if typeName ~= "LIME" then
-    end
-    v7.isLime = true
-    if typeName ~= "HERBICIDE" then
-    end
-    v7.isHerbicide = true
-    if not v7.isFertilizer and not v7.isLime and not v7.isHerbicide then
-      local v15 = tostring(name)
-      v15 = tostring(typeName)
-      print("Warning: SprayType '" .. v15 .. "' type '" .. v15 .. "' is invalid. Possible values are 'FERTILIZER', 'HERBICIDE' or 'LIME'. Ignoring sprayType!")
-      return nil
-    end
-    table.insert(self.sprayTypes, v7)
-    self.nameToSprayType[name] = v7
-    self.nameToIndex[name] = self.numSprayTypes
-    self.indexToName[self.numSprayTypes] = name
-    self.fillTypeIndexToSprayType[v6.index] = v7
-  end
-  if not litersPerSecond and not v7.litersPerSecond then
-  end
-  v7.litersPerSecond = v8
-  if not sprayGroundType and not v7.sprayGroundType then
-  end
-  v7.sprayGroundType = v8
-  return v7
+	if not ClassUtil.getIsValidIndexName(name) then
+		print("Warning: '" .. tostring(name) .. "' is not a valid name for a sprayType. Ignoring sprayType!")
+
+		return nil
+	end
+
+	name = name:upper()
+	local fillType = g_fillTypeManager:getFillTypeByName(name)
+
+	if fillType == nil then
+		print("Warning: Missing fillType '" .. tostring(name) .. "' for sprayType definition. Ignoring sprayType!")
+
+		return
+	end
+
+	if isBaseType and self.nameToSprayType[name] ~= nil then
+		print("Warning: SprayType '" .. tostring(name) .. "' already exists. Ignoring sprayType!")
+
+		return nil
+	end
+
+	local sprayType = self.nameToSprayType[name]
+
+	if sprayType == nil then
+		self.numSprayTypes = self.numSprayTypes + 1
+		sprayType = {
+			name = name,
+			index = self.numSprayTypes,
+			fillType = fillType,
+			litersPerSecond = Utils.getNoNil(litersPerSecond, 0)
+		}
+		typeName = typeName:upper()
+		sprayType.isFertilizer = typeName == "FERTILIZER"
+		sprayType.isLime = typeName == "LIME"
+		sprayType.isHerbicide = typeName == "HERBICIDE"
+
+		if not sprayType.isFertilizer and not sprayType.isLime and not sprayType.isHerbicide then
+			print("Warning: SprayType '" .. tostring(name) .. "' type '" .. tostring(typeName) .. "' is invalid. Possible values are 'FERTILIZER', 'HERBICIDE' or 'LIME'. Ignoring sprayType!")
+
+			return nil
+		end
+
+		table.insert(self.sprayTypes, sprayType)
+
+		self.nameToSprayType[name] = sprayType
+		self.nameToIndex[name] = self.numSprayTypes
+		self.indexToName[self.numSprayTypes] = name
+		self.fillTypeIndexToSprayType[fillType.index] = sprayType
+	end
+
+	sprayType.litersPerSecond = litersPerSecond or sprayType.litersPerSecond or 0
+	sprayType.sprayGroundType = sprayGroundType or sprayType.sprayGroundType or 1
+
+	return sprayType
 end
+
 function SprayTypeManager:getSprayTypeByIndex(index)
-  if index ~= nil then
-    return self.sprayTypes[index]
-  end
-  return nil
+	if index ~= nil then
+		return self.sprayTypes[index]
+	end
+
+	return nil
 end
+
 function SprayTypeManager:getSprayTypeByName(name)
-  if name ~= nil then
-    local v2 = name:upper()
-    return self.nameToSprayType[v2]
-  end
-  return nil
+	if name ~= nil then
+		name = name:upper()
+
+		return self.nameToSprayType[name]
+	end
+
+	return nil
 end
+
 function SprayTypeManager:getFillTypeNameByIndex(index)
-  if index ~= nil then
-    return self.indexToName[index]
-  end
-  return nil
+	if index ~= nil then
+		return self.indexToName[index]
+	end
+
+	return nil
 end
+
 function SprayTypeManager:getFillTypeIndexByName(name)
-  if name ~= nil then
-    local v2 = name:upper()
-    return self.nameToIndex[v2]
-  end
-  return nil
+	if name ~= nil then
+		name = name:upper()
+
+		return self.nameToIndex[name]
+	end
+
+	return nil
 end
+
 function SprayTypeManager:getFillTypeByName(name)
-  if name ~= nil then
-    local v2 = name:upper()
-    return self.nameToSprayType[v2]
-  end
-  return nil
+	if name ~= nil then
+		name = name:upper()
+
+		return self.nameToSprayType[name]
+	end
+
+	return nil
 end
+
 function SprayTypeManager:getSprayTypeByFillTypeIndex(index)
-  if index ~= nil then
-    return self.fillTypeIndexToSprayType[index]
-  end
-  return nil
+	if index ~= nil then
+		return self.fillTypeIndexToSprayType[index]
+	end
+
+	return nil
 end
+
 function SprayTypeManager:getSprayTypeIndexByFillTypeIndex(index)
-  if index ~= nil and self.fillTypeIndexToSprayType[index] ~= nil then
-    return self.fillTypeIndexToSprayType[index].index
-  end
-  return nil
+	if index ~= nil then
+		local sprayType = self.fillTypeIndexToSprayType[index]
+
+		if sprayType ~= nil then
+			return sprayType.index
+		end
+	end
+
+	return nil
 end
+
 function SprayTypeManager:getSprayTypes()
-  return self.sprayTypes
+	return self.sprayTypes
 end
-local v1 = SprayTypeManager.new()
-g_sprayTypeManager = v1
+
+g_sprayTypeManager = SprayTypeManager.new()
