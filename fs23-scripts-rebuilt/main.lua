@@ -55,6 +55,7 @@ AutoLoadParams = {
 	y = 0,
 	z = 0
 }
+local debugTool = debug
 debug = nil
 GS_PROFILE_LOW = 1
 GS_PROFILE_MEDIUM = 2
@@ -232,6 +233,14 @@ g_vehicleColors = {
 	{
 		brandColor = "SHARED_BROWN",
 		name = "$l10n_ui_colorBrown"
+	},
+	{
+		brandColor = "SHARED_REDCRIMSON",
+		name = "$l10n_ui_colorRedCrimson"
+	},
+	{
+		brandColor = "LIZARD_PINK1",
+		name = "$l10n_ui_colorPink"
 	}
 }
 g_densityMapRevision = 4
@@ -450,15 +459,11 @@ end
 
 function doRestart(restartProcess, args)
 	if g_invitePlatformServerId ~= nil then
-		local encoded = base64Encode(g_inviteRequestUserName)
+		args = args .. "-invitePlatformServerId " .. g_invitePlatformServerId .. " -inviteRequestUserName " .. base64Encode(g_inviteRequestUserName)
 	end
 
-	if Platform.needsSignIn and g_isSignedIn then
-		local startMode = getStartMode()
-
-		if startMode == RestartManager.START_SCREEN_GAMEPAD_SIGNIN then
-			restartProcess = false
-		end
+	if Platform.needsSignIn and g_isSignedIn and getStartMode() ~= RestartManager.START_SCREEN_GAMEPAD_SIGNIN then
+		args = args .. " -autoSignIn"
 	end
 
 	g_pendingRestartData = {
