@@ -1,41 +1,46 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
+Input = {
+	keyPressedState = {},
+	mouseButtonPressedState = {},
+	keyPressedThisFrame = {},
+	mouseButtonPressedThisFrame = {}
+}
 
-Input = {keyPressedState = {}, mouseButtonPressedState = {}, keyPressedThisFrame = {}, mouseButtonPressedThisFrame = {}}
 function Input.updateFrameEnd()
-  for v3, v4 in pairs(Input.keyPressedThisFrame) do
-    Input.keyPressedThisFrame[v3] = false
-  end
-  for v3, v4 in pairs(Input.mouseButtonPressedThisFrame) do
-    Input.mouseButtonPressedThisFrame[v3] = false
-  end
+	for key, _ in pairs(Input.keyPressedThisFrame) do
+		Input.keyPressedThisFrame[key] = false
+	end
+
+	for button, _ in pairs(Input.mouseButtonPressedThisFrame) do
+		Input.mouseButtonPressedThisFrame[button] = false
+	end
 end
+
 function Input.updateKeyState(key, isDown)
-  if isDown then
-    Input.keyPressedState[key] = true
-    Input.keyPressedThisFrame[key] = true
-    return
-  end
-  Input.keyPressedState[key] = false
+	if isDown then
+		Input.keyPressedState[key] = true
+		Input.keyPressedThisFrame[key] = true
+	else
+		Input.keyPressedState[key] = false
+	end
 end
+
 function Input.isKeyPressed(key)
-  if not Input.keyPressedState[key] then
-  end
-  return v1
+	return Input.keyPressedState[key] or Input.keyPressedThisFrame[key]
 end
+
 function Input.updateMouseButtonState(button, isDown)
-  if isDown then
-    Input.mouseButtonPressedState[button] = true
-    Input.mouseButtonPressedThisFrame[button] = true
-    return
-  end
-  Input.mouseButtonPressedState[button] = false
+	if isDown then
+		Input.mouseButtonPressedState[button] = true
+		Input.mouseButtonPressedThisFrame[button] = true
+	else
+		Input.mouseButtonPressedState[button] = false
+	end
 end
+
 function Input.isMouseButtonPressed(button)
-  if not Input.mouseButtonPressedState[button] then
-  end
-  return v1
+	return Input.mouseButtonPressedState[button] or Input.mouseButtonPressedThisFrame[button]
 end
+
 Input.MOD_LSHIFT = 1
 Input.MOD_RSHIFT = 2
 Input.MOD_LCTRL = 64
@@ -53,72 +58,82 @@ Input.MOD_ALT = 768
 Input.MOD_META = 3072
 Input.keyIdToIdName = {}
 Input.keyIdIsModifier = {}
+
 function Input.addKeyDefine(idName, id, isModifier)
-  if Input[idName] == nil then
-    -- cmp-jump LOP_JUMPXEQKNIL R3 aux=0x0 -> L21
-  end
-  print("Error: Duplicate key define " .. idName .. " = " .. id)
-  return
-  Input.keyIdToIdName[id] = idName
-  Input.keyIdIsModifier[id] = isModifier
-  Input[idName] = id
+	if Input[idName] ~= nil or Input.keyIdToIdName[id] ~= nil then
+		print("Error: Duplicate key define " .. idName .. " = " .. id)
+
+		return
+	end
+
+	Input.keyIdToIdName[id] = idName
+	Input.keyIdIsModifier[id] = isModifier
+	Input[idName] = id
 end
+
 Input.mouseButtonIdToIdName = {}
+
 function Input.addMouseButtonDefine(idName, id)
-  if Input[idName] == nil then
-    -- cmp-jump LOP_JUMPXEQKNIL R2 aux=0x0 -> L21
-  end
-  print("Error: Duplicate mouse button define " .. idName .. " = " .. id)
-  return
-  Input.mouseButtonIdToIdName[id] = idName
-  Input[idName] = id
+	if Input[idName] ~= nil or Input.mouseButtonIdToIdName[id] ~= nil then
+		print("Error: Duplicate mouse button define " .. idName .. " = " .. id)
+
+		return
+	end
+
+	Input.mouseButtonIdToIdName[id] = idName
+	Input[idName] = id
 end
+
 Input.axisIdToIdName = {}
 Input.axisIdNameToId = {}
+
 function Input.addFullAxisDefine(idName, id, isOverwrite)
-  if Input[idName] == nil then
-    -- if v2 then goto L22 end
-    -- cmp-jump LOP_JUMPXEQKNIL R3 aux=0x0 -> L22
-  end
-  print("Error: Duplicate axis define " .. idName .. " = " .. id)
-  return
-  if isOverwrite and Input.axisIdToIdName[id] == nil then
-    print("Error: Missing axis define to overwrite  for " .. idName .. " = " .. id)
-  end
-  Input[idName] = id
-  Input.axisIdNameToId[idName] = id
-  Input.axisIdToIdName[id] = idName
-  Input[idName .. "-"] = id
-  Input.axisIdNameToId[idName .. "-"] = id
-  Input[idName .. "+"] = id
-  Input.axisIdNameToId[idName .. "+"] = id
+	if Input[idName] ~= nil or not isOverwrite and Input.axisIdToIdName[id] ~= nil then
+		print("Error: Duplicate axis define " .. idName .. " = " .. id)
+
+		return
+	elseif isOverwrite and Input.axisIdToIdName[id] == nil then
+		print("Error: Missing axis define to overwrite  for " .. idName .. " = " .. id)
+	end
+
+	Input[idName] = id
+	Input.axisIdNameToId[idName] = id
+	Input.axisIdToIdName[id] = idName
+	Input[idName .. "-"] = id
+	Input.axisIdNameToId[idName .. "-"] = id
+	Input[idName .. "+"] = id
+	Input.axisIdNameToId[idName .. "+"] = id
 end
+
 function Input.addHalfAxisDefine(idName, id, isOverwrite)
-  if Input[idName] == nil then
-    -- if v2 then goto L22 end
-    -- cmp-jump LOP_JUMPXEQKNIL R3 aux=0x0 -> L22
-  end
-  print("Error: Duplicate axis define " .. idName .. " = " .. id)
-  return
-  if isOverwrite and Input.axisIdToIdName[id] == nil then
-    print("Error: Missing axis define to overwrite  for " .. idName .. " = " .. id)
-  end
-  Input[idName] = id
-  Input.axisIdNameToId[idName] = id
-  Input.axisIdToIdName[id] = idName
+	if Input[idName] ~= nil or not isOverwrite and Input.axisIdToIdName[id] ~= nil then
+		print("Error: Duplicate axis define " .. idName .. " = " .. id)
+
+		return
+	elseif isOverwrite and Input.axisIdToIdName[id] == nil then
+		print("Error: Missing axis define to overwrite  for " .. idName .. " = " .. id)
+	end
+
+	Input[idName] = id
+	Input.axisIdNameToId[idName] = id
+	Input.axisIdToIdName[id] = idName
 end
+
 Input.buttonIdToIdName = {}
 Input.buttonIdNameToId = {}
+
 function Input.addButtonDefine(idName, id)
-  if Input[idName] == nil then
-    -- cmp-jump LOP_JUMPXEQKNIL R2 aux=0x0 -> L21
-  end
-  print("Error: Duplicate button define " .. idName .. " = " .. id)
-  return
-  Input[idName] = id
-  Input.buttonIdNameToId[idName] = id
-  Input.buttonIdToIdName[id] = idName
+	if Input[idName] ~= nil or Input.buttonIdToIdName[id] ~= nil then
+		print("Error: Duplicate button define " .. idName .. " = " .. id)
+
+		return
+	end
+
+	Input[idName] = id
+	Input.buttonIdNameToId[idName] = id
+	Input.buttonIdToIdName[id] = idName
 end
+
 Input.addKeyDefine("KEY_backspace", 8)
 Input.addKeyDefine("KEY_tab", 9)
 Input.addKeyDefine("KEY_clear", 12)
@@ -268,16 +283,18 @@ Input.addFullAxisDefine("AXIS_11", 10)
 Input.addFullAxisDefine("AXIS_12", 11)
 Input.addFullAxisDefine("AXIS_13", 12)
 Input.addFullAxisDefine("AXIS_14", 13)
+
 Input.MAX_NUM_AXES = 14
+
 function Input.isHalfAxis(axis)
-  if axis ~= nil and Input.HALF_AXIS_1 > axis then
-  end
-  return v1
+	return axis ~= nil and Input.HALF_AXIS_1 <= axis
 end
+
 Input.addHalfAxisDefine("HALF_AXIS_1", Input.AXIS_11, true)
 Input.addHalfAxisDefine("HALF_AXIS_2", Input.AXIS_12, true)
 Input.addHalfAxisDefine("HALF_AXIS_3", Input.AXIS_13, true)
 Input.addHalfAxisDefine("HALF_AXIS_4", Input.AXIS_14, true)
+
 Input.addButtonDefine("BUTTON_1", 0)
 Input.addButtonDefine("BUTTON_2", 1)
 Input.addButtonDefine("BUTTON_3", 2)
@@ -310,6 +327,8 @@ Input.addButtonDefine("BUTTON_29", 28)
 Input.addButtonDefine("BUTTON_30", 29)
 Input.addButtonDefine("BUTTON_31", 30)
 Input.addButtonDefine("BUTTON_32", 31)
+
 Input.MAX_NUM_BUTTONS = 32
+
 Input.MOD_BUTTON_1 = Input.BUTTON_5
 Input.MOD_BUTTON_2 = Input.BUTTON_6
