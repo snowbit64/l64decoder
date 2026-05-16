@@ -1,144 +1,186 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
+PlacementGrid2D = {
+	MODE_SIDES = 0,
+	MODE_FILL = 1,
+	EPSILON = 0.01
+}
+local PlacementGrid2D_mt = Class(PlacementGrid2D)
 
-PlacementGrid2D = {MODE_SIDES = 0, MODE_FILL = 1, EPSILON = 0.01}
-local v0 = Class(PlacementGrid2D)
-function PlacementGrid2D.new(v0, v1, v2, v3, v4)
-  local v5 = setmetatable({}, u0)
-  v5.node = v0
-  v5.width = v1
-  v5.length = v2
-  v5.spacing = v3
-  if not v4 then
-  end
-  v5.placementMode = v6
-  v5.blockedAreas = {}
-  v5.lowerPos = {x = 0, z = 0, isValid = false}
-  v5.upperPos = {x = 0, z = 0, isValid = false}
-  return v5
+function PlacementGrid2D.new(node, width, length, spacing, placementMode)
+	local self = setmetatable({}, PlacementGrid2D_mt)
+	self.node = node
+	self.width = width
+	self.length = length
+	self.spacing = spacing
+	self.placementMode = placementMode or PlacementGrid2D.MODE_SIDES
+	self.blockedAreas = {}
+	self.lowerPos = {x = 0, z = 0, isValid = false}
+	self.upperPos = {x = 0, z = 0, isValid = false}
+
+	return self
 end
-function PlacementGrid2D.delete(v0)
+
+function PlacementGrid2D:delete()
 end
+
 function PlacementGrid2D:reset()
-  self.blockedAreas = {}
+	self.blockedAreas = {}
 end
-function PlacementGrid2D:getFreePosition(v1, v2)
-  self.lowerPos.isValid = false
-  self.upperPos.isValid = false
-  local v5 = math.floor(self.length / self.spacing)
-  -- TODO: structure LOP_FORNPREP (pc 24, target 237)
-  if self.blockedAreas[0] ~= nil then
-  end
-  if not self.lowerPos.isValid then
-    -- if v1 - v13 >= 0.01 then goto L143 end
-    self.lowerPos.isValid = true
-    self.lowerPos.z = v10
-    if self.placementMode == PlacementGrid2D.MODE_SIDES then
-      self.lowerPos.x = 0
-      -- goto L143  (LOP_JUMP +60)
-    end
-    self.lowerPos.x = v11 - v1
-  elseif v1 - v13 < PlacementGrid2D.EPSILON then
-    if self.placementMode == PlacementGrid2D.MODE_FILL then
-      local v16 = math.min(self.lowerPos.x, v11 - v1)
-      self.lowerPos.x = v16
-    end
-    -- if v2 > v10 + v0.spacing - v0.lowerPos.z then goto L143 end
-    -- goto L237  (LOP_JUMP +100)
-  else
-    self.lowerPos.isValid = false
-  end
-  if not self.upperPos.isValid then
-    -- if v1 - v14 >= PlacementGrid2D.EPSILON then goto L236 end
-    self.upperPos.isValid = true
-    self.upperPos.z = v10
-    if self.placementMode == PlacementGrid2D.MODE_SIDES then
-      self.upperPos.x = self.width - v1
-      -- goto L236  (LOP_JUMP +56)
-    end
-    self.upperPos.x = v12
-  elseif v1 - v14 < 0.01 then
-    if self.placementMode == PlacementGrid2D.MODE_FILL then
-      v16 = math.max(self.upperPos.x, v12)
-      self.upperPos.x = v16
-    end
-    -- if v2 > v10 + v0.spacing - v0.upperPos.z then goto L236 end
-    -- goto L237  (LOP_JUMP +7)
-  else
-    self.upperPos.isValid = false
-  end
-  -- TODO: structure LOP_FORNLOOP (pc 236, target 25)
-  if v3 ~= nil then
-    return v3, v4
-  end
-  return nil, nil
+
+function PlacementGrid2D:getFreePosition(width, length)
+	self.lowerPos.isValid = false
+	self.upperPos.isValid = false
+
+	local resultX = nil
+	local resultZ = nil
+
+	for z = 0, math.floor(self.length / self.spacing), 1 do
+		local area = self.blockedAreas[z]
+		local zWorld = z * self.spacing
+		local minX = self.width
+		local maxX = 0
+		local openWidth = self.width
+
+		if area ~= nil then
+			minX = area.minX
+			maxX = area.maxX
+			openWidth = self.width - area.maxX
+		end
+
+		if not self.lowerPos.isValid then
+			if width - minX < PlacementGrid2D.EPSILON then
+				self.lowerPos.isValid = true
+				self.lowerPos.z = zWorld
+
+				if self.placementMode == PlacementGrid2D.MODE_SIDES then
+					self.lowerPos.x = 0
+				else
+					self.lowerPos.x = minX - width
+				end
+			end
+		elseif width - openWidth < PlacementGrid2D.EPSILON then
+			if self.placementMode == PlacementGrid2D.MODE_FILL then
+				self.lowerPos.x = math.min(self.lowerPos.x, minX - width)
+			end
+
+			if length <= zWorld + self.spacing - self.lowerPos.z then
+				resultX = self.lowerPos.x
+				resultZ = self.lowerPos.z
+
+				break
+			end
+		else
+			self.lowerPos.isValid = false
+		end
+
+		if not self.upperPos.isValid then
+			if width - openWidth < PlacementGrid2D.EPSILON then
+				self.upperPos.isValid = true
+				self.upperPos.z = zWorld
+
+				if self.placementMode == PlacementGrid2D.MODE_SIDES then
+					self.upperPos.x = self.width - width
+				else
+					self.upperPos.x = maxX
+				end
+			end
+		elseif width - openWidth < PlacementGrid2D.EPSILON then
+			if self.placementMode == PlacementGrid2D.MODE_FILL then
+				self.upperPos.x = math.max(self.upperPos.x, maxX)
+			end
+
+			if length <= zWorld + self.spacing - self.upperPos.z then
+				resultX = self.upperPos.x
+				resultZ = self.upperPos.z
+
+				break
+			end
+		else
+			self.upperPos.isValid = false
+		end
+	end
+
+	if resultX ~= nil then
+		return resultX, resultZ
+	end
+
+	return nil, nil
 end
-function PlacementGrid2D:blockAreaLocal(v1, v2, v3, v4)
-  self:updateBlockedArea(v1, v1 + v3, v2, v2 + v4)
+
+function PlacementGrid2D:blockAreaLocal(x, z, width, length)
+	self:updateBlockedArea(x, x + width, z, z + length)
 end
-function PlacementGrid2D:blockAreaByBoundingBox(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12)
-  local v15 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, -v10, -v11, -v12)
-  local v13, v14, v15 = worldToLocal(...)
-  local v18 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, -v11, -v12)
-  local v16, v17, v18 = worldToLocal(...)
-  local v21 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, -v11, v12)
-  local v19, v20, v21 = worldToLocal(...)
-  local v24 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, -v10, -v11, v12)
-  local v22, v23, v24 = worldToLocal(...)
-  local v27 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, -v10, v11, -v12)
-  local v25, v26, v27 = worldToLocal(...)
-  local v30 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, -v12)
-  local v28, v29, v30 = worldToLocal(...)
-  local v33 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12)
-  local v31, v32, v33 = worldToLocal(...)
-  local v36 = MathUtil.transform(v1, v2, v3, v4, v5, v6, v7, v8, v9, -v10, v11, v12)
-  local v34, v35, v36 = worldToLocal(...)
-  local v39 = math.min(v13, v16, v19, v22, v25, v28, v31, v34)
-  local v37 = math.max(...)
-  local v40 = math.max(v13, v16, v19, v22, v25, v28, v31, v34)
-  local v38 = math.min(...)
-  local v41 = math.min(v15, v18, v21, v24, v27, v30, v33, v36)
-  v39 = math.max(...)
-  local v42 = math.max(v15, v18, v21, v24, v27, v30, v33, v36)
-  v40 = math.min(...)
-  self:updateBlockedArea(v37, v38, v39, v40)
+
+function PlacementGrid2D:blockAreaByBoundingBox(a, b, c, d, e, f, g, h, i, halfX, halfY, halfZ)
+	local x1, y1, z1 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, -halfX, -halfY, -halfZ))
+	local x2, y2, z2 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, halfX, -halfY, -halfZ))
+	local x3, y3, z3 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, halfX, -halfY, halfZ))
+	local x4, y4, z4 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, -halfX, -halfY, halfZ))
+	local x5, y5, z5 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, -halfX, halfY, -halfZ))
+	local x6, y6, z6 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, halfX, halfY, -halfZ))
+	local x7, y7, z7 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, halfX, halfY, halfZ))
+	local x8, y8, z8 = worldToLocal(self.node, MathUtil.transform(a, b, c, d, e, f, g, h, i, -halfX, halfY, halfZ))
+	local minX = math.max(0, math.min(x1, x2, x3, x4, x5, x6, x7, x8))
+	local maxX = math.min(self.width, math.max(x1, x2, x3, x4, x5, x6, x7, x8))
+	local minZ = math.max(0, math.min(z1, z2, z3, z4, z5, z6, z7, z8))
+	local maxZ = math.min(self.length, math.max(z1, z2, z3, z4, z5, z6, z7, z8))
+
+	self:updateBlockedArea(minX, maxX, minZ, maxZ)
 end
-function PlacementGrid2D:updateBlockedArea(v1, v2, v3, v4)
-  local v7 = math.ceil(v3 / self.spacing)
-  local v5 = math.max(...)
-  local v8 = math.ceil(v4 / self.spacing)
-  local v6 = math.max(...)
-  -- TODO: structure LOP_FORNPREP (pc 27, target 81)
-  if self.blockedAreas[v5] == nil then
-    self.blockedAreas[v5] = {minX = self.width, maxX = 0, zStart = (v5 - 1) * self.spacing, zEnd = v5 * self.spacing, offsetZ = ((v5 - 1) * self.spacing + v5 * self.spacing) * 0.5}
-  end
-  local v11 = math.min(v10.minX, v1)
-  v10.minX = v11
-  v11 = math.max(v10.maxX, v2)
-  v10.maxX = v11
-  -- TODO: structure LOP_FORNLOOP (pc 80, target 28)
+
+function PlacementGrid2D:updateBlockedArea(xMin, xMax, zMin, zMax)
+	local zStart = math.max(1, math.ceil(zMin / self.spacing))
+	local zEnd = math.max(0, math.ceil(zMax / self.spacing))
+
+	for z = zStart, zEnd, 1 do
+		local area = self.blockedAreas[z]
+
+		if area == nil then
+			local zWorldStart = (z - 1) * self.spacing
+			local zWorldEnd = z * self.spacing
+
+			area = {
+				minX = self.width,
+				maxX = 0,
+				zStart = zWorldStart,
+				zEnd = zWorldEnd,
+				offsetZ = (zWorldStart + zWorldEnd) * 0.5
+			}
+			self.blockedAreas[z] = area
+		end
+
+		area.minX = math.min(area.minX, xMin)
+		area.maxX = math.max(area.maxX, xMax)
+	end
 end
+
 function PlacementGrid2D:drawDebug()
-  local v1, v2, v3 = localToWorld(self.node, 0, 0, 0)
-  local v4, v5, v6 = localToWorld(self.node, self.width, 0, 0)
-  local v7, v8, v9 = localToWorld(self.node, self.width, 0, self.length)
-  local v10, v11, v12 = localToWorld(self.node, 0, 0, self.length)
-  drawDebugLine(v1, v2, v3, 1, 1, 1, v4, v5, v6, 1, 1, 1)
-  drawDebugLine(v4, v5, v6, 1, 1, 1, v7, v8, v9, 1, 1, 1)
-  drawDebugLine(v7, v8, v9, 1, 1, 1, v10, v11, v12, 1, 1, 1)
-  drawDebugLine(v10, v11, v12, 1, 1, 1, v1, v2, v3, 1, 1, 1)
-  for v16, v17 in pairs(self.blockedAreas) do
-    local v18, v19, v20 = localToWorld(self.node, v17.minX, 0, v17.offsetZ)
-    local v21, v22, v23 = localToWorld(self.node, v17.maxX, 0, v17.offsetZ)
-    if not (v17.minX < v17.maxX) then
-      continue
-    end
-    local v24, v25, v26 = localToWorld(self.node, v17.minX, 0, v17.zStart)
-    local v27, v28, v29 = localToWorld(self.node, v17.maxX, 0, v17.zStart)
-    drawDebugLine(v24, v25, v26, 1, 1, 1, v27, v28, v29, 1, 1, 1)
-    local v30, v31, v32 = localToWorld(self.node, v17.minX, 0, v17.zEnd)
-    local v33, v34, v35 = localToWorld(self.node, v17.maxX, 0, v17.zEnd)
-    drawDebugLine(v30, v31, v32, 1, 1, 1, v33, v34, v35, 1, 1, 1)
-    drawDebugLine(v18, v19, v20, 1, 0, 0, v21, v22, v23, 1, 0, 0)
-  end
+	local x1, y1, z1 = localToWorld(self.node, 0, 0, 0)
+	local x2, y2, z2 = localToWorld(self.node, self.width, 0, 0)
+	local x3, y3, z3 = localToWorld(self.node, self.width, 0, self.length)
+	local x4, y4, z4 = localToWorld(self.node, 0, 0, self.length)
+
+	drawDebugLine(x1, y1, z1, 1, 1, 1, x2, y2, z2, 1, 1, 1)
+	drawDebugLine(x2, y2, z2, 1, 1, 1, x3, y3, z3, 1, 1, 1)
+	drawDebugLine(x3, y3, z3, 1, 1, 1, x4, y4, z4, 1, 1, 1)
+	drawDebugLine(x4, y4, z4, 1, 1, 1, x1, y1, z1, 1, 1, 1)
+
+	for _, area in pairs(self.blockedAreas) do
+		local minWX, minWY, minWZ = localToWorld(self.node, area.minX, 0, area.offsetZ)
+		local maxWX, maxWY, maxWZ = localToWorld(self.node, area.maxX, 0, area.offsetZ)
+
+		if not (area.minX < area.maxX) then
+			continue
+		end
+
+		local startMinX, startMinY, startMinZ = localToWorld(self.node, area.minX, 0, area.zStart)
+		local startMaxX, startMaxY, startMaxZ = localToWorld(self.node, area.maxX, 0, area.zStart)
+
+		drawDebugLine(startMinX, startMinY, startMinZ, 1, 1, 1, startMaxX, startMaxY, startMaxZ, 1, 1, 1)
+
+		local endMinX, endMinY, endMinZ = localToWorld(self.node, area.minX, 0, area.zEnd)
+		local endMaxX, endMaxY, endMaxZ = localToWorld(self.node, area.maxX, 0, area.zEnd)
+
+		drawDebugLine(endMinX, endMinY, endMinZ, 1, 1, 1, endMaxX, endMaxY, endMaxZ, 1, 1, 1)
+		drawDebugLine(minWX, minWY, minWZ, 1, 0, 0, maxWX, maxWY, maxWZ, 1, 0, 0)
+	end
 end
