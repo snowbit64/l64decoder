@@ -1,54 +1,40 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 MissionDynamicInfoEvent = {}
 local MissionDynamicInfoEvent_mt = Class(MissionDynamicInfoEvent, Event)
-
 InitStaticEventClass(MissionDynamicInfoEvent, "MissionDynamicInfoEvent", EventIds.EVENT_MISSION_INFO_DYNAMIC)
-
 MissionDynamicInfoEvent.sendCapNumBits = 4
-
 function MissionDynamicInfoEvent.emptyNew()
-	local self = Event.new(MissionDynamicInfoEvent_mt)
-
-	return self
+  return Event.new(u0)
 end
-
 function MissionDynamicInfoEvent.new()
-	local self = MissionDynamicInfoEvent.emptyNew()
-
-	return self
+  return MissionDynamicInfoEvent.emptyNew()
 end
-
-function MissionDynamicInfoEvent:readStream(streamId, connection)
-	local serverName = streamReadString(streamId)
-	local autoAccept = streamReadBool(streamId)
-	local password = streamReadString(streamId)
-	local capacity = streamReadUIntN(streamId, MissionDynamicInfoEvent.sendCapNumBits) + 1
-	local allowOnlyFriends = false
-
-	if GS_IS_CONSOLE_VERSION then
-		allowOnlyFriends = streamReadBool(streamId)
-	end
-
-	local allowCrossPlay = streamReadBool(streamId)
-
-	g_currentMission:updateMissionDynamicInfo(serverName, capacity, password, autoAccept, allowOnlyFriends, allowCrossPlay)
-
-	if not connection:getIsServer() then
-		g_currentMission:updateMasterServerInfo(connection)
-	end
+function MissionDynamicInfoEvent.readStream(v0, v1, v2)
+  local v3 = streamReadString(v1)
+  local v4 = streamReadBool(v1)
+  local v5 = streamReadString(v1)
+  local v7 = streamReadUIntN(v1, MissionDynamicInfoEvent.sendCapNumBits)
+  if GS_IS_CONSOLE_VERSION then
+    local v8 = streamReadBool(v1)
+  end
+  v8 = streamReadBool(v1)
+  v9:updateMissionDynamicInfo(v3, v6, v5, v4, v7, v8)
+  local v9 = v2:getIsServer()
+  if not v9 then
+    v9:updateMasterServerInfo(v2)
+  end
 end
-
-function MissionDynamicInfoEvent:writeStream(streamId, connection)
-	streamWriteString(streamId, g_currentMission.missionDynamicInfo.serverName)
-	streamWriteBool(streamId, g_currentMission.missionDynamicInfo.autoAccept)
-	streamWriteString(streamId, g_currentMission.missionDynamicInfo.password)
-	streamWriteUIntN(streamId, g_currentMission.missionDynamicInfo.capacity - 1, MissionDynamicInfoEvent.sendCapNumBits)
-
-	if GS_IS_CONSOLE_VERSION then
-		streamWriteBool(streamId, g_currentMission.missionDynamicInfo.allowOnlyFriends)
-	end
-
-	streamWriteBool(streamId, g_currentMission.missionDynamicInfo.allowCrossPlay)
+function MissionDynamicInfoEvent.writeStream(v0, v1, v2)
+  streamWriteString(v1, g_currentMission.missionDynamicInfo.serverName)
+  streamWriteBool(v1, g_currentMission.missionDynamicInfo.autoAccept)
+  streamWriteString(v1, g_currentMission.missionDynamicInfo.password)
+  streamWriteUIntN(v1, g_currentMission.missionDynamicInfo.capacity - 1, MissionDynamicInfoEvent.sendCapNumBits)
+  if GS_IS_CONSOLE_VERSION then
+    streamWriteBool(v1, g_currentMission.missionDynamicInfo.allowOnlyFriends)
+  end
+  streamWriteBool(v1, g_currentMission.missionDynamicInfo.allowCrossPlay)
 end
-
-function MissionDynamicInfoEvent:run(connection)
+function MissionDynamicInfoEvent.run(v0, v1)
 end

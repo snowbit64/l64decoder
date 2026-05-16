@@ -1,420 +1,278 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 HelpLineManager = {}
 local HelpLineManager_mt = Class(HelpLineManager, AbstractManager)
-HelpLineManager.ITEM_TYPE = {
-	TEXT = "text",
-	IMAGE = "image"
-}
-
+HelpLineManager.ITEM_TYPE = {TEXT = "text", IMAGE = "image"}
 function HelpLineManager.new(customMt)
-	local self = AbstractManager.new(customMt or HelpLineManager_mt)
-
-	return self
+  if not customMt then
+  end
+  return v1(v2)
 end
-
 function HelpLineManager:initDataStructures()
-	self.categories = {}
-	self.modCategories = {}
-	self.idToCategoryPageIndex = {}
-	self.categoryNames = {}
-	self.triggers = {}
-	self.triggerNodeToData = {}
-	self.zones = {}
-	self.sharedLoadingIds = {}
-	self.helpData = nil
-	self.idToIndices = {}
+  self.categories = {}
+  self.modCategories = {}
+  self.idToCategoryPageIndex = {}
+  self.categoryNames = {}
+  self.triggers = {}
+  self.triggerNodeToData = {}
+  self.zones = {}
+  self.sharedLoadingIds = {}
+  self.helpData = nil
+  self.idToIndices = {}
 end
-
 function HelpLineManager:loadMapData(xmlFile, missionInfo)
-	HelpLineManager:superClass().loadMapData(self)
-
-	local filenameStr = getXMLString(xmlFile, "map.helpline#filename")
-
-	if filenameStr == nil then
-		Logging.xmlInfo(xmlFile, "No helpline defined for map")
-
-		return false
-	end
-
-	local filename = Utils.getFilename(filenameStr, g_currentMission.baseDirectory)
-
-	if filename == nil or filename == "" or not fileExists(filename) then
-		Logging.xmlError(xmlFile, "Could not load helpline config file '" .. tostring(filenameStr) .. "'!")
-
-		return false
-	end
-
-	self:loadFromXML(filename, missionInfo)
-
-	local additionalFilename = getXMLString(xmlFile, "map.helpline#additionalFilename")
-
-	if additionalFilename ~= nil then
-		additionalFilename = Utils.getFilename(additionalFilename, g_currentMission.baseDirectory)
-
-		self:loadFromXML(additionalFilename, missionInfo)
-	end
-
-	for _, category in ipairs(self.modCategories) do
-		table.insert(self.categories, category)
-	end
-
-	for categoryIndex, category in ipairs(self.categories) do
-		if category.id ~= nil then
-			if self.idToCategoryPageIndex[category.id] == nil then
-				self.idToCategoryPageIndex[category.id] = {
-					categoryIndex = categoryIndex,
-					pageIndex = 0
-				}
-			else
-				Logging.xmlWarning(xmlFile, "Category Id '%s' already used. Ignoring id for category name '%s'!", category.id, category.title)
-			end
-		end
-
-		for pageIndex, page in ipairs(category.pages) do
-			if page.id ~= nil then
-				if self.idToCategoryPageIndex[page.id] == nil then
-					self.idToCategoryPageIndex[page.id] = {
-						categoryIndex = categoryIndex,
-						pageIndex = pageIndex
-					}
-				else
-					Logging.xmlWarning(xmlFile, "Page Id '%s' already used. Ignoring id for page name '%s'!", page.id, page.title)
-				end
-			end
-		end
-	end
-
-	local xmlObject = XMLFile.wrap(xmlFile, nil)
-
-	local function getCategoryAndPageIndex(xmlObject, key)
-		local helpId = xmlObject:getString(key .. "#helpId")
-
-		if helpId ~= nil then
-			local entry = self.idToCategoryPageIndex[helpId]
-
-			if entry ~= nil then
-				return entry.categoryIndex, entry.pageIndex
-			end
-
-			Logging.xmlWarning(xmlObject, "No help line item defined for helpId '%s'", helpId)
-		end
-
-		local categoryId = xmlObject:getString(key .. "#categoryId")
-
-		if categoryId ~= nil then
-			local entry = self.idToCategoryPageIndex[categoryId]
-
-			if entry ~= nil then
-				return entry.categoryIndex, entry.pageIndex
-			end
-
-			Logging.xmlWarning(xmlObject, "No help line item defined for categoryId '%s'", categoryId)
-		end
-
-		return xmlObject:getInt(key .. "#categoryIndex", 1), xmlObject:getInt(key .. "#pageIndex", 1)
-	end
-
-	xmlObject:iterate("map.helpline.trigger", function (_, key)
-		local position = xmlObject:getVector(key .. "#position", nil, 3)
-
-		if position ~= nil then
-			local categoryIndex, pageIndex = getCategoryAndPageIndex(xmlObject, key)
-			local trigger = {
-				position = position,
-				categoryIndex = categoryIndex,
-				pageIndex = pageIndex
-			}
-			local category = self.categories[trigger.categoryIndex]
-
-			if category ~= nil then
-				local page = category.pages[trigger.pageIndex]
-
-				if page ~= nil then
-					local sharedLoadingId = g_i3DManager:loadSharedI3DFileAsync("data/objects/helpIcon/icon.i3d", false, false, HelpLineManager.onIconLoaded, self, trigger)
-
-					table.insert(self.sharedLoadingIds, sharedLoadingId)
-				else
-					Logging.xmlWarning(xmlObject, "Invalid helpline trigger page index '%d' for category '%d' for '%s'", trigger.pageIndex, categoryIndex, key)
-				end
-			else
-				Logging.xmlWarning(xmlObject, "Invalid helpline trigger category index '%d' for '%s'", categoryIndex, key)
-			end
-		else
-			Logging.xmlWarning(xmlObject, "Missing helpline trigger position for '%s'", key)
-		end
-	end)
-	xmlObject:iterate("map.helpline.zone", function (_, key)
-		local position = xmlObject:getVector(key .. "#position", nil, 3)
-
-		if position ~= nil then
-			local categoryIndex, pageIndex = getCategoryAndPageIndex(xmlObject, key)
-			local radius = xmlObject:getFloat(key .. "#radius", 50)
-
-			table.insert(self.zones, {
-				position = position,
-				radius = radius,
-				categoryIndex = categoryIndex,
-				pageIndex = pageIndex
-			})
-		end
-	end)
-	xmlObject:delete()
-
-	self.activatable = HelpLineActivatable.new(self)
-
-	return true
+  local v4 = v4:superClass()
+  v4.loadMapData(self)
+  local filenameStr = getXMLString(xmlFile, "map.helpline#filename")
+  if filenameStr == nil then
+    Logging.xmlInfo(xmlFile, "No helpline defined for map")
+    return false
+  end
+  v4 = Utils.getFilename(filenameStr, g_currentMission.baseDirectory)
+  if v4 ~= nil and v4 ~= "" then
+    local v5 = fileExists(v4)
+    -- if v5 then goto L52 end
+  end
+  local v11 = tostring(filenameStr)
+  Logging.xmlError(xmlFile, "Could not load helpline config file '" .. v11 .. "'!")
+  return false
+  self:loadFromXML(v4, missionInfo)
+  v5 = getXMLString(xmlFile, "map.helpline#additionalFilename")
+  if v5 ~= nil then
+    local v6 = Utils.getFilename(v5, g_currentMission.baseDirectory)
+    self:loadFromXML(v6, missionInfo)
+  end
+  for v9, v10 in ipairs(self.modCategories) do
+    table.insert(self.categories, v10)
+  end
+  for v9, v10 in ipairs(self.categories) do
+    if v10.id ~= nil then
+      if self.idToCategoryPageIndex[v10.id] == nil then
+        self.idToCategoryPageIndex[v10.id] = {categoryIndex = v9, pageIndex = 0}
+      else
+        Logging.xmlWarning(xmlFile, "Category Id '%s' already used. Ignoring id for category name '%s'!", v10.id, v10.title)
+      end
+    end
+    for v15, v16 in ipairs(v10.pages) do
+      if not (v16.id ~= nil) then
+        continue
+      end
+      if self.idToCategoryPageIndex[v16.id] == nil then
+        self.idToCategoryPageIndex[v16.id] = {categoryIndex = v9, pageIndex = v15}
+      else
+        Logging.xmlWarning(xmlFile, "Page Id '%s' already used. Ignoring id for page name '%s'!", v16.id, v16.title)
+      end
+    end
+  end
+  v7 = XMLFile.wrap(xmlFile, nil)
+  v7:iterate("map.helpline.trigger", function(self, xmlFile)
+    local missionInfo = missionInfo:getVector(xmlFile .. "#position", nil, 3)
+    if missionInfo ~= nil then
+      local filenameStr, v4 = u1(u0, xmlFile)
+      if u2.categories[{position = missionInfo, categoryIndex = filenameStr, pageIndex = v4}.categoryIndex] ~= nil then
+        if u2.categories[{position = missionInfo, categoryIndex = filenameStr, pageIndex = v4}.categoryIndex].pages[{position = missionInfo, categoryIndex = filenameStr, pageIndex = v4}.pageIndex] ~= nil then
+          local v8 = v8:loadSharedI3DFileAsync("data/objects/helpIcon/icon.i3d", false, false, HelpLineManager.onIconLoaded, u2, {position = missionInfo, categoryIndex = filenameStr, pageIndex = v4})
+          table.insert(u2.sharedLoadingIds, v8)
+          return
+        end
+        Logging.xmlWarning(u0, "Invalid helpline trigger page index '%d' for category '%d' for '%s'", v5.pageIndex, filenameStr, xmlFile)
+        return
+      end
+      Logging.xmlWarning(u0, "Invalid helpline trigger category index '%d' for '%s'", filenameStr, xmlFile)
+      return
+    end
+    Logging.xmlWarning(u0, "Missing helpline trigger position for '%s'", xmlFile)
+  end)
+  v7:iterate("map.helpline.zone", function(self, xmlFile)
+    local missionInfo = missionInfo:getVector(xmlFile .. "#position", nil, 3)
+    if missionInfo ~= nil then
+      local filenameStr, v4 = u1(u0, xmlFile)
+      local v6 = v6:getFloat(xmlFile .. "#radius", 50)
+      table.insert(u2.zones, {position = missionInfo, radius = v6, categoryIndex = filenameStr, pageIndex = v4})
+    end
+  end)
+  v7:delete()
+  v8 = HelpLineActivatable.new(self)
+  self.activatable = v8
+  return true
 end
-
 function HelpLineManager:unloadMapData()
-	self.helpData = nil
-
-	g_currentMission.activatableObjectsSystem:removeActivatable(self.activatable)
-
-	for _, sharedLoadingId in ipairs(self.sharedLoadingIds) do
-		g_i3DManager:releaseSharedI3DFile(sharedLoadingId)
-	end
-
-	for _, trigger in ipairs(self.triggers) do
-		g_currentMission:removeHelpTrigger(trigger.node)
-		removeTrigger(trigger.triggerNode)
-		delete(trigger.node)
-	end
-
-	HelpLineManager:superClass().unloadMapData(self)
+  self.helpData = nil
+  v1:removeActivatable(self.activatable)
+  for v4, v5 in ipairs(self.sharedLoadingIds) do
+    v6:releaseSharedI3DFile(v5)
+  end
+  for v4, v5 in ipairs(self.triggers) do
+    v6:removeHelpTrigger(v5.node)
+    removeTrigger(v5.triggerNode)
+    delete(v5.node)
+  end
+  v2 = v2:superClass()
+  v2.unloadMapData(self)
 end
-
 function HelpLineManager:onIconLoaded(i3dNode, failedReason, trigger)
-	if i3dNode ~= 0 then
-		trigger.node = i3dNode
-		trigger.triggerNode = getChildAt(getChildAt(i3dNode, 0), 0)
-		self.triggerNodeToData[trigger.triggerNode] = trigger
-
-		link(getRootNode(), i3dNode)
-		addTrigger(trigger.triggerNode, "onIconTrigger", self)
-		setWorldTranslation(i3dNode, trigger.position[1], trigger.position[2], trigger.position[3])
-		addToPhysics(i3dNode)
-		table.insert(self.triggers, trigger)
-		g_currentMission:addHelpTrigger(trigger.node)
-	end
+  if i3dNode ~= 0 then
+    trigger.node = i3dNode
+    local v5 = getChildAt(i3dNode, 0)
+    local v4 = getChildAt(v5, 0)
+    trigger.triggerNode = v4
+    self.triggerNodeToData[trigger.triggerNode] = trigger
+    v5 = getRootNode()
+    link(v5, i3dNode)
+    addTrigger(trigger.triggerNode, "onIconTrigger", self)
+    setWorldTranslation(i3dNode, trigger.position[1], trigger.position[2], trigger.position[3])
+    addToPhysics(i3dNode)
+    table.insert(self.triggers, trigger)
+    v4:addHelpTrigger(trigger.node)
+  end
 end
-
 function HelpLineManager:onIconTrigger(triggerId, otherId, onEnter, onLeave, onStay)
-	local data = self.triggerNodeToData[triggerId]
-
-	if data ~= nil then
-		if onEnter then
-			self.helpData = data
-
-			g_currentMission.activatableObjectsSystem:addActivatable(self.activatable)
-		elseif onLeave then
-			self.helpData = nil
-
-			g_currentMission.activatableObjectsSystem:removeActivatable(self.activatable)
-		end
-	end
+  if self.triggerNodeToData[triggerId] ~= nil then
+    if onEnter then
+      self.helpData = self.triggerNodeToData[triggerId]
+      v7:addActivatable(self.activatable)
+      return
+    end
+    if onLeave then
+      self.helpData = nil
+      v7:removeActivatable(self.activatable)
+    end
+  end
 end
-
-function HelpLineManager:loadFromXML(filename, missionInfo)
-	local customEnvironment, baseDirectory = Utils.getModNameAndBaseDirectory(filename)
-	local xmlFile = XMLFile.load("helpLineViewContentXML", filename)
-
-	if xmlFile ~= nil then
-		xmlFile:iterate("helpLines.category", function (index, key)
-			local category = self:loadCategory(xmlFile, key, missionInfo, customEnvironment, baseDirectory)
-
-			if category ~= nil then
-				table.insert(self.categories, category)
-			end
-		end)
-		xmlFile:delete()
-	end
+function HelpLineManager.loadFromXML(v0, v1, v2)
+  local v3, v4 = Utils.getModNameAndBaseDirectory(v1)
+  local v5 = XMLFile.load("helpLineViewContentXML", v1)
+  if v5 ~= nil then
+    v5:iterate("helpLines.category", function(v0, v1)
+      local v2 = v2:loadCategory(u1, v1, u2, u3, u4)
+      if v2 ~= nil then
+        table.insert(u0.categories, v2)
+      end
+    end)
+    v5:delete()
+  end
 end
-
 function HelpLineManager:addModCategory(xmlFile, key, customEnvironment, baseDirectory)
-	local category = self:loadCategory(xmlFile, key, nil, customEnvironment, baseDirectory)
-
-	if category ~= nil then
-		table.insert(self.modCategories, category)
-	end
+  local category = self:loadCategory(xmlFile, key, nil, customEnvironment, baseDirectory)
+  if category ~= nil then
+    table.insert(self.modCategories, category)
+  end
 end
-
-function HelpLineManager:loadCategory(xmlFile, key, missionInfo, customEnvironment, baseDirectory)
-	local category = {
-		title = xmlFile:getString(key .. "#title"),
-		customEnvironment = customEnvironment,
-		pages = {}
-	}
-	local id = xmlFile:getString(key .. "#id")
-
-	if id ~= nil then
-		if customEnvironment ~= nil then
-			id = customEnvironment .. "." .. id
-		end
-
-		category.id = id
-	end
-
-	xmlFile:iterate(key .. ".page", function (index, pageKey)
-		local page = self:loadPage(xmlFile, pageKey, missionInfo, customEnvironment, baseDirectory)
-
-		table.insert(category.pages, page)
-	end)
-
-	return category
+function HelpLineManager.loadCategory(v0, v1, v2, v3, v4, v5)
+  local v7 = v1:getString(v2 .. "#title")
+  v7 = v1:getString(v2 .. "#id")
+  if v7 ~= nil then
+    if v4 ~= nil then
+    end
+    v6.id = v7
+  end
+  v1:iterate(v2 .. ".page", function(v0, v1)
+    local v2 = v2:loadPage(u1, v1, u2, u3, u4)
+    table.insert(u5.pages, v2)
+  end)
+  return v6
 end
-
-function HelpLineManager:loadPage(xmlFile, key, missionInfo, customEnvironment, baseDirectory)
-	local page = {
-		title = xmlFile:getString(key .. "#title"),
-		customEnvironment = customEnvironment
-	}
-	local id = xmlFile:getString(key .. "#id")
-
-	if id ~= nil then
-		if customEnvironment ~= nil then
-			id = customEnvironment .. "." .. id
-		end
-
-		page.id = id
-	end
-
-	page.paragraphs = {}
-
-	xmlFile:iterate(key .. ".paragraph", function (index, paragraphKey)
-		local paragraph = {
-			title = xmlFile:getString(paragraphKey .. ".title#text"),
-			text = xmlFile:getString(paragraphKey .. ".text#text"),
-			alignToImage = xmlFile:getBool(paragraphKey .. ".text#alignToImage"),
-			customEnvironment = customEnvironment,
-			baseDirectory = baseDirectory,
-			noSpacing = xmlFile:getBool(paragraphKey .. "#noSpacing")
-		}
-		local filename = xmlFile:getString(paragraphKey .. ".image#filename")
-
-		if filename ~= nil then
-			local heightScale = xmlFile:getFloat(paragraphKey .. ".image#heightScale", 1)
-			local aspectRatio = xmlFile:getFloat(paragraphKey .. ".image#aspectRatio", 1)
-			local size = GuiUtils.get2DArray(xmlFile:getString(paragraphKey .. ".image#size"), {
-				1024,
-				1024
-			})
-			local uvs = GuiUtils.getUVs(xmlFile:getString(paragraphKey .. ".image#uvs", "0 0 1 1"), size)
-			local displaySize = GuiUtils.getNormalizedValues(xmlFile:getString(paragraphKey .. ".image#displaySize"), {
-				g_referenceScreenWidth,
-				g_referenceScreenHeight
-			}, nil)
-			paragraph.image = {
-				filename = filename,
-				uvs = uvs,
-				size = size,
-				heightScale = heightScale,
-				aspectRatio = aspectRatio,
-				displaySize = displaySize
-			}
-		end
-
-		table.insert(page.paragraphs, paragraph)
-	end)
-
-	return page
+function HelpLineManager.loadPage(v0, v1, v2, v3, v4, v5)
+  local v7 = v1:getString(v2 .. "#title")
+  v7 = v1:getString(v2 .. "#id")
+  if v7 ~= nil then
+    if v4 ~= nil then
+    end
+    v6.id = v7
+  end
+  v6.paragraphs = {}
+  v1:iterate(v2 .. ".paragraph", function(v0, v1)
+    local v3 = v3:getString(v1 .. ".title#text")
+    v3 = v3:getString(v1 .. ".text#text")
+    v3 = v3:getBool(v1 .. ".text#alignToImage")
+    v3 = v3:getBool(v1 .. "#noSpacing")
+    v3 = v3:getString(v1 .. ".image#filename")
+    if v3 ~= nil then
+      local v4 = v4:getFloat(v1 .. ".image#heightScale", 1)
+      local v5 = v5:getFloat(v1 .. ".image#aspectRatio", 1)
+      local v7 = v7:getString(v1 .. ".image#size")
+      local v6 = GuiUtils.get2DArray(v7, {1024, 1024})
+      local v8 = v8:getString(v1 .. ".image#uvs", "0 0 1 1")
+      v7 = GuiUtils.getUVs(v8, v6)
+      local v9 = v9:getString(v1 .. ".image#displaySize")
+      v8 = GuiUtils.getNormalizedValues(v9, {g_referenceScreenWidth, g_referenceScreenHeight}, nil)
+    end
+    table.insert(u3.paragraphs, v2)
+  end)
+  return v6
 end
-
-function HelpLineManager:convertText(text, customEnv)
-	local translated = g_i18n:convertText(text, customEnv)
-
-	return string.gsub(translated, "$CURRENCY_SYMBOL", g_i18n:getCurrencySymbol(true))
+function HelpLineManager.convertText(v0, v1, v2)
+  local v3 = v3:convertText(v1, v2)
+  local v7 = v7:getCurrencySymbol(true)
+  return string.gsub(...)
 end
-
 function HelpLineManager:getCategories()
-	return self.categories
+  return self.categories
 end
-
 function HelpLineManager:getCategory(categoryIndex)
-	if categoryIndex ~= nil then
-		return self.categories[categoryIndex]
-	end
-
-	return nil
+  if categoryIndex ~= nil then
+    return self.categories[categoryIndex]
+  end
+  return nil
 end
-
-function HelpLineManager:getContextBasedHelp(x, y, z)
-	local bestDistance = math.huge
-	local bestCategoryIndex, bestPageIndex = nil, nil
-
-	for _, zone in ipairs(self.zones) do
-		local zx, zy, zz = unpack(zone.position)
-		local distance = MathUtil.vector3Length(zx - x, zy - y, zz - z)
-
-		if distance <= zone.radius and distance < bestDistance then
-			bestDistance = distance
-			bestCategoryIndex = zone.categoryIndex
-			bestPageIndex = zone.pageIndex
-		end
-	end
-
-	return bestCategoryIndex, bestPageIndex
+function HelpLineManager:getContextBasedHelp(v1, v2, v3)
+  for v10, v11 in ipairs(self.zones) do
+    local v12, v13, v14 = unpack(v11.position)
+    local v15 = MathUtil.vector3Length(v12 - v1, v13 - v2, v14 - v3)
+    if not (v15 <= v11.radius) then
+      continue
+    end
+    if not (v15 < v4) then
+      continue
+    end
+  end
+  return v5, v6
 end
-
-function HelpLineManager:getIsContextBasedHelpAvailable(x, y, z)
-	local categoryIndex, pageIndex = self:getContextBasedHelp(x, y, z)
-
-	if categoryIndex == nil then
-		return false
-	end
-
-	return true
+function HelpLineManager:getIsContextBasedHelpAvailable(v1, v2, v3)
+  local v4, v5 = self:getContextBasedHelp(v1, v2, v3)
+  if v4 == nil then
+  end
+  return true
 end
-
-function HelpLineManager:openContextBasedHelp(x, y, z)
-	local categoryIndex, pageIndex = self:getContextBasedHelp(x, y, z)
-
-	g_gui:showGui("InGameMenu")
-	g_messageCenter:publish(MessageType.GUI_INGAME_OPEN_HELP_SCREEN, categoryIndex, pageIndex)
+function HelpLineManager:openContextBasedHelp(v1, v2, v3)
+  local v4, v5 = self:getContextBasedHelp(v1, v2, v3)
+  v6:showGui("InGameMenu")
+  v6:publish(MessageType.GUI_INGAME_OPEN_HELP_SCREEN, v4, v5)
 end
-
-g_helpLineManager = HelpLineManager.new()
+local v1 = HelpLineManager.new()
+g_helpLineManager = v1
 HelpLineActivatable = {}
-local HelpLineActivatable_mt = Class(HelpLineActivatable)
-
+v1 = Class(HelpLineActivatable)
 function HelpLineActivatable.new()
-	local self = setmetatable({}, HelpLineActivatable_mt)
-	self.activateText = g_i18n:getText("helpLine_open")
-
-	return self
+  local v0 = setmetatable({}, u0)
+  local v1 = v1:getText("helpLine_open")
+  v0.activateText = v1
+  return v0
 end
-
-function HelpLineActivatable:getIsActivatable()
-	if g_gui.currentGui ~= nil then
-		return false
-	end
-
-	if g_helpLineManager.helpData == nil then
-		return false
-	end
-
-	if not g_currentMission:getCanShowHelpTriggers() then
-		return false
-	end
-
-	return true
+function HelpLineActivatable.getIsActivatable(v0)
+  if g_gui.currentGui ~= nil then
+    return false
+  end
+  if g_helpLineManager.helpData == nil then
+    return false
+  end
+  local v1 = v1:getCanShowHelpTriggers()
+  if not v1 then
+    return false
+  end
+  return true
 end
-
-function HelpLineActivatable:run()
-	local data = g_helpLineManager.helpData
-
-	if data ~= nil then
-		g_gui:showGui("InGameMenu")
-		g_messageCenter:publishDelayed(MessageType.GUI_INGAME_OPEN_HELP_SCREEN, data.categoryIndex, data.pageIndex)
-	end
+function HelpLineActivatable.run(v0)
+  if g_helpLineManager.helpData ~= nil then
+    v2:showGui("InGameMenu")
+    v2:publishDelayed(MessageType.GUI_INGAME_OPEN_HELP_SCREEN, g_helpLineManager.helpData.categoryIndex, g_helpLineManager.helpData.pageIndex)
+  end
 end
-
-function HelpLineActivatable:getDistance(x, y, z)
-	local data = g_helpLineManager.helpData
-
-	if data ~= nil and data.triggerNode ~= nil then
-		local tx, ty, tz = getWorldTranslation(data.triggerNode)
-
-		return MathUtil.vector3Length(x - tx, y - ty, z - tz)
-	end
-
-	return math.huge
+function HelpLineActivatable.getDistance(v0, v1, v2, v3)
+  if g_helpLineManager.helpData ~= nil and g_helpLineManager.helpData.triggerNode ~= nil then
+    local v5, v6, v7 = getWorldTranslation(g_helpLineManager.helpData.triggerNode)
+    return MathUtil.vector3Length(v1 - v5, v2 - v6, v3 - v7)
+  end
+  return math.huge
 end

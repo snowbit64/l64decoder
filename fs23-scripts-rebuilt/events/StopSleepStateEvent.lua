@@ -1,30 +1,24 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 StopSleepStateEvent = {}
 local StopSleepStateEvent_mt = Class(StopSleepStateEvent, Event)
-
 InitStaticEventClass(StopSleepStateEvent, "StopSleepStateEvent", EventIds.EVENT_SLEEP_STOP)
-
 function StopSleepStateEvent.emptyNew()
-	local self = Event.new(StopSleepStateEvent_mt)
-
-	return self
+  return Event.new(u0)
 end
-
 function StopSleepStateEvent.new()
-	local self = StopSleepStateEvent.emptyNew()
-
-	return self
+  return StopSleepStateEvent.emptyNew()
 end
-
 function StopSleepStateEvent:readStream(streamId, connection)
-	assert(connection:getIsServer(), "StopSleepStateEvent is a server to client only event")
-	self:run(connection)
+  local v4 = connection:getIsServer()
+  assert(v4, "StopSleepStateEvent is a server to client only event")
+  self:run(connection)
 end
-
-function StopSleepStateEvent:writeStream(streamId, connection)
+function StopSleepStateEvent.writeStream(v0, v1, v2)
 end
-
-function StopSleepStateEvent:run(connection)
-	if g_sleepManager ~= nil then
-		g_sleepManager:stopSleep()
-	end
+function StopSleepStateEvent.run(v0, v1)
+  if g_sleepManager ~= nil then
+    v2:stopSleep()
+  end
 end

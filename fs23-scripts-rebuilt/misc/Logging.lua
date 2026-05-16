@@ -1,93 +1,130 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 Logging = {}
-
-local function getFilename(obj)
-	local objType = type(obj)
-
-	if objType == "number" then
-		return getXMLFilename(obj)
-	elseif objType == "table" and obj.isa ~= nil and obj:isa(XMLFile) then
-		return obj:getFilename()
-	end
-
-	return nil
+function Logging:xmlWarning(v1, ...)
+  local v3 = type(self)
+  if v3 == "number" then
+    local v4 = getXMLFilename(self)
+  elseif v3 == "table" then
+    -- cmp-jump LOP_JUMPXEQKNIL R4 aux=0x0 -> L31
+    v4 = self:isa(XMLFile)
+    -- if not v4 then goto L31 end
+    v4 = self:getFilename()
+  else
+  end
+  v4 = string.format(...)
+  printWarning(...)
 end
-
-function Logging.xmlWarning(xmlFile, warningMessage, ...)
-	local filename = getFilename(xmlFile)
-
-	printWarning(string.format("  Warning (%s): " .. warningMessage, filename, ...))
+function Logging:xmlError(v1, ...)
+  local v3 = type(self)
+  if v3 == "number" then
+    local v4 = getXMLFilename(self)
+  elseif v3 == "table" then
+    -- cmp-jump LOP_JUMPXEQKNIL R4 aux=0x0 -> L31
+    v4 = self:isa(XMLFile)
+    -- if not v4 then goto L31 end
+    v4 = self:getFilename()
+  else
+  end
+  v4 = string.format(...)
+  printError(...)
 end
-
-function Logging.xmlError(xmlFile, errorMessage, ...)
-	local filename = getFilename(xmlFile)
-
-	printError(string.format("  Error (%s): " .. errorMessage, filename, ...))
+function Logging:xmlInfo(v1, ...)
+  local v3 = type(self)
+  if v3 == "number" then
+    local v4 = getXMLFilename(self)
+  elseif v3 == "table" then
+    -- cmp-jump LOP_JUMPXEQKNIL R4 aux=0x0 -> L31
+    v4 = self:isa(XMLFile)
+    -- if not v4 then goto L31 end
+    v4 = self:getFilename()
+  else
+  end
+  v4 = string.format(...)
+  print(...)
 end
-
-function Logging.xmlInfo(xmlFile, infoMessage, ...)
-	local filename = getFilename(xmlFile)
-
-	print(string.format("  Info (%s): " .. infoMessage, filename, ...))
+function Logging:xmlDevWarning(v1, ...)
+  if g_isDevelopmentVersion then
+    local v3 = type(self)
+    if v3 == "number" then
+      local v4 = getXMLFilename(self)
+    elseif v3 == "table" then
+      -- cmp-jump LOP_JUMPXEQKNIL R4 aux=0x0 -> L34
+      v4 = self:isa(XMLFile)
+      -- if not v4 then goto L34 end
+      v4 = self:getFilename()
+    else
+    end
+    v4 = string.format(...)
+    printWarning(...)
+  end
 end
-
-function Logging.xmlDevWarning(xmlFile, warningMessage, ...)
-	if g_isDevelopmentVersion then
-		local filename = getFilename(xmlFile)
-
-		printWarning(string.format("  DevWarning (%s): " .. warningMessage, filename, ...))
-	end
+function Logging:xmlDevError(v1, ...)
+  if g_isDevelopmentVersion then
+    local v3 = type(self)
+    if v3 == "number" then
+      local v4 = getXMLFilename(self)
+    elseif v3 == "table" then
+      -- cmp-jump LOP_JUMPXEQKNIL R4 aux=0x0 -> L34
+      v4 = self:isa(XMLFile)
+      -- if not v4 then goto L34 end
+      v4 = self:getFilename()
+    else
+    end
+    v4 = string.format(...)
+    printError(...)
+  end
 end
-
-function Logging.xmlDevError(xmlFile, errorMessage, ...)
-	if g_isDevelopmentVersion then
-		local filename = getFilename(xmlFile)
-
-		printError(string.format("  DevError (%s): " .. errorMessage, filename, ...))
-	end
+function Logging:xmlDevInfo(v1, ...)
+  if g_showDevelopmentWarnings then
+    local v3 = type(self)
+    if v3 == "number" then
+      local v4 = getXMLFilename(self)
+    elseif v3 == "table" then
+      -- cmp-jump LOP_JUMPXEQKNIL R4 aux=0x0 -> L34
+      v4 = self:isa(XMLFile)
+      -- if not v4 then goto L34 end
+      v4 = self:getFilename()
+    else
+    end
+    v4 = string.format(...)
+    print(...)
+  end
 end
-
-function Logging.xmlDevInfo(xmlFile, infoMessage, ...)
-	if g_showDevelopmentWarnings then
-		local filename = getFilename(xmlFile)
-
-		print(string.format("  DevInfo (%s): " .. infoMessage, filename, ...))
-	end
-end
-
 function Logging.warning(warningMessage, ...)
-	printWarning(string.format("  Warning: " .. warningMessage, ...))
+  local v2 = string.format(...)
+  printWarning(...)
 end
-
 function Logging.error(errorMessage, ...)
-	printError(string.format("  Error: " .. errorMessage, ...))
+  local v2 = string.format(...)
+  printError(...)
 end
-
 function Logging.info(infoMessage, ...)
-	print(string.format("  Info: " .. infoMessage, ...))
+  local v2 = string.format(...)
+  print(...)
 end
-
 function Logging.fatal(fatalMessage, ...)
-	local message = string.format("  Fatal Error: " .. fatalMessage, ...)
-
-	printCallstack()
-	requestExit()
-	error(message)
+  local v1 = string.format(...)
+  printCallstack()
+  requestExit()
+  error(v1)
 end
-
 function Logging.devWarning(warningMessage, ...)
-	if g_showDevelopmentWarnings then
-		printWarning(string.format("  DevWarning: " .. warningMessage, ...))
-	end
+  if g_showDevelopmentWarnings then
+    local v2 = string.format(...)
+    printWarning(...)
+  end
 end
-
 function Logging.devError(errorMessage, ...)
-	if g_showDevelopmentWarnings then
-		printError(string.format("  DevError: " .. errorMessage, ...))
-	end
+  if g_showDevelopmentWarnings then
+    local v2 = string.format(...)
+    printError(...)
+  end
 end
-
 function Logging.devInfo(infoMessage, ...)
-	if g_showDevelopmentWarnings then
-		print(string.format("  DevInfo: " .. infoMessage, ...))
-	end
+  if g_showDevelopmentWarnings then
+    local v2 = string.format(...)
+    print(...)
+  end
 end

@@ -1,155 +1,145 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 WeatherObjectRain = {}
 local WeatherObjectRain_mt = Class(WeatherObjectRain, WeatherObject)
-
 function WeatherObjectRain.new(weatherType, cloudUpdater, temperatureUpdater, windUpdater, customMt)
-	local self = WeatherObjectRain:superClass().new(weatherType, cloudUpdater, temperatureUpdater, windUpdater, customMt or WeatherObjectRain_mt)
-	self.sharedLoadRequestId = nil
-	self.rainNode = nil
-	self.geometries = {}
-	self.isVisible = true
-	self.alpha = 1
-	self.duration = 1
-	self.currentDropScale = 0
-	self.lastDropScale = 0
-	self.targetDropScale = 0
-
-	self.windUpdater:addWindChangedListener(self)
-	g_messageCenter:subscribe(MessageType.GAME_STATE_CHANGED, self.onGameStateChanged, self)
-
-	return self
+  local v6 = v6:superClass()
+  if not customMt then
+  end
+  local v5 = v5(v6, v7, v8, v9, v10)
+  v5.sharedLoadRequestId = nil
+  v5.rainNode = nil
+  v5.geometries = {}
+  v5.isVisible = true
+  v5.alpha = 1
+  v5.duration = 1
+  v5.currentDropScale = 0
+  v5.lastDropScale = 0
+  v5.targetDropScale = 0
+  v6:addWindChangedListener(v5)
+  v6:subscribe(MessageType.GAME_STATE_CHANGED, v5.onGameStateChanged, v5)
+  return v5
 end
-
 function WeatherObjectRain:load(xmlFile, key, cloudPresets)
-	if not WeatherObjectRain:superClass().load(self, xmlFile, key, cloudPresets) then
-		return false
-	end
-
-	local filename = xmlFile:getString(key .. ".rain#filename")
-
-	if filename ~= nil and filename ~= "" then
-		filename = Utils.getFilename(filename, g_currentMission.baseDirectory)
-		self.sharedLoadRequestId = g_i3DManager:loadSharedI3DFileAsync(filename, false, false, self.rainI3DFileLoaded, self, nil)
-	else
-		Logging.xmlWarning(xmlFile, "Missing rain filename for '%s'", key)
-
-		return false
-	end
-
-	return true
+  local v5 = v5:superClass()
+  local v4 = v5.load(self, xmlFile, key, cloudPresets)
+  if not v4 then
+    return false
+  end
+  v4 = xmlFile:getString(key .. ".rain#filename")
+  if v4 ~= nil then
+    -- cmp-jump LOP_JUMPXEQKS R4 aux=0x5 -> L47
+    v5 = Utils.getFilename(v4, g_currentMission.baseDirectory)
+    v5 = v5:loadSharedI3DFileAsync(v5, false, false, self.rainI3DFileLoaded, self, nil)
+    self.sharedLoadRequestId = v5
+  else
+    Logging.xmlWarning(xmlFile, "Missing rain filename for '%s'", key)
+    return false
+  end
+  return true
 end
-
 function WeatherObjectRain:rainI3DFileLoaded(i3dNode, failedReason, args)
-	if i3dNode ~= 0 then
-		self.rainNode = i3dNode
-
-		link(getRootNode(), self.rainNode)
-		setCullOverride(self.rainNode, true)
-		setVisibility(self.rainNode, false)
-
-		for i = 1, getNumOfChildren(self.rainNode) do
-			local child = getChildAt(self.rainNode, i - 1)
-
-			if getHasClassId(child, ClassIds.SHAPE) then
-				local geometry = getGeometry(child)
-
-				if geometry ~= 0 and getHasClassId(geometry, ClassIds.PRECIPITATION) then
-					table.insert(self.geometries, geometry)
-					setDropCountScale(geometry, 0)
-				end
-			end
-		end
-	else
-		Logging.warning("Failed to load rain i3d file!'")
-	end
+  if i3dNode ~= 0 then
+    self.rainNode = i3dNode
+    local v5 = getRootNode()
+    link(v5, self.rainNode)
+    setCullOverride(self.rainNode, true)
+    setVisibility(self.rainNode, false)
+    local v7 = getNumOfChildren(self.rainNode)
+    -- TODO: structure LOP_FORNPREP (pc 32, target 78)
+    v7 = getChildAt(self.rainNode, 1 - 1)
+    local v8 = getHasClassId(v7, ClassIds.SHAPE)
+    if v8 then
+      v8 = getGeometry(v7)
+      if v8 ~= 0 then
+        local v9 = getHasClassId(v8, ClassIds.PRECIPITATION)
+        if v9 then
+          table.insert(self.geometries, v8)
+          setDropCountScale(v8, 0)
+        end
+      end
+    end
+    -- TODO: structure LOP_FORNLOOP (pc 72, target 33)
+    return
+  end
+  Logging.warning("Failed to load rain i3d file!'")
 end
-
-function WeatherObjectRain:loadVariation(xmlFile, key, variation, cloudPresets)
-	if not WeatherObjectRain:superClass().loadVariation(self, xmlFile, key, variation, cloudPresets) then
-		return false
-	end
-
-	variation.rain = {
-		dropScale = xmlFile:getFloat(key .. "#dropScale", 1)
-	}
-
-	return true
+function WeatherObjectRain.loadVariation(v0, v1, v2, v3, v4)
+  local v6 = v6:superClass()
+  local v5 = v6.loadVariation(v0, v1, v2, v3, v4)
+  if not v5 then
+    return false
+  end
+  v3.rain = {}
+  v6 = v1:getFloat(v2 .. "#dropScale", 1)
+  v3.rain.dropScale = v6
+  return true
 end
-
 function WeatherObjectRain:delete()
-	g_messageCenter:unsubscribeAll(self)
-	self.windUpdater:removeWindChangedListener(self)
-
-	if self.rainNode ~= nil then
-		delete(self.rainNode)
-
-		self.rainNode = nil
-
-		for i = #self.geometries, 1, -1 do
-			self.geometries[i] = nil
-		end
-	end
-
-	if self.sharedLoadRequestId ~= nil then
-		g_i3DManager:releaseSharedI3DFile(self.sharedLoadRequestId)
-	end
-
-	WeatherObjectRain:superClass().delete(self)
+  v1:unsubscribeAll(self)
+  v1:removeWindChangedListener(self)
+  if self.rainNode ~= nil then
+    delete(self.rainNode)
+    self.rainNode = nil
+    -- TODO: structure LOP_FORNPREP (pc 29, target 35)
+    self.geometries[#self.geometries] = nil
+    -- TODO: structure LOP_FORNLOOP (pc 34, target 30)
+  end
+  if self.sharedLoadRequestId ~= nil then
+    v1:releaseSharedI3DFile(self.sharedLoadRequestId)
+  end
+  local v2 = v2:superClass()
+  v2.delete(self)
 end
-
 function WeatherObjectRain:update(dt)
-	WeatherObjectRain:superClass().update(self, dt)
-
-	if self.alpha ~= 1 then
-		if self.duration ~= 0 then
-			self.alpha = math.min(self.alpha + dt / self.duration, 1)
-		else
-			self.alpha = 1
-		end
-
-		self.currentDropScale = MathUtil.lerp(self.lastDropScale, self.targetDropScale, self.alpha)
-
-		for _, geometry in ipairs(self.geometries) do
-			setDropCountScale(geometry, self.currentDropScale)
-		end
-	end
-
-	if self.rainNode ~= nil then
-		setVisibility(self.rainNode, self.isVisible and self.currentDropScale ~= 0)
-	end
+  local v3 = v3:superClass()
+  v3.update(self, dt)
+  if self.alpha ~= 1 then
+    if self.duration ~= 0 then
+      local v2 = math.min(self.alpha + dt / self.duration, 1)
+      self.alpha = v2
+    else
+      self.alpha = 1
+    end
+    v2 = MathUtil.lerp(self.lastDropScale, self.targetDropScale, self.alpha)
+    self.currentDropScale = v2
+    for v5, v6 in ipairs(self.geometries) do
+      setDropCountScale(v6, self.currentDropScale)
+    end
+  end
+  if self.rainNode ~= nil then
+    if self.isVisible and self.currentDropScale == 0 then
+    end
+    v2(v3, v4)
+  end
 end
-
 function WeatherObjectRain:getRainFallScale()
-	return self.currentDropScale
+  return self.currentDropScale
 end
-
 function WeatherObjectRain:activate(variationIndex, duration)
-	WeatherObjectRain:superClass().activate(self, variationIndex, duration)
-
-	local variation = self.variations[variationIndex]
-	self.alpha = 0
-	self.duration = duration
-	self.lastDropScale = self.currentDropScale
-	self.targetDropScale = variation.rain.dropScale
+  local v4 = v4:superClass()
+  v4.activate(self, variationIndex, duration)
+  self.alpha = 0
+  self.duration = duration
+  self.lastDropScale = self.currentDropScale
+  self.targetDropScale = self.variations[variationIndex].rain.dropScale
 end
-
 function WeatherObjectRain:deactivate(duration)
-	WeatherObjectRain:superClass().deactivate(self, duration)
-
-	self.alpha = 0
-	self.targetDropScale = 0
-	self.lastDropScale = self.currentDropScale
-	self.duration = duration * 0.5
+  local v3 = v3:superClass()
+  v3.deactivate(self, duration)
+  self.alpha = 0
+  self.targetDropScale = 0
+  self.lastDropScale = self.currentDropScale
+  self.duration = duration * 0.5
 end
-
 function WeatherObjectRain:setWindValues(windDirX, windDirZ, windVelocity, cirrusCloudSpeedFactor)
-	local nDirX = windDirX * windVelocity / WindUpdater.MAX_SPEED
-	local nDirZ = windDirZ * windVelocity / WindUpdater.MAX_SPEED
-
-	for _, geometry in ipairs(self.geometries) do
-		setWindVelocity(geometry, nDirX, 0, nDirZ)
-	end
+  for v10, v11 in ipairs(self.geometries) do
+    setWindVelocity(v11, v5, 0, v6)
+  end
 end
-
 function WeatherObjectRain:onGameStateChanged(newGameState, oldGameState)
-	self.isVisible = newGameState ~= GameState.MENU_SHOP_CONFIG
+  if newGameState == GameState.MENU_SHOP_CONFIG then
+  end
+  self.isVisible = true
 end

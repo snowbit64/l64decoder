@@ -1,197 +1,171 @@
-AutoSaveManager = {
-	DEFAULT_INTERVAL = GS_IS_MOBILE_VERSION and 5 or 15,
-	INTERVAL_OPTIONS = {}
-}
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
+AutoSaveManager = {DEFAULT_INTERVAL = 15, INTERVAL_OPTIONS = {}}
 AutoSaveManager.INTERVAL_OPTIONS[1] = 0
 AutoSaveManager.INTERVAL_OPTIONS[2] = 5
 AutoSaveManager.INTERVAL_OPTIONS[3] = 10
 AutoSaveManager.INTERVAL_OPTIONS[4] = 15
 local AutoSaveManager_mt = Class(AutoSaveManager, AbstractManager)
-
 function AutoSaveManager.new(customMt)
-	local self = AbstractManager.new(customMt or AutoSaveManager_mt)
-	self.interval = 60000 * AutoSaveManager.DEFAULT_INTERVAL
-	self.time = self.interval
-	self.isPending = false
-	self.isActive = true
-	self.saveNextFrame = false
-
-	return self
+  if not customMt then
+  end
+  local v1 = v1(v2)
+  v1.interval = 60000 * AutoSaveManager.DEFAULT_INTERVAL
+  v1.time = v1.interval
+  v1.isPending = false
+  v1.isActive = true
+  v1.saveNextFrame = false
+  return v1
 end
-
 function AutoSaveManager:loadFinished()
-	g_messageCenter:subscribe(MessageType.GUI_INGAME_OPEN, self.onOpenIngameMenu, self)
-	g_messageCenter:subscribe(MessageType.SAVEGAME_LOADED, self.onSavegameLoaded, self)
-
-	if g_currentMission:getIsServer() then
-		addConsoleCommand("gsAutoSave", "Enables/disables auto save", "consoleCommandAutoSave", self)
-		addConsoleCommand("gsAutoSaveInterval", "Sets the auto save interval", "consoleCommandAutoSaveInterval", self)
-	end
+  v1:subscribe(MessageType.GUI_INGAME_OPEN, self.onOpenIngameMenu, self)
+  v1:subscribe(MessageType.SAVEGAME_LOADED, self.onSavegameLoaded, self)
+  local v1 = v1:getIsServer()
+  if v1 then
+    addConsoleCommand("gsAutoSave", "Enables/disables auto save", "consoleCommandAutoSave", self)
+    addConsoleCommand("gsAutoSaveInterval", "Sets the auto save interval", "consoleCommandAutoSaveInterval", self)
+  end
 end
-
-function AutoSaveManager:unloadMapData()
-	g_messageCenter:unsubscribeAll(self)
-
-	if g_currentMission:getIsServer() then
-		removeConsoleCommand("gsAutoSaveInterval")
-		removeConsoleCommand("gsAutoSave")
-	end
+function AutoSaveManager.unloadMapData(v0)
+  v1:unsubscribeAll(v0)
+  local v1 = v1:getIsServer()
+  if v1 then
+    removeConsoleCommand("gsAutoSaveInterval")
+    removeConsoleCommand("gsAutoSave")
+  end
 end
-
 function AutoSaveManager:update(dt)
-	if self:getIsAutoSaveAllowed() and g_currentMission:getIsServer() and g_currentMission.gameStarted and self.time < g_time then
-		self.isPending = true
-
-		if g_dedicatedServer ~= nil then
-			self:runAutoSaveIfPending(true)
-		end
-	end
-
-	if self.saveNextFrame then
-		self:runAutoSaveIfPending()
-
-		self.saveNextFrame = false
-	end
+  local v2 = self:getIsAutoSaveAllowed()
+  if v2 then
+    v2 = v2:getIsServer()
+    if v2 and g_currentMission.gameStarted and self.time < g_time then
+      self.isPending = true
+      if g_dedicatedServer ~= nil then
+        self:runAutoSaveIfPending(true)
+      end
+    end
+  end
+  if self.saveNextFrame then
+    self:runAutoSaveIfPending()
+    self.saveNextFrame = false
+  end
 end
-
 function AutoSaveManager:runAutoSaveIfPending(hideVisuals)
-	if self.isPending then
-		self.isPending = false
-
-		g_currentMission:startSaveCurrentGame(hideVisuals)
-
-		self.time = g_time + self.interval
-	end
+  if self.isPending then
+    self.isPending = false
+    v2:startSaveCurrentGame(hideVisuals)
+    self.time = g_time + self.interval
+  end
 end
-
 function AutoSaveManager:onMissionStarted()
-	self.time = g_time + self.interval
-	self.isPending = false
+  self.time = g_time + self.interval
+  self.isPending = false
 end
-
 function AutoSaveManager:onOpenIngameMenu()
-	self.saveNextFrame = true
+  self.saveNextFrame = true
 end
-
 function AutoSaveManager:onSavegameLoaded()
-	if g_dedicatedServer == nil then
-		local interval = 0
-
-		if g_currentMission ~= nil then
-			if g_currentMission.missionInfo ~= nil and g_currentMission.missionInfo.autoSaveInterval ~= nil then
-				interval = g_currentMission.missionInfo.autoSaveInterval
-			end
-
-			g_currentMission:registerObjectToCallOnMissionStart(self)
-		end
-
-		if not GS_IS_MOBILE_VERSION then
-			self:setInterval(interval)
-		end
-	end
+  if g_dedicatedServer == nil then
+    if g_currentMission ~= nil then
+      if g_currentMission.missionInfo ~= nil and g_currentMission.missionInfo.autoSaveInterval ~= nil then
+      end
+      v2:registerObjectToCallOnMissionStart(self)
+    end
+    if not GS_IS_MOBILE_VERSION then
+      self:setInterval(v1)
+    end
+  end
 end
-
 function AutoSaveManager:setInterval(intervalMinutes)
-	if intervalMinutes > 0 then
-		self.interval = intervalMinutes * 60 * 1000
-		self.time = g_time + self.interval
-
-		self:setIsActive(true)
-	else
-		self:setIsActive(false)
-	end
+  if 0 < intervalMinutes then
+    self.interval = intervalMinutes * 60 * 1000
+    self.time = g_time + self.interval
+    self:setIsActive(true)
+    return
+  end
+  self:setIsActive(false)
 end
-
 function AutoSaveManager:getInterval()
-	if not self.isActive then
-		return 0
-	end
-
-	return self.interval / 60 / 1000
+  if not self.isActive then
+    return 0
+  end
+  return self.interval / 60 / 1000
 end
-
-function AutoSaveManager:getIntervalFromIndex(index)
-	local interval = AutoSaveManager.INTERVAL_OPTIONS[index]
-
-	if interval ~= nil then
-		return interval
-	end
-
-	return 0
+function AutoSaveManager.getIntervalFromIndex(v0, v1)
+  if AutoSaveManager.INTERVAL_OPTIONS[v1] ~= nil then
+    return AutoSaveManager.INTERVAL_OPTIONS[v1]
+  end
+  return 0
 end
-
-function AutoSaveManager:getIndexFromInterval(interval)
-	for i, v in ipairs(AutoSaveManager.INTERVAL_OPTIONS) do
-		if v == interval then
-			return i
-		end
-	end
-
-	return 1
+function AutoSaveManager.getIndexFromInterval(v0, v1)
+  for v5, v6 in ipairs(AutoSaveManager.INTERVAL_OPTIONS) do
+    if not (v6 == v1) then
+      continue
+    end
+    return v5
+  end
+  return 1
 end
-
-function AutoSaveManager:getIntervalOptions()
-	return AutoSaveManager.INTERVAL_OPTIONS
+function AutoSaveManager.getIntervalOptions(v0)
+  return AutoSaveManager.INTERVAL_OPTIONS
 end
-
 function AutoSaveManager:setIsActive(state)
-	self.isActive = state
-
-	if state then
-		self.time = g_time + self.interval
-	end
+  self.isActive = state
+  if state then
+    self.time = g_time + self.interval
+  end
 end
-
 function AutoSaveManager:getIsActive()
-	return self.isActive
+  return self.isActive
 end
-
 function AutoSaveManager:resetTime()
-	self.time = g_time + self.interval
+  self.time = g_time + self.interval
 end
-
 function AutoSaveManager:getIsAutoSaveAllowed()
-	if g_currentMission == nil or not g_currentMission:getIsAutoSaveSupported() then
-		return false
-	end
-
-	if g_appIsSuspended then
-		return false
-	end
-
-	if Profiler.IS_INITIALIZED then
-		return false
-	end
-
-	return self.isActive
+  if g_currentMission ~= nil then
+    local v1 = v1:getIsAutoSaveSupported()
+    -- if v1 then goto L12 end
+  end
+  return false
+  if g_appIsSuspended then
+    return false
+  end
+  if Profiler.IS_INITIALIZED then
+    return false
+  end
+  return self.isActive
 end
-
-function AutoSaveManager:consoleCommandAutoSaveInterval(intervalMinutes)
-	if g_currentMission:getIsServer() then
-		intervalMinutes = tonumber(intervalMinutes)
-
-		if intervalMinutes == nil then
-			return "AutoSaveInterval = " .. string.format("%1.3f", g_autoSaveManager:getInterval() / 60 / 1000) .. ". Arguments: interval[minutes]"
-		end
-
-		intervalMinutes = math.max(intervalMinutes, 1)
-
-		g_autoSaveManager:setInterval(intervalMinutes)
-
-		return "AutoSaveInterval minutes = " .. intervalMinutes
-	end
+function AutoSaveManager.consoleCommandAutoSaveInterval(v0, v1)
+  local v2 = v2:getIsServer()
+  if v2 then
+    v2 = tonumber(v1)
+    if v2 == nil then
+      local v10 = v10:getInterval()
+      local v6 = string.format("%1.3f", v10 / 60 / 1000)
+      return "AutoSaveInterval = " .. v6 .. ". Arguments: interval[minutes]"
+    end
+    v2 = math.max(v1, 1)
+    v2:setInterval(v2)
+    return "AutoSaveInterval minutes = " .. v2
+  end
 end
-
-function AutoSaveManager:consoleCommandAutoSave(enabled)
-	if g_currentMission:getIsServer() then
-		if enabled == nil or enabled == "" then
-			return "AutoSave = " .. tostring(g_autoSaveManager:getIsActive()) .. ". Arguments: enabled[true|false]"
-		end
-
-		enabled = tostring(enabled):lower()
-
-		g_autoSaveManager:setIsActive(enabled == "true")
-
-		return "AutoSave = " .. tostring(g_autoSaveManager:getIsActive())
-	end
+function AutoSaveManager.consoleCommandAutoSave(v0, v1)
+  local v2 = v2:getIsServer()
+  if v2 then
+    if v1 ~= nil then
+      -- cmp-jump LOP_JUMPXEQKS R1 aux=0x80000003 -> L23
+    end
+    local v7 = v7:getIsActive()
+    local v6 = tostring(...)
+    return "AutoSave = " .. v6 .. ". Arguments: enabled[true|false]"
+    v2 = tostring(v1)
+    v2 = v2:lower()
+    if v2 ~= "true" then
+    end
+    v2:setIsActive(true)
+    local v5 = v5:getIsActive()
+    local v4 = tostring(...)
+    return "AutoSave = " .. v4
+  end
 end

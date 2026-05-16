@@ -1,897 +1,634 @@
-TreePlantManager = {
-	MAX_NUM_OF_SPLITSHAPES = 7840,
-	DECAY_INTERVAL = 60000,
-	DECAY_DURATION = 7200000
-}
-TreePlantManager.DECAY_DURATION_INV = 1 / TreePlantManager.DECAY_DURATION
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
+TreePlantManager = {MAX_NUM_OF_SPLITSHAPES = 7840, DECAY_INTERVAL = 60000, DECAY_DURATION = 7200000, DECAY_DURATION_INV = 1 / TreePlantManager.DECAY_DURATION}
 local TreePlantManager_mt = Class(TreePlantManager, AbstractManager)
-
 function TreePlantManager.new(customMt)
-	local self = AbstractManager.new(customMt or TreePlantManager_mt)
-
-	return self
+  if not customMt then
+  end
+  return v1(v2)
 end
-
 function TreePlantManager:initDataStructures()
-	self.treeTypes = {}
-	self.indexToTreeType = {}
-	self.nameToTreeType = {}
-	self.splitTypeToTreeType = {}
-	self.treeFileCache = {}
-	self.numTreesWithoutSplits = 0
-	self.activeDecayingSplitShapes = {}
-	self.updateDecayDtGame = 0
+  self.treeTypes = {}
+  self.indexToTreeType = {}
+  self.splitTypeToTreeType = {}
+  self.nameToTreeType = {}
+  self.treeFileCache = {}
+  self.numTreesWithoutSplits = 0
+  self.activeDecayingSplitShapes = {}
+  self.updateDecayDtGame = 0
 end
-
 function TreePlantManager:initialize()
-	local rootNode = createTransformGroup("trees")
-
-	link(getRootNode(), rootNode)
-
-	self.treesData = {
-		rootNode = rootNode,
-		growingTrees = {},
-		splitTrees = {},
-		clientTrees = {},
-		updateDtGame = 0,
-		treeCutJoints = {},
-		numTreesWithoutSplits = 0
-	}
+  local v1 = createTransformGroup("trees")
+  local v3 = getRootNode()
+  link(v3, v1)
+  self.treesData = {rootNode = v1, growingTrees = {}, splitTrees = {}, clientTrees = {}, updateDtGame = 0, treeCutJoints = {}, numTreesWithoutSplits = 0}
 end
-
 function TreePlantManager:deleteTreesData()
-	if self.treesData ~= nil then
-		delete(self.treesData.rootNode)
-
-		self.numTreesWithoutSplits = math.max(self.numTreesWithoutSplits - self.treesData.numTreesWithoutSplits, 0)
-
-		self:initDataStructures()
-	end
+  if self.treesData ~= nil then
+    delete(self.treesData.rootNode)
+    local v1 = math.max(self.numTreesWithoutSplits - self.treesData.numTreesWithoutSplits, 0)
+    self.numTreesWithoutSplits = v1
+    self:initDataStructures()
+  end
 end
-
 function TreePlantManager:loadDefaultTypes(missionInfo, baseDirectory)
-	local xmlFile = loadXMLFile("treeTypes", "data/maps/maps_treeTypes.xml")
-
-	self:loadTreeTypes(xmlFile, missionInfo, baseDirectory, true)
-	delete(xmlFile)
+  local xmlFile = loadXMLFile("treeTypes", "data/maps/maps_treeTypes.xml")
+  self:loadTreeTypes(xmlFile, missionInfo, baseDirectory, true)
+  delete(xmlFile)
 end
-
 function TreePlantManager:loadMapData(xmlFile, missionInfo, baseDirectory)
-	TreePlantManager:superClass().loadMapData(self)
-	addConsoleCommand("gsTreeCut", "Cut all trees and a given radius", "consoleCommandCutTrees", self)
-	self:loadDefaultTypes(missionInfo, baseDirectory)
-
-	return XMLUtil.loadDataFromMapXML(xmlFile, "treeTypes", baseDirectory, self, self.loadTreeTypes, missionInfo, baseDirectory)
+  local v5 = v5:superClass()
+  v5.loadMapData(self)
+  addConsoleCommand("gsTreeCut", "Cut all trees and a given radius", "consoleCommandCutTrees", self)
+  self:loadDefaultTypes(missionInfo, baseDirectory)
+  return XMLUtil.loadDataFromMapXML(xmlFile, "treeTypes", baseDirectory, self, self.loadTreeTypes, missionInfo, baseDirectory)
 end
-
 function TreePlantManager:unloadMapData()
-	for i3dFilename, requestId in pairs(self.treeFileCache) do
-		g_i3DManager:releaseSharedI3DFile(requestId)
-
-		self.treeFileCache[i3dFilename] = true
-	end
-
-	removeConsoleCommand("gsTreeCut")
-	self:deleteTreesData()
-	TreePlantManager:superClass().unloadMapData(self)
+  for v4, v5 in pairs(self.treeFileCache) do
+    v6:releaseSharedI3DFile(v5)
+    self.treeFileCache[v4] = true
+  end
+  removeConsoleCommand("gsTreeCut")
+  self:deleteTreesData()
+  v2 = v2:superClass()
+  v2.unloadMapData(self)
 end
-
 function TreePlantManager:loadTreeTypes(xmlFile, missionInfo, baseDirectory, isBaseType)
-	local i = 0
-
-	while true do
-		local key = string.format("map.treeTypes.treeType(%d)", i)
-
-		if not hasXMLProperty(xmlFile, key) then
-			break
-		end
-
-		local name = getXMLString(xmlFile, key .. "#name")
-		local nameI18N = getXMLString(xmlFile, key .. "#nameI18N")
-		local growthTimeHours = getXMLFloat(xmlFile, key .. "#growthTimeHours")
-		local splitType = getXMLInt(xmlFile, key .. "#splitType")
-
-		if name == nil or nameI18N == nil or growthTimeHours == nil then
-			print("Warning: A treetype needs valid values for 'name', 'nameI18N', 'growthTimeHours'. Problem found at '" .. tostring(key) .. "'")
-		end
-
-		local filenames = {}
-		local j = 0
-
-		while true do
-			local stageKey = string.format("%s.stage(%d)", key, j)
-
-			if not hasXMLProperty(xmlFile, stageKey) then
-				break
-			end
-
-			local filename = getXMLString(xmlFile, stageKey .. "#filename")
-
-			if filename ~= nil then
-				local path = Utils.getFilename(filename, baseDirectory)
-
-				table.insert(filenames, path)
-			end
-
-			j = j + 1
-		end
-
-		if #filenames == 0 then
-			print("Warning: A treetype needs valid 'stage#filename' entries. '" .. tostring(key) .. "'")
-		end
-
-		self:registerTreeType(name, nameI18N, filenames, growthTimeHours, isBaseType, splitType)
-
-		i = i + 1
-	end
-
-	return true
+  while true do
+    v6 = string.format("map.treeTypes.treeType(%d)", v5)
+    v7 = hasXMLProperty(xmlFile, v6)
+    if not v7 then
+      break
+    end
+    v7 = getXMLString(xmlFile, v6 .. "#name")
+    v8 = getXMLString(xmlFile, v6 .. "#nameI18N")
+    v9 = getXMLFloat(xmlFile, v6 .. "#growthTimeHours")
+    v10 = getXMLInt(xmlFile, v6 .. "#splitType")
+    if v7 ~= nil and v8 ~= nil then
+      -- cmp-jump LOP_JUMPXEQKNIL R9 aux=0x80000000 -> L57
+    end
+    v16 = tostring(v6)
+    print("Warning: A treetype needs valid values for 'name', 'nameI18N', 'growthTimeHours'. Problem found at '" .. v16 .. "'")
+    while true do
+      v13 = string.format("%s.stage(%d)", v6, v12)
+      v14 = hasXMLProperty(xmlFile, v13)
+      if not v14 then
+        break
+      end
+      v14 = getXMLString(xmlFile, v13 .. "#filename")
+      if v14 ~= nil then
+        v15 = Utils.getFilename(v14, baseDirectory)
+        table.insert(v11, v15)
+      end
+    end
+    if #v11 == 0 then
+      v18 = tostring(v6)
+      print("Warning: A treetype needs valid 'stage#filename' entries. '" .. v18 .. "'")
+    end
+    self:registerTreeType(v7, v8, v11, v9, isBaseType, v10)
+  end
+  return true
 end
-
-function TreePlantManager:registerTreeType(name, nameI18N, treeFilenames, growthTimeHours, isBaseType, splitType)
-	name = string.upper(name)
-
-	if isBaseType and self.nameToTreeType[name] ~= nil then
-		print("Warning: TreeType '" .. tostring(name) .. "' already exists. Ignoring treeType!")
-
-		return nil
-	end
-
-	local treeType = self.nameToTreeType[name]
-
-	if treeType == nil then
-		treeType = {
-			name = name,
-			nameI18N = nameI18N,
-			index = #self.treeTypes + 1,
-			splitType = splitType
-		}
-
-		table.insert(self.treeTypes, treeType)
-
-		self.indexToTreeType[treeType.index] = treeType
-		self.nameToTreeType[name] = treeType
-
-		if treeType.splitType ~= nil then
-			self.splitTypeToTreeType[treeType.splitType] = treeType
-		end
-	end
-
-	treeType.treeFilenames = treeFilenames
-	treeType.growthTimeHours = growthTimeHours
-
-	return treeType
+function TreePlantManager:registerTreeType(v1, v2, v3, v4, v5, v6)
+  local v7 = string.upper(v1)
+  if v5 and self.nameToTreeType[v7] ~= nil then
+    local v12 = tostring(v7)
+    print("Warning: TreeType '" .. v12 .. "' already exists. Ignoring treeType!")
+    return nil
+  end
+  if self.nameToTreeType[v1] == nil then
+    table.insert(self.treeTypes, {name = v1, nameI18N = v2, index = #self.treeTypes + 1, splitType = v6})
+    self.indexToTreeType[{name = v1, nameI18N = v2, index = #self.treeTypes + 1, splitType = v6}.index] = {name = v1, nameI18N = v2, index = #self.treeTypes + 1, splitType = v6}
+    self.nameToTreeType[v1] = {name = v1, nameI18N = v2, index = #self.treeTypes + 1, splitType = v6}
+    if {name = v1, nameI18N = v2, index = #self.treeTypes + 1, splitType = v6}.splitType ~= nil then
+      self.splitTypeToTreeType[{name = v1, nameI18N = v2, index = #self.treeTypes + 1, splitType = v6}.splitType] = {name = v1, nameI18N = v2, index = #self.treeTypes + 1, splitType = v6}
+    end
+  end
+  v7.treeFilenames = v3
+  v7.growthTimeHours = v4
+  return v7
 end
-
-function TreePlantManager:getTreeTypeFilename(treeTypeDesc, growthState)
-	if treeTypeDesc == nil then
-		return nil
-	end
-
-	return treeTypeDesc.treeFilenames[math.min(growthState, #treeTypeDesc.treeFilenames)]
+function TreePlantManager.getTreeTypeFilename(v0, v1, v2)
+  if v1 == nil then
+    return nil
+  end
+  local v5 = math.min(v2, #v1.treeFilenames)
+  return v1.treeFilenames[v5]
 end
-
 function TreePlantManager:canPlantTree()
-	local totalNumSplit, numSplit = getNumOfSplitShapes()
-	local numUnsplit = totalNumSplit - numSplit
-
-	return numUnsplit + self.numTreesWithoutSplits < TreePlantManager.MAX_NUM_OF_SPLITSHAPES
+  local v1, v2 = getNumOfSplitShapes()
+  if v1 - v2 + self.numTreesWithoutSplits >= TreePlantManager.MAX_NUM_OF_SPLITSHAPES then
+  end
+  return true
 end
-
 function TreePlantManager:plantTree(treeType, x, y, z, rx, ry, rz, growthState, growthStateI, isGrowing, splitShapeFileId)
-	local treesData = self.treesData
-	local treeTypeDesc = self.indexToTreeType[treeType]
-
-	if treeTypeDesc ~= nil then
-		growthState = MathUtil.clamp(growthState, 0, 1)
-
-		if growthStateI == nil then
-			growthStateI = math.floor(growthState * (table.getn(treeTypeDesc.treeFilenames) - 1)) + 1
-		end
-
-		local treeId, splitShapeFileId = self:loadTreeNode(treeTypeDesc, x, y, z, rx, ry, rz, growthStateI, splitShapeFileId)
-		local tree = {
-			node = treeId
-		}
-		isGrowing = Utils.getNoNil(isGrowing, true)
-
-		if table.getn(treeTypeDesc.treeFilenames) <= 1 then
-			tree.growthState = 1
-			isGrowing = false
-		else
-			tree.growthState = growthState
-		end
-
-		tree.z = z
-		tree.y = y
-		tree.x = x
-		tree.rz = rz
-		tree.ry = ry
-		tree.rx = rx
-		tree.treeType = treeType
-		tree.splitShapeFileId = splitShapeFileId
-		tree.hasSplitShapes = getFileIdHasSplitShapes(splitShapeFileId)
-
-		if isGrowing then
-			tree.origSplitShape = getChildAt(treeId, 0)
-
-			table.insert(treesData.growingTrees, tree)
-		else
-			table.insert(treesData.splitTrees, tree)
-		end
-
-		if not tree.hasSplitShapes then
-			self.numTreesWithoutSplits = self.numTreesWithoutSplits + 1
-			treesData.numTreesWithoutSplits = treesData.numTreesWithoutSplits + 1
-		end
-
-		g_server:broadcastEvent(TreePlantEvent.new(treeType, x, y, z, rx, ry, rz, growthState, splitShapeFileId, isGrowing))
-
-		return treeId
-	end
+  if self.indexToTreeType[treeType] ~= nil then
+    local v14 = MathUtil.clamp(growthState, 0, 1)
+    if growthStateI == nil then
+      local v17 = table.getn(self.indexToTreeType[treeType].treeFilenames)
+      v14 = math.floor(v14 * (v17 - 1))
+    end
+    local v14, v15 = self:loadTreeNode(v13, x, y, z, rx, ry, rz, growthStateI, splitShapeFileId)
+    v17 = Utils.getNoNil(isGrowing, true)
+    v17 = table.getn(v13.treeFilenames)
+    if v17 <= 1 then
+    else
+    end
+    v16.x = x
+    v16.y = y
+    v16.z = z
+    v16.rx = rx
+    v16.ry = ry
+    v16.rz = rz
+    v16.treeType = treeType
+    v16.splitShapeFileId = v15
+    v17 = getFileIdHasSplitShapes(v15)
+    v16.hasSplitShapes = v17
+    if isGrowing then
+      v17 = getChildAt(v14, 0)
+      v16.origSplitShape = v17
+      table.insert(v12.growingTrees, v16)
+    else
+      table.insert(v12.splitTrees, v16)
+    end
+    if not v16.hasSplitShapes then
+      self.numTreesWithoutSplits = self.numTreesWithoutSplits + 1
+      v12.numTreesWithoutSplits = v12.numTreesWithoutSplits + 1
+    end
+    local v19 = TreePlantEvent.new(treeType, x, y, z, rx, ry, rz, growthState, v15, isGrowing)
+    v17:broadcastEvent(...)
+    return v14
+  end
 end
-
 function TreePlantManager:loadTreeNode(treeTypeDesc, x, y, z, rx, ry, rz, growthStateI, splitShapeLoadingFileId)
-	local treesData = self.treesData
-	growthStateI = math.min(growthStateI, table.getn(treeTypeDesc.treeFilenames))
-	local i3dFilename = treeTypeDesc.treeFilenames[growthStateI]
-
-	if self.treeFileCache[i3dFilename] == nil then
-		setSplitShapesLoadingFileId(-1)
-		setSplitShapesNextFileId(true)
-
-		local node, requestId = g_i3DManager:loadSharedI3DFile(i3dFilename, false, false)
-
-		if node ~= 0 then
-			delete(node)
-
-			self.treeFileCache[i3dFilename] = requestId
-		end
-	end
-
-	setSplitShapesLoadingFileId(Utils.getNoNil(splitShapeLoadingFileId, -1))
-
-	local splitShapeFileId = setSplitShapesNextFileId()
-	local treeId, requestId = g_i3DManager:loadSharedI3DFile(i3dFilename, false, false)
-
-	g_i3DManager:releaseSharedI3DFile(requestId)
-
-	if treeId ~= 0 then
-		link(treesData.rootNode, treeId)
-		setTranslation(treeId, x, y, z)
-		setRotation(treeId, rx, ry, rz)
-
-		local numChildren = getNumOfChildren(treeId)
-
-		for i = 0, numChildren - 1 do
-			local child = getChildAt(treeId, i)
-
-			if getIsSplitShapeSplit(child) then
-				setWorldRotation(child, getRotation(child))
-				setWorldTranslation(child, getTranslation(child))
-			end
-		end
-
-		addToPhysics(treeId)
-	end
-
-	local updateRange = 2
-
-	g_densityMapHeightManager:setCollisionMapAreaDirty(x - updateRange, z - updateRange, x + updateRange, z + updateRange, true)
-	g_currentMission.aiSystem:setAreaDirty(x - updateRange, x + updateRange, z - updateRange, z + updateRange)
-
-	return treeId, splitShapeFileId
+  local v13 = table.getn(treeTypeDesc.treeFilenames)
+  local v11 = math.min(...)
+  if self.treeFileCache[treeTypeDesc.treeFilenames[v11]] == nil then
+    setSplitShapesLoadingFileId(-1)
+    setSplitShapesNextFileId(true)
+    local v12, v13 = v12:loadSharedI3DFile(treeTypeDesc.treeFilenames[v11], false, false)
+    if v12 ~= 0 then
+      delete(v12)
+      self.treeFileCache[treeTypeDesc.treeFilenames[v11]] = v13
+    end
+  end
+  v13 = Utils.getNoNil(splitShapeLoadingFileId, -1)
+  setSplitShapesLoadingFileId(...)
+  v12 = setSplitShapesNextFileId()
+  local v13, v14 = v13:loadSharedI3DFile(v11, false, false)
+  v15:releaseSharedI3DFile(v14)
+  if v13 ~= 0 then
+    link(v10.rootNode, v13)
+    setTranslation(v13, x, y, z)
+    setRotation(v13, rx, ry, rz)
+    local v15 = getNumOfChildren(v13)
+    -- TODO: structure LOP_FORNPREP (pc 100, target 128)
+    local v19 = getChildAt(v13, 0)
+    local v20 = getIsSplitShapeSplit(v19)
+    if v20 then
+      local v22 = getRotation(v19)
+      setWorldRotation(...)
+      v22 = getTranslation(v19)
+      setWorldTranslation(...)
+    end
+    -- TODO: structure LOP_FORNLOOP (pc 127, target 101)
+    addToPhysics(v13)
+  end
+  v15:setCollisionMapAreaDirty(x - 2, z - 2, x + 2, z + 2, true)
+  v15:setAreaDirty(x - 2, x + 2, z - 2, z + 2)
+  return v13, v12
 end
-
 function TreePlantManager:loadTreeTrunk(treeTypeDesc, x, y, z, dirX, dirY, dirZ, length, growthState, delimb)
-	local treeId, splitShapeFileId = g_treePlantManager:loadTreeNode(treeTypeDesc, x, y, z, 0, 0, 0, growthState)
-
-	if treeId ~= 0 then
-		if getFileIdHasSplitShapes(splitShapeFileId) then
-			local tree = {
-				node = treeId,
-				growthState = growthState,
-				z = z,
-				y = y,
-				x = x,
-				rz = 0,
-				ry = 0,
-				rx = 0,
-				treeType = treeTypeDesc.index,
-				splitShapeFileId = splitShapeFileId,
-				hasSplitShapes = getFileIdHasSplitShapes(splitShapeFileId)
-			}
-
-			table.insert(self.treesData.splitTrees, tree)
-
-			self.loadTreeTrunkData = {
-				offset = 0.5,
-				framesLeft = 2,
-				shape = treeId + 2,
-				x = x,
-				y = y,
-				z = z,
-				length = length,
-				dirX = dirX,
-				dirY = dirY,
-				dirZ = dirZ,
-				delimb = delimb
-			}
-		else
-			delete(treeId)
-		end
-	end
+  local v11, v12 = v11:loadTreeNode(treeTypeDesc, x, y, z, 0, 0, 0, growthState)
+  if v11 ~= 0 then
+    local v13 = getFileIdHasSplitShapes(v12)
+    if v13 then
+      local v14 = getFileIdHasSplitShapes(v12)
+      table.insert(self.treesData.splitTrees, {node = v11, growthState = growthState, x = x, y = y, z = z, rx = 0, ry = 0, rz = 0, treeType = treeTypeDesc.index, splitShapeFileId = v12, hasSplitShapes = v14})
+      self.loadTreeTrunkData = {framesLeft = 2, shape = v11 + 2, x = x, y = y, z = z, length = length, offset = 0.5, dirX = dirX, dirY = dirY, dirZ = dirZ, delimb = delimb}
+      return
+    end
+    delete(v11)
+  end
 end
-
 function TreePlantManager:cutTreeTrunkCallback(shape, isBelow, isAbove, minY, maxY, minZ, maxZ)
-	self:addingSplitShape(shape, self.shapeBeingCut)
-	table.insert(self.loadTreeTrunkData.parts, {
-		shape = shape,
-		isBelow = isBelow,
-		isAbove = isAbove,
-		minY = minY,
-		maxY = maxY,
-		minZ = minZ,
-		maxZ = maxZ
-	})
+  self:addingSplitShape(shape, self.shapeBeingCut)
+  table.insert(self.loadTreeTrunkData.parts, {shape = shape, isBelow = isBelow, isAbove = isAbove, minY = minY, maxY = maxY, minZ = minZ, maxZ = maxZ})
 end
-
 function TreePlantManager:updateTrees(dt, dtGame)
-	local treesData = self.treesData
-	treesData.updateDtGame = treesData.updateDtGame + dtGame
-
-	if treesData.updateDtGame > 3600000 then
-		self:cleanupDeletedTrees()
-
-		local time = treesData.updateDtGame
-		local dtHours = time / 3600000 * g_currentMission.environment.timeAdjustment
-		treesData.updateDtGame = 0
-		local numGrowingTrees = #treesData.growingTrees
-		local i = 1
-
-		while numGrowingTrees >= i do
-			local tree = treesData.growingTrees[i]
-
-			if getChildAt(tree.node, 0) ~= tree.origSplitShape then
-				table.remove(treesData.growingTrees, i)
-
-				numGrowingTrees = numGrowingTrees - 1
-				tree.origSplitShape = nil
-
-				table.insert(treesData.splitTrees, tree)
-			else
-				local treeTypeDesc = self.indexToTreeType[tree.treeType]
-				local numTreeFiles = table.getn(treeTypeDesc.treeFilenames)
-				local growthState = tree.growthState
-				local oldGrowthStateI = math.floor(growthState * (numTreeFiles - 1)) + 1
-				growthState = math.min(growthState + dtHours / treeTypeDesc.growthTimeHours, 1)
-				local growthStateI = math.floor(growthState * (numTreeFiles - 1)) + 1
-				tree.growthState = growthState
-
-				if oldGrowthStateI ~= growthStateI and treeTypeDesc.treeFilenames[oldGrowthStateI] ~= treeTypeDesc.treeFilenames[growthStateI] then
-					delete(tree.node)
-
-					if not tree.hasSplitShapes then
-						self.numTreesWithoutSplits = math.max(self.numTreesWithoutSplits - 1, 0)
-						treesData.numTreesWithoutSplits = math.max(treesData.numTreesWithoutSplits - 1, 0)
-					end
-
-					local treeId, splitShapeFileId = self:loadTreeNode(treeTypeDesc, tree.x, tree.y, tree.z, tree.rx, tree.ry, tree.rz, growthStateI, -1)
-
-					g_server:broadcastEvent(TreeGrowEvent.new(tree.treeType, tree.x, tree.y, tree.z, tree.rx, tree.ry, tree.rz, tree.growthState, splitShapeFileId, tree.splitShapeFileId))
-
-					tree.origSplitShape = getChildAt(treeId, 0)
-					tree.splitShapeFileId = splitShapeFileId
-					tree.hasSplitShapes = getFileIdHasSplitShapes(splitShapeFileId)
-					tree.node = treeId
-					local range = 2.5
-					local x, _, z = getWorldTranslation(treeId)
-
-					g_densityMapHeightManager:setCollisionMapAreaDirty(x - range, z - range, x + range, z + range, true)
-					g_currentMission.aiSystem:setAreaDirty(x - range, x + range, z - range, z + range)
-
-					if not tree.hasSplitShapes then
-						self.numTreesWithoutSplits = self.numTreesWithoutSplits + 1
-						treesData.numTreesWithoutSplits = treesData.numTreesWithoutSplits + 1
-					end
-				end
-
-				if numTreeFiles <= growthStateI then
-					table.remove(treesData.growingTrees, i)
-
-					numGrowingTrees = numGrowingTrees - 1
-					tree.origSplitShape = nil
-
-					table.insert(treesData.splitTrees, tree)
-				else
-					i = i + 1
-				end
-			end
-		end
-	end
-
-	local curTime = g_currentMission.time
-
-	for joint in pairs(treesData.treeCutJoints) do
-		if joint.destroyTime <= curTime or not entityExists(joint.shape) then
-			removeJoint(joint.jointIndex)
-
-			treesData.treeCutJoints[joint] = nil
-		else
-			local x1, y1, z1 = localDirectionToWorld(joint.shape, joint.lnx, joint.lny, joint.lnz)
-
-			if x1 * joint.nx + y1 * joint.ny + z1 * joint.nz < joint.maxCosAngle then
-				removeJoint(joint.jointIndex)
-
-				treesData.treeCutJoints[joint] = nil
-			end
-		end
-	end
-
-	if self.loadTreeTrunkData ~= nil then
-		self.loadTreeTrunkData.framesLeft = self.loadTreeTrunkData.framesLeft - 1
-
-		if self.loadTreeTrunkData.framesLeft == 1 then
-			local nx = 0
-			local ny = 1
-			local nz = 0
-			local yx = -1
-			local yy = 0
-			local yz = 0
-			local x = self.loadTreeTrunkData.x + 1
-			local y = self.loadTreeTrunkData.y
-			local z = self.loadTreeTrunkData.z - 1
-			self.loadTreeTrunkData.parts = {}
-			local shape = self.loadTreeTrunkData.shape
-
-			if shape ~= nil and shape ~= 0 then
-				self.shapeBeingCut = shape
-
-				splitShape(shape, x, y + self.loadTreeTrunkData.length + self.loadTreeTrunkData.offset, z, nx, ny, nz, yx, yy, yz, 4, 4, "cutTreeTrunkCallback", self)
-				self:removingSplitShape(shape)
-
-				for _, p in pairs(self.loadTreeTrunkData.parts) do
-					if p.isAbove then
-						delete(p.shape)
-					else
-						self.loadTreeTrunkData.shape = p.shape
-					end
-				end
-			end
-		elseif self.loadTreeTrunkData.framesLeft == 0 then
-			local nx = 0
-			local ny = 1
-			local nz = 0
-			local yx = -1
-			local yy = 0
-			local yz = 0
-			local x = self.loadTreeTrunkData.x + 1
-			local y = self.loadTreeTrunkData.y
-			local z = self.loadTreeTrunkData.z - 1
-			self.loadTreeTrunkData.parts = {}
-			local shape = self.loadTreeTrunkData.shape
-
-			if shape ~= nil and shape ~= 0 then
-				splitShape(shape, x, y + self.loadTreeTrunkData.offset, z, nx, ny, nz, yx, yy, yz, 4, 4, "cutTreeTrunkCallback", self)
-
-				local finalShape = nil
-
-				for _, p in pairs(self.loadTreeTrunkData.parts) do
-					if p.isBelow then
-						delete(p.shape)
-					else
-						finalShape = p.shape
-					end
-				end
-
-				if finalShape ~= nil then
-					if self.loadTreeTrunkData.delimb then
-						removeSplitShapeAttachments(finalShape, x, y + self.loadTreeTrunkData.offset, z, nx, ny, nz, yx, yy, yz, self.loadTreeTrunkData.length, 4, 4)
-					end
-
-					removeFromPhysics(finalShape)
-					setDirection(finalShape, 0, -1, 0, self.loadTreeTrunkData.dirX, self.loadTreeTrunkData.dirY, self.loadTreeTrunkData.dirZ)
-					addToPhysics(finalShape)
-				else
-					Logging.error("Unable to cut tree trunk with length '%s'. Try using a different value", self.loadTreeTrunkData.length)
-				end
-			end
-
-			self.loadTreeTrunkData = nil
-		end
-	end
-
-	if self.commandCutTreeData ~= nil then
-		if #self.commandCutTreeData.trees > 0 then
-			local treeId = self.commandCutTreeData.trees[1]
-			local x, y, z = getWorldTranslation(treeId)
-			local localX, localY, localZ = worldToLocal(treeId, x, y + 0.5, z)
-			local cx, cy, cz = localToWorld(treeId, localX - 2, localY, localZ - 2)
-			local nx, ny, nz = localDirectionToWorld(treeId, 0, 1, 0)
-			local yx, yy, yz = localDirectionToWorld(treeId, 0, 0, 1)
-			self.commandCutTreeData.shapeBeingCut = treeId
-
-			Logging.info("Cut tree '%s' (%d left)", getName(treeId), #self.commandCutTreeData.trees - 1)
-			splitShape(treeId, cx, cy, cz, nx, ny, nz, yx, yy, yz, 4, 4, "onTreeCutCommandSplitCallback", self)
-			table.remove(self.commandCutTreeData.trees, 1)
-		else
-			self.commandCutTreeData = nil
-		end
-	end
-
-	self.updateDecayDtGame = self.updateDecayDtGame + dtGame
-
-	if TreePlantManager.DECAY_INTERVAL < self.updateDecayDtGame then
-		for shape, data in pairs(self.activeDecayingSplitShapes) do
-			if not entityExists(shape) then
-				self.activeDecayingSplitShapes[shape] = nil
-			elseif data.state > 0 then
-				local newState = math.max(data.state - TreePlantManager.DECAY_DURATION_INV * self.updateDecayDtGame, 0)
-
-				self:setSplitShapeLeafScaleAndVariation(shape, newState, data.variation)
-
-				self.activeDecayingSplitShapes[shape].state = newState
-			end
-		end
-
-		self.updateDecayDtGame = 0
-	end
+  self.treesData.updateDtGame = self.treesData.updateDtGame + dtGame
+  if 3600000 < self.treesData.updateDtGame then
+    self:cleanupDeletedTrees()
+    self.treesData.updateDtGame = 0
+    while 1 <= #self.treesData.growingTrees do
+      local v9 = getChildAt(v3.growingTrees[v7].node, 0)
+      if v9 ~= v3.growingTrees[v7].origSplitShape then
+        table.remove(v3.growingTrees, v7)
+        v3.growingTrees[v7].origSplitShape = nil
+        table.insert(v3.splitTrees, v3.growingTrees[v7])
+      else
+        local v10 = table.getn(self.indexToTreeType[v3.growingTrees[v7].treeType].treeFilenames)
+        local v13 = math.floor(v3.growingTrees[v7].growthState * (v10 - 1))
+        v13 = math.min(v3.growingTrees[v7].growthState + v5 / self.indexToTreeType[v3.growingTrees[v7].treeType].growthTimeHours, 1)
+        local v14 = math.floor(v13 * (v10 - 1))
+        v3.growingTrees[v7].growthState = v13
+        if v13 + 1 ~= v14 + 1 and self.indexToTreeType[v3.growingTrees[v7].treeType].treeFilenames[v13 + 1] ~= self.indexToTreeType[v3.growingTrees[v7].treeType].treeFilenames[v14 + 1] then
+          delete(v3.growingTrees[v7].node)
+          if not v3.growingTrees[v7].hasSplitShapes then
+            v14 = math.max(self.numTreesWithoutSplits - 1, 0)
+            self.numTreesWithoutSplits = v14
+            v14 = math.max(v3.numTreesWithoutSplits - 1, 0)
+            v3.numTreesWithoutSplits = v14
+          end
+          local v14, v15 = self:loadTreeNode(v9, v8.x, v8.y, v8.z, v8.rx, v8.ry, v8.rz, v13, -1)
+          local v18 = TreeGrowEvent.new(v8.treeType, v8.x, v8.y, v8.z, v8.rx, v8.ry, v8.rz, v8.growthState, v15, v8.splitShapeFileId)
+          v16:broadcastEvent(...)
+          local v16 = getChildAt(v14, 0)
+          v8.origSplitShape = v16
+          v8.splitShapeFileId = v15
+          v16 = getFileIdHasSplitShapes(v15)
+          v8.hasSplitShapes = v16
+          v8.node = v14
+          local v16, v17, v18 = getWorldTranslation(v14)
+          v19:setCollisionMapAreaDirty(v16 - 2.5, v18 - 2.5, v16 + 2.5, v18 + 2.5, true)
+          v19:setAreaDirty(v16 - 2.5, v16 + 2.5, v18 - 2.5, v18 + 2.5)
+          if not v8.hasSplitShapes then
+            self.numTreesWithoutSplits = self.numTreesWithoutSplits + 1
+            v3.numTreesWithoutSplits = v3.numTreesWithoutSplits + 1
+          end
+        end
+        if v10 <= v13 then
+          table.remove(v3.growingTrees, v7)
+          v8.origSplitShape = nil
+          table.insert(v3.splitTrees, v8)
+        else
+        end
+      end
+    end
+  end
+  for v8 in pairs(v3.treeCutJoints) do
+    if v8.destroyTime > v4 then
+      v10 = entityExists(v8.shape)
+      -- if v10 then goto L290 end
+    end
+    removeJoint(v8.jointIndex)
+    v3.treeCutJoints[v8] = nil
+    continue
+    local v10, v11, v12 = localDirectionToWorld(v8.shape, v8.lnx, v8.lny, v8.lnz)
+    if not (v10 * v8.nx + v11 * v8.ny + v12 * v8.nz < v8.maxCosAngle) then
+      continue
+    end
+    removeJoint(v8.jointIndex)
+    v3.treeCutJoints[v8] = nil
+  end
+  if self.loadTreeTrunkData ~= nil then
+    self.loadTreeTrunkData.framesLeft = self.loadTreeTrunkData.framesLeft - 1
+    if self.loadTreeTrunkData.framesLeft == 1 then
+      self.loadTreeTrunkData.parts = {}
+      -- cmp-jump LOP_JUMPXEQKNIL R8 aux=0x0 -> L578
+      -- cmp-jump LOP_JUMPXEQKN R8 aux=0x24 -> L578
+      self.shapeBeingCut = self.loadTreeTrunkData.shape
+      splitShape(self.loadTreeTrunkData.shape, self.loadTreeTrunkData.x + 1, self.loadTreeTrunkData.y + self.loadTreeTrunkData.length + self.loadTreeTrunkData.offset, self.loadTreeTrunkData.z - 1, 0, 1, 0, -1, 0, 0, 4, 4, "cutTreeTrunkCallback", self)
+      self:removingSplitShape(self.loadTreeTrunkData.shape)
+      for v12, v13 in pairs(self.loadTreeTrunkData.parts) do
+        if v13.isAbove then
+          delete(v13.shape)
+        else
+          self.loadTreeTrunkData.shape = v13.shape
+        end
+      end
+    elseif self.loadTreeTrunkData.framesLeft == 0 then
+      self.loadTreeTrunkData.parts = {}
+      if self.loadTreeTrunkData.shape ~= nil and self.loadTreeTrunkData.shape ~= 0 then
+        splitShape(self.loadTreeTrunkData.shape, self.loadTreeTrunkData.x + 1, self.loadTreeTrunkData.y + self.loadTreeTrunkData.offset, self.loadTreeTrunkData.z - 1, 0, 1, 0, -1, 0, 0, 4, 4, "cutTreeTrunkCallback", self)
+        for v13, v14 in pairs(self.loadTreeTrunkData.parts) do
+          if v14.isBelow then
+            delete(v14.shape)
+          else
+          end
+        end
+        if v9 ~= nil then
+          if self.loadTreeTrunkData.delimb then
+            removeSplitShapeAttachments(v9, v5, v6 + self.loadTreeTrunkData.offset, v7, 0, 1, 0, -1, 0, 0, self.loadTreeTrunkData.length, 4, 4)
+          end
+          removeFromPhysics(v9)
+          setDirection(v9, 0, -1, 0, self.loadTreeTrunkData.dirX, self.loadTreeTrunkData.dirY, self.loadTreeTrunkData.dirZ)
+          addToPhysics(v9)
+        else
+          Logging.error("Unable to cut tree trunk with length '%s'. Try using a different value", self.loadTreeTrunkData.length)
+        end
+      end
+      self.loadTreeTrunkData = nil
+    end
+  end
+  if self.commandCutTreeData ~= nil then
+    if 0 < #self.commandCutTreeData.trees then
+      v6, v7, v8 = getWorldTranslation(self.commandCutTreeData.trees[1])
+      v9, v10, v11 = worldToLocal(self.commandCutTreeData.trees[1], v6, v7 + 0.5, v8)
+      v12, v13, v14 = localToWorld(self.commandCutTreeData.trees[1], v9 - 2, v10, v11 - 2)
+      v15, v16, v17 = localDirectionToWorld(self.commandCutTreeData.trees[1], 0, 1, 0)
+      local v18, v19, v20 = localDirectionToWorld(self.commandCutTreeData.trees[1], 0, 0, 1)
+      self.commandCutTreeData.shapeBeingCut = self.commandCutTreeData.trees[1]
+      local v23 = getName(self.commandCutTreeData.trees[1])
+      Logging.info("Cut tree '%s' (%d left)", v23, #self.commandCutTreeData.trees - 1)
+      splitShape(self.commandCutTreeData.trees[1], v12, v13, v14, v15, v16, v17, v18, v19, v20, 4, 4, "onTreeCutCommandSplitCallback", self)
+      table.remove(self.commandCutTreeData.trees, 1)
+    else
+      self.commandCutTreeData = nil
+    end
+  end
+  self.updateDecayDtGame = self.updateDecayDtGame + dtGame
+  if TreePlantManager.DECAY_INTERVAL < self.updateDecayDtGame then
+    for v8, v9 in pairs(self.activeDecayingSplitShapes) do
+      v10 = entityExists(v8)
+      if not v10 then
+        self.activeDecayingSplitShapes[v8] = nil
+      else
+        if not (0 < v9.state) then
+          continue
+        end
+        v10 = math.max(v9.state - TreePlantManager.DECAY_DURATION_INV * self.updateDecayDtGame, 0)
+        self:setSplitShapeLeafScaleAndVariation(v8, v10, v9.variation)
+        self.activeDecayingSplitShapes[v8].state = v10
+      end
+    end
+    self.updateDecayDtGame = 0
+  end
 end
-
 function TreePlantManager:addTreeCutJoint(jointIndex, shape, nx, ny, nz, maxAngle, maxLifetime)
-	local treesData = self.treesData
-	local lnx, lny, lnz = worldDirectionToLocal(shape, nx, ny, nz)
-	local joint = {
-		jointIndex = jointIndex,
-		shape = shape,
-		nx = nx,
-		ny = ny,
-		nz = nz,
-		lnx = lnx,
-		lny = lny,
-		lnz = lnz,
-		maxCosAngle = math.cos(maxAngle),
-		destroyTime = g_currentMission.time + maxLifetime
-	}
-	treesData.treeCutJoints[joint] = joint
+  local v9, v10, v11 = worldDirectionToLocal(shape, nx, ny, nz)
+  local v13 = math.cos(maxAngle)
+  self.treesData.treeCutJoints[{jointIndex = jointIndex, shape = shape, nx = nx, ny = ny, nz = nz, lnx = v9, lny = v10, lnz = v11, maxCosAngle = v13, destroyTime = g_currentMission.time + maxLifetime}] = {jointIndex = jointIndex, shape = shape, nx = nx, ny = ny, nz = nz, lnx = v9, lny = v10, lnz = v11, maxCosAngle = v13, destroyTime = g_currentMission.time + maxLifetime}
 end
-
 function TreePlantManager:cleanupDeletedTrees()
-	local treesData = self.treesData
-	local numGrowingTrees = #treesData.growingTrees
-	local i = 1
-
-	while numGrowingTrees >= i do
-		local tree = treesData.growingTrees[i]
-
-		if getNumOfChildren(tree.node) == 0 then
-			table.remove(treesData.growingTrees, i)
-
-			numGrowingTrees = numGrowingTrees - 1
-
-			delete(tree.node)
-
-			if not tree.hasSplitShapes then
-				self.numTreesWithoutSplits = math.max(self.numTreesWithoutSplits - 1, 0)
-				treesData.numTreesWithoutSplits = math.max(treesData.numTreesWithoutSplits - 1, 0)
-			end
-		else
-			i = i + 1
-		end
-	end
-
-	local numSplitTrees = #treesData.splitTrees
-	local i = 1
-
-	while numSplitTrees >= i do
-		local tree = treesData.splitTrees[i]
-
-		if getNumOfChildren(tree.node) == 0 then
-			table.remove(treesData.splitTrees, i)
-
-			numSplitTrees = numSplitTrees - 1
-
-			delete(tree.node)
-
-			if not tree.hasSplitShapes then
-				self.numTreesWithoutSplits = math.max(self.numTreesWithoutSplits - 1, 0)
-				treesData.numTreesWithoutSplits = math.max(treesData.numTreesWithoutSplits - 1, 0)
-			end
-		else
-			i = i + 1
-		end
-	end
+  while 1 <= #self.treesData.growingTrees do
+    local v5 = getNumOfChildren(dt.growingTrees[v3].node)
+    if v5 == 0 then
+      table.remove(dt.growingTrees, v3)
+      delete(dt.growingTrees[v3].node)
+      if not not dt.growingTrees[v3].hasSplitShapes then
+        continue
+      end
+      v5 = math.max(self.numTreesWithoutSplits - 1, 0)
+      self.numTreesWithoutSplits = v5
+      v5 = math.max(dt.numTreesWithoutSplits - 1, 0)
+      dt.numTreesWithoutSplits = v5
+    else
+    end
+  end
+  while 1 <= #dt.splitTrees do
+    local v7 = getNumOfChildren(dt.splitTrees[v5].node)
+    if v7 == 0 then
+      table.remove(dt.splitTrees, v5)
+      delete(dt.splitTrees[v5].node)
+      if not not dt.splitTrees[v5].hasSplitShapes then
+        continue
+      end
+      v7 = math.max(self.numTreesWithoutSplits - 1, 0)
+      self.numTreesWithoutSplits = v7
+      v7 = math.max(dt.numTreesWithoutSplits - 1, 0)
+      dt.numTreesWithoutSplits = v7
+    else
+    end
+  end
 end
-
 function TreePlantManager:loadFromXMLFile(xmlFilename)
-	if xmlFilename == nil then
-		return false
-	end
-
-	local xmlFile = loadXMLFile("treePlantXML", xmlFilename)
-
-	if xmlFile == 0 then
-		return false
-	end
-
-	local i = 0
-
-	while true do
-		local key = string.format("treePlant.tree(%d)", i)
-
-		if not hasXMLProperty(xmlFile, key) then
-			break
-		end
-
-		local x, y, z = string.getVector(getXMLString(xmlFile, key .. "#position"))
-		local rx, ry, rz = string.getVector(getXMLString(xmlFile, key .. "#rotation"))
-		rx = math.rad(rx)
-		ry = math.rad(ry)
-		rz = math.rad(rz)
-		local treeTypeName = getXMLString(xmlFile, key .. "#treeType")
-		local treeType = self.nameToTreeType[treeTypeName]
-
-		if x ~= nil and y ~= nil and z ~= nil and rx ~= nil and ry ~= nil and rz ~= nil and treeType ~= nil then
-			local growthState = Utils.getNoNil(getXMLFloat(xmlFile, key .. "#growthState"), 0)
-			local isGrowing = Utils.getNoNil(getXMLBool(xmlFile, key .. "#isGrowing"), true)
-			local growthStateI = getXMLInt(xmlFile, key .. "#growthStateI")
-			local splitShapeFileId = getXMLInt(xmlFile, key .. "#splitShapeFileId")
-
-			self:plantTree(treeType.index, x, y, z, rx, ry, rz, growthState, growthStateI, isGrowing, splitShapeFileId)
-		end
-
-		i = i + 1
-	end
-
-	delete(xmlFile)
-
-	return true
+  if xmlFilename == nil then
+    return false
+  end
+  local xmlFile = loadXMLFile("treePlantXML", xmlFilename)
+  if xmlFile == 0 then
+    return false
+  end
+  while true do
+    v4 = string.format("treePlant.tree(%d)", v3)
+    v5 = hasXMLProperty(xmlFile, v4)
+    if not v5 then
+      break
+    end
+    v6 = getXMLString(xmlFile, v4 .. "#position")
+    v5, v6, v7 = string.getVector(...)
+    v9 = getXMLString(xmlFile, v4 .. "#rotation")
+    v8, v9, v10 = string.getVector(...)
+    v11 = math.rad(v8)
+    v11 = math.rad(v9)
+    v11 = math.rad(v10)
+    v11 = getXMLString(xmlFile, v4 .. "#treeType")
+    if v5 ~= nil and v6 ~= nil and v7 ~= nil and v11 ~= nil and v11 ~= nil and v11 ~= nil and self.nameToTreeType[v11] ~= nil then
+      v14 = getXMLFloat(xmlFile, v4 .. "#growthState")
+      v13 = Utils.getNoNil(v14, 0)
+      v15 = getXMLBool(xmlFile, v4 .. "#isGrowing")
+      v14 = Utils.getNoNil(v15, true)
+      v15 = getXMLInt(xmlFile, v4 .. "#growthStateI")
+      v16 = getXMLInt(xmlFile, v4 .. "#splitShapeFileId")
+      self:plantTree(self.nameToTreeType[v11].index, v5, v6, v7, v11, v11, v11, v13, v15, v14, v16)
+    end
+  end
+  delete(xmlFile)
+  return true
 end
-
 function TreePlantManager:saveToXMLFile(xmlFilename)
-	local xmlFile = createXMLFile("treePlantXML", xmlFilename, "treePlant")
-
-	if xmlFile ~= nil then
-		self:cleanupDeletedTrees()
-
-		local index = 0
-
-		for _, tree in pairs(self.treesData.growingTrees) do
-			local treeTypeDesc = self:getTreeTypeDescFromIndex(tree.treeType)
-			local treeTypeName = treeTypeDesc.name
-			local isGrowing = getChildAt(tree.node, 0) == tree.origSplitShape
-			local growthStateI = math.floor(tree.growthState * (table.getn(treeTypeDesc.treeFilenames) - 1)) + 1
-			local splitShapeFileId = Utils.getNoNil(tree.splitShapeFileId, -1)
-			local treeKey = string.format("treePlant.tree(%d)", index)
-
-			setXMLString(xmlFile, treeKey .. "#treeType", treeTypeName)
-			setXMLString(xmlFile, treeKey .. "#position", string.format("%.4f %.4f %.4f", tree.x, tree.y, tree.z))
-			setXMLString(xmlFile, treeKey .. "#rotation", string.format("%.4f %.4f %.4f", math.deg(tree.rx), math.deg(tree.ry), math.deg(tree.rz)))
-			setXMLFloat(xmlFile, treeKey .. "#growthState", tree.growthState)
-			setXMLInt(xmlFile, treeKey .. "#growthStateI", growthStateI)
-			setXMLBool(xmlFile, treeKey .. "#isGrowing", isGrowing)
-			setXMLInt(xmlFile, treeKey .. "#splitShapeFileId", splitShapeFileId)
-
-			index = index + 1
-		end
-
-		for _, tree in pairs(self.treesData.splitTrees) do
-			local treeTypeDesc = self:getTreeTypeDescFromIndex(tree.treeType)
-			local treeTypeName = treeTypeDesc.name
-			local isGrowing = false
-			local growthStateI = math.floor(tree.growthState * (table.getn(treeTypeDesc.treeFilenames) - 1)) + 1
-			local splitShapeFileId = Utils.getNoNil(tree.splitShapeFileId, -1)
-			local treeKey = string.format("treePlant.tree(%d)", index)
-
-			setXMLString(xmlFile, treeKey .. "#treeType", treeTypeName)
-			setXMLString(xmlFile, treeKey .. "#position", string.format("%.4f %.4f %.4f", tree.x, tree.y, tree.z))
-			setXMLString(xmlFile, treeKey .. "#rotation", string.format("%.4f %.4f %.4f", math.deg(tree.rx), math.deg(tree.ry), math.deg(tree.rz)))
-			setXMLFloat(xmlFile, treeKey .. "#growthState", tree.growthState)
-			setXMLInt(xmlFile, treeKey .. "#growthStateI", growthStateI)
-			setXMLBool(xmlFile, treeKey .. "#isGrowing", isGrowing)
-			setXMLInt(xmlFile, treeKey .. "#splitShapeFileId", splitShapeFileId)
-
-			index = index + 1
-		end
-
-		saveXMLFile(xmlFile)
-		delete(xmlFile)
-
-		return true
-	end
-
-	return false
+  local xmlFile = createXMLFile("treePlantXML", xmlFilename, "treePlant")
+  if xmlFile ~= nil then
+    self:cleanupDeletedTrees()
+    for v7, v8 in pairs(self.treesData.growingTrees) do
+      local v9 = self:getTreeTypeDescFromIndex(v8.treeType)
+      local v12 = getChildAt(v8.node, 0)
+      if v12 ~= v8.origSplitShape then
+      end
+      local v17 = table.getn(v9.treeFilenames)
+      local v13 = math.floor(v8.growthState * (v17 - 1))
+      v13 = Utils.getNoNil(v8.splitShapeFileId, -1)
+      local v14 = string.format("treePlant.tree(%d)", v3)
+      setXMLString(xmlFile, v14 .. "#treeType", v10)
+      local v18 = string.format("%.4f %.4f %.4f", v8.x, v8.y, v8.z)
+      setXMLString(...)
+      local v20 = math.deg(v8.rx)
+      local v21 = math.deg(v8.ry)
+      local v22 = math.deg(v8.rz)
+      v18 = string.format(...)
+      setXMLString(...)
+      setXMLFloat(xmlFile, v14 .. "#growthState", v8.growthState)
+      setXMLInt(xmlFile, v14 .. "#growthStateI", v13 + 1)
+      setXMLBool(xmlFile, v14 .. "#isGrowing", true)
+      setXMLInt(xmlFile, v14 .. "#splitShapeFileId", v13)
+    end
+    for v7, v8 in pairs(self.treesData.splitTrees) do
+      v9 = self:getTreeTypeDescFromIndex(v8.treeType)
+      local v16 = table.getn(v9.treeFilenames)
+      v12 = math.floor(v8.growthState * (v16 - 1))
+      v12 = Utils.getNoNil(v8.splitShapeFileId, -1)
+      v13 = string.format("treePlant.tree(%d)", v3)
+      setXMLString(xmlFile, v13 .. "#treeType", v9.name)
+      v17 = string.format("%.4f %.4f %.4f", v8.x, v8.y, v8.z)
+      setXMLString(...)
+      local v19 = math.deg(v8.rx)
+      v20 = math.deg(v8.ry)
+      v21 = math.deg(v8.rz)
+      v17 = string.format(...)
+      setXMLString(...)
+      setXMLFloat(xmlFile, v13 .. "#growthState", v8.growthState)
+      setXMLInt(xmlFile, v13 .. "#growthStateI", v12 + 1)
+      setXMLBool(xmlFile, v13 .. "#isGrowing", false)
+      setXMLInt(xmlFile, v13 .. "#splitShapeFileId", v12)
+    end
+    saveXMLFile(xmlFile)
+    delete(xmlFile)
+    return true
+  end
+  return false
 end
-
 function TreePlantManager:readFromServerStream(streamId)
-	local treesData = self.treesData
-	local numTrees = streamReadInt32(streamId)
-
-	for i = 1, numTrees do
-		local treeType = streamReadInt32(streamId)
-		local x = streamReadFloat32(streamId)
-		local y = streamReadFloat32(streamId)
-		local z = streamReadFloat32(streamId)
-		local rx = streamReadFloat32(streamId)
-		local ry = streamReadFloat32(streamId)
-		local rz = streamReadFloat32(streamId)
-		local growthStateI = streamReadInt8(streamId)
-		local serverSplitShapeFileId = streamReadInt32(streamId)
-		local treeTypeDesc = self.indexToTreeType[treeType]
-
-		if treeTypeDesc ~= nil then
-			local nodeId, splitShapeFileId = self:loadTreeNode(treeTypeDesc, x, y, z, rx, ry, rz, growthStateI, -1)
-
-			setSplitShapesFileIdMapping(splitShapeFileId, serverSplitShapeFileId)
-
-			treesData.clientTrees[serverSplitShapeFileId] = nodeId
-		end
-	end
+  local v3 = streamReadInt32(streamId)
+  -- TODO: structure LOP_FORNPREP (pc 9, target 72)
+  local v7 = streamReadInt32(streamId)
+  local v8 = streamReadFloat32(streamId)
+  local v9 = streamReadFloat32(streamId)
+  local v10 = streamReadFloat32(streamId)
+  local v11 = streamReadFloat32(streamId)
+  local v12 = streamReadFloat32(streamId)
+  local v13 = streamReadFloat32(streamId)
+  local growthStateI = streamReadInt8(streamId)
+  local v15 = streamReadInt32(streamId)
+  if self.indexToTreeType[v7] ~= nil then
+    local v17, v18 = self:loadTreeNode(self.indexToTreeType[v7], v8, v9, v10, v11, v12, v13, growthStateI, -1)
+    setSplitShapesFileIdMapping(v18, v15)
+    self.treesData.clientTrees[v15] = v17
+  end
+  -- TODO: structure LOP_FORNLOOP (pc 71, target 10)
 end
-
 function TreePlantManager:writeToClientStream(streamId)
-	local treesData = self.treesData
-
-	self:cleanupDeletedTrees()
-
-	local numTrees = #treesData.growingTrees + #treesData.splitTrees
-
-	streamWriteInt32(streamId, numTrees)
-
-	for _, tree in pairs(treesData.growingTrees) do
-		streamWriteInt32(streamId, tree.treeType)
-		streamWriteFloat32(streamId, tree.x)
-		streamWriteFloat32(streamId, tree.y)
-		streamWriteFloat32(streamId, tree.z)
-		streamWriteFloat32(streamId, tree.rx)
-		streamWriteFloat32(streamId, tree.ry)
-		streamWriteFloat32(streamId, tree.rz)
-
-		local treeTypeDesc = self.indexToTreeType[tree.treeType]
-		local growthStateI = math.floor(tree.growthState * (table.getn(treeTypeDesc.treeFilenames) - 1)) + 1
-
-		streamWriteInt8(streamId, growthStateI)
-		streamWriteInt32(streamId, tree.splitShapeFileId)
-	end
-
-	for _, tree in pairs(treesData.splitTrees) do
-		streamWriteInt32(streamId, tree.treeType)
-		streamWriteFloat32(streamId, tree.x)
-		streamWriteFloat32(streamId, tree.y)
-		streamWriteFloat32(streamId, tree.z)
-		streamWriteFloat32(streamId, tree.rx)
-		streamWriteFloat32(streamId, tree.ry)
-		streamWriteFloat32(streamId, tree.rz)
-
-		local treeTypeDesc = self.indexToTreeType[tree.treeType]
-		local growthStateI = math.floor(tree.growthState * (table.getn(treeTypeDesc.treeFilenames) - 1)) + 1
-
-		streamWriteInt8(streamId, growthStateI)
-		streamWriteInt32(streamId, tree.splitShapeFileId)
-	end
+  self:cleanupDeletedTrees()
+  streamWriteInt32(streamId, #self.treesData.growingTrees + #self.treesData.splitTrees)
+  for v7, v8 in pairs(self.treesData.growingTrees) do
+    streamWriteInt32(streamId, v8.treeType)
+    streamWriteFloat32(streamId, v8.x)
+    streamWriteFloat32(streamId, v8.y)
+    streamWriteFloat32(streamId, v8.z)
+    streamWriteFloat32(streamId, v8.rx)
+    streamWriteFloat32(streamId, v8.ry)
+    streamWriteFloat32(streamId, v8.rz)
+    local v15 = table.getn(self.indexToTreeType[v8.treeType].treeFilenames)
+    local v11 = math.floor(v8.growthState * (v15 - 1))
+    streamWriteInt8(streamId, v11 + 1)
+    streamWriteInt32(streamId, v8.splitShapeFileId)
+  end
+  for v7, v8 in pairs(dtGame.splitTrees) do
+    streamWriteInt32(streamId, v8.treeType)
+    streamWriteFloat32(streamId, v8.x)
+    streamWriteFloat32(streamId, v8.y)
+    streamWriteFloat32(streamId, v8.z)
+    streamWriteFloat32(streamId, v8.rx)
+    streamWriteFloat32(streamId, v8.ry)
+    streamWriteFloat32(streamId, v8.rz)
+    v15 = table.getn(self.indexToTreeType[v8.treeType].treeFilenames)
+    v11 = math.floor(v8.growthState * (v15 - 1))
+    streamWriteInt8(streamId, v11 + 1)
+    streamWriteInt32(streamId, v8.splitShapeFileId)
+  end
 end
-
 function TreePlantManager:getTreeTypeDescFromIndex(index)
-	if self.treeTypes ~= nil then
-		return self.treeTypes[index]
-	end
-
-	return nil
+  if self.treeTypes ~= nil then
+    return self.treeTypes[index]
+  end
+  return nil
 end
-
 function TreePlantManager:getTreeTypeNameFromIndex(index)
-	if self.treeTypes ~= nil and self.treeTypes[index] ~= nil then
-		return self.treeTypes[index].name
-	end
-
-	return nil
+  if self.treeTypes ~= nil and self.treeTypes[index] ~= nil then
+    return self.treeTypes[index].name
+  end
+  return nil
 end
-
 function TreePlantManager:getTreeTypeDescFromName(name)
-	if self.nameToTreeType ~= nil and name ~= nil then
-		name = name:upper()
-
-		return self.nameToTreeType[name]
-	end
-
-	return nil
+  if self.nameToTreeType ~= nil and name ~= nil then
+    local dtGame = name:upper()
+    return self.nameToTreeType[dtGame]
+  end
+  return nil
 end
-
-function TreePlantManager:getTreeTypeDescFromSplitType(splitType)
-	if self.splitTypeToTreeType ~= nil and splitType ~= nil then
-		return self.splitTypeToTreeType[splitType]
-	end
-
-	return nil
+function TreePlantManager:getTreeTypeDescFromSplitType(dt)
+  if self.splitTypeToTreeType ~= nil and dt ~= nil then
+    return self.splitTypeToTreeType[dt]
+  end
+  return nil
 end
-
 function TreePlantManager:getTreeTypeIndexFromName(name)
-	if self.nameToTreeType ~= nil and name ~= nil then
-		name = name:upper()
-
-		if self.nameToTreeType[name] ~= nil then
-			return self.nameToTreeType[name].index
-		end
-	end
-
-	return nil
+  if self.nameToTreeType ~= nil and name ~= nil then
+    local dtGame = name:upper()
+    if self.nameToTreeType[dtGame] ~= nil then
+      return self.nameToTreeType[dtGame].index
+    end
+  end
+  return nil
 end
-
 function TreePlantManager:addClientTree(serverSplitShapeFileId, nodeId)
-	if self.treesData ~= nil then
-		self.treesData.clientTrees[serverSplitShapeFileId] = nodeId
-	end
+  if self.treesData ~= nil then
+    self.treesData.clientTrees[serverSplitShapeFileId] = nodeId
+  end
 end
-
 function TreePlantManager:removeClientTree(serverSplitShapeFileId)
-	if self.treesData ~= nil then
-		self.treesData.clientTrees[serverSplitShapeFileId] = nil
-	end
+  if self.treesData ~= nil then
+    self.treesData.clientTrees[serverSplitShapeFileId] = nil
+  end
 end
-
 function TreePlantManager:getClientTree(serverSplitShapeFileId)
-	if self.treesData ~= nil then
-		return self.treesData.clientTrees[serverSplitShapeFileId]
-	end
+  if self.treesData ~= nil then
+    return self.treesData.clientTrees[serverSplitShapeFileId]
+  end
 end
-
 function TreePlantManager:addingSplitShape(shape, oldShape, fromTree)
-	local state, variation = nil
-
-	if oldShape ~= nil and self.activeDecayingSplitShapes[oldShape] ~= nil then
-		state = self.activeDecayingSplitShapes[oldShape].state
-		variation = self.activeDecayingSplitShapes[oldShape].variation
-	elseif fromTree then
-		state = 1
-		local x, y, z = getWorldTranslation(shape)
-		variation = math.abs(x) + math.abs(y) + math.abs(z)
-	else
-		state = 0
-		variation = 80
-	end
-
-	if state ~= nil and getNumOfChildren(shape) > 0 then
-		self.activeDecayingSplitShapes[shape] = {
-			state = state,
-			variation = variation
-		}
-
-		self:setSplitShapeLeafScaleAndVariation(shape, state, variation)
-	end
-
-	g_messageCenter:publish(MessageType.TREE_SHAPE_CUT, oldShape, shape)
+  if oldShape ~= nil then
+    -- cmp-jump LOP_JUMPXEQKNIL R6 aux=0x0 -> L20
+  elseif fromTree then
+    local v6, v7, v8 = getWorldTranslation(shape)
+    local v10 = math.abs(v6)
+    local v11 = math.abs(v7)
+    v10 = math.abs(v8)
+  else
+  end
+  if v4 ~= nil then
+    v6 = getNumOfChildren(shape)
+    if 0 < v6 then
+      self.activeDecayingSplitShapes[shape] = {state = v4, variation = v5}
+      self:setSplitShapeLeafScaleAndVariation(shape, v4, v5)
+    end
+  end
+  v6:publish(MessageType.TREE_SHAPE_CUT, oldShape, shape)
 end
-
 function TreePlantManager:removingSplitShape(shape)
-	self.activeDecayingSplitShapes[shape] = nil
+  self.activeDecayingSplitShapes[shape] = nil
 end
-
-function TreePlantManager:setSplitShapeLeafScaleAndVariation(shape, scale, variation)
-	I3DUtil.setShaderParameterRec(shape, "windSnowLeafScale", 0, 0, scale, variation)
+function TreePlantManager.setSplitShapeLeafScaleAndVariation(v0, shape, oldShape, fromTree)
+  I3DUtil.setShaderParameterRec(shape, "windSnowLeafScale", 0, 0, oldShape, fromTree)
 end
-
 function TreePlantManager:consoleCommandCutTrees(radius)
-	radius = tonumber(radius or "50")
-	self.commandCutTreeData = {
-		trees = {}
-	}
-	local x, y, z = getWorldTranslation(getCamera())
-
-	overlapSphere(x, y, z, radius, "onTreeCutCommandOverlapCallback", self, CollisionFlag.TREE, false, true, false, false)
-
-	return string.format("Found %d trees to cut", #self.commandCutTreeData.trees)
+  local oldShape = tonumber(radius or "50")
+  self.commandCutTreeData = {trees = {}}
+  local fromTree = getCamera()
+  local oldShape, fromTree, v4 = getWorldTranslation(...)
+  overlapSphere(oldShape, fromTree, v4, oldShape, "onTreeCutCommandOverlapCallback", self, CollisionFlag.TREE, false, true, false, false)
+  return string.format("Found %d trees to cut", #self.commandCutTreeData.trees)
 end
-
 function TreePlantManager:onTreeCutCommandOverlapCallback(objectId, ...)
-	if getHasClassId(objectId, ClassIds.SHAPE) and getSplitType(objectId) ~= 0 and getRigidBodyType(objectId) == RigidBodyType.STATIC and not getIsSplitShapeSplit(objectId) then
-		table.insert(self.commandCutTreeData.trees, objectId)
-	end
+  local oldShape = getHasClassId(objectId, ClassIds.SHAPE)
+  if oldShape then
+    oldShape = getSplitType(objectId)
+    if oldShape ~= 0 then
+      oldShape = getRigidBodyType(objectId)
+      if oldShape == RigidBodyType.STATIC then
+        oldShape = getIsSplitShapeSplit(objectId)
+        if not oldShape then
+          table.insert(self.commandCutTreeData.trees, objectId)
+        end
+      end
+    end
+  end
 end
-
 function TreePlantManager:onTreeCutCommandSplitCallback(shape, isBelow, isAbove, minY, maxY, minZ, maxZ)
-	rotate(shape, 0.1, 0, 0)
-	g_currentMission:addKnownSplitShape(shape)
-	self:addingSplitShape(shape, self.commandCutTreeData.shapeBeingCut, true)
+  rotate(shape, 0.1, 0, 0)
+  v8:addKnownSplitShape(shape)
+  self:addingSplitShape(shape, self.commandCutTreeData.shapeBeingCut, true)
 end
-
-g_treePlantManager = TreePlantManager.new()
+local shape = TreePlantManager.new()
+g_treePlantManager = v1
