@@ -1,95 +1,147 @@
--- Reconstructed Luau source (luauc64 0.1.0).
--- This is a best-effort lift from bytecode; review before running.
-
 CameraPath = {}
 local CameraPath_mt = Class(CameraPath)
+
 function CameraPath.new(posAnimCurve, rotAnimCurve, speedAnimCurve, speedScale, camera, maxTime, finishedCallback)
-  setmetatable({}, u0)
-  return {posAnimCurve = posAnimCurve, rotAnimCurve = rotAnimCurve, speedAnimCurve = speedAnimCurve, speedScale = speedScale, time = 0, camera = camera, overriddenCamera = nil, maxTime = maxTime, finishedCallback = finishedCallback}
+	local self = setmetatable({}, CameraPath_mt)
+	self.posAnimCurve = posAnimCurve
+	self.rotAnimCurve = rotAnimCurve
+	self.speedAnimCurve = speedAnimCurve
+	self.speedScale = speedScale
+	self.time = 0
+	self.camera = camera
+	self.overriddenCamera = nil
+	self.maxTime = maxTime
+	self.finishedCallback = finishedCallback
+	return self
 end
+
 function CameraPath:delete()
-  delete(self.camera)
+	if self.camera ~= nil then
+		delete(self.camera)
+		self.camera = nil
+	end
 end
+
 function CameraPath.createFromI3D(filename, speedScale, camera)
-  local v3 = v3:loadI3DFile(filename, false, false)
-  local v4 = getChild(v3, "positions")
-  if v4 == 0 then
-    print("Error: failed to load camera path: " .. filename .. ". No positions found.")
-    return nil
-  end
-  local posAnimCurve = AnimCurve.new(catmullRomInterpolator3, 3)
-  local rotAnimCurve = AnimCurve.new(quaternionInterpolator2, 3)
-  local speedAnimCurve = AnimCurve.new(catmullRomInterpolator1, 3)
-  local v8 = getNumOfChildren(v4)
-  -- TODO: structure LOP_FORNPREP (pc 53, target 125)
-  local v16 = getChildAt(v4, 0)
-  local v17, v18, v19 = getTranslation(v16)
-  local v20, v21, v22 = getRotation(v16)
-  local v23, v24, v25 = getScale(v16)
-  if 0 < 0 then
-    local v26 = MathUtil.vector3Length(v17 - nil, v18 - nil, v19 - nil)
-  end
-  posAnimCurve:addKeyframe({time = v9, x = v17, y = v18, z = v19})
-  local v26, v27, v28, v29 = mathEulerToQuaternion(v20, v21, v22)
-  rotAnimCurve:addKeyframe({time = v9, x = v26, y = v27, z = v28, w = v29})
-  speedAnimCurve:addKeyframe({time = v9, v = v23})
-  -- TODO: structure LOP_FORNLOOP (pc 124, target 54)
-  v17 = table.getn(posAnimCurve.keyframes)
-  -- TODO: structure LOP_FORNPREP (pc 136, target 205)
-  v20, v21, v22 = posAnimCurve:getFromKeyframes(posAnimCurve.keyframes[1], posAnimCurve.keyframes[1 + 1], 1, 1 + 1, 1)
-  {}[(1 - 1) * 33 + 1] = 0
-  -- TODO: structure LOP_FORNPREP (pc 161, target 185)
-  v27, v28, v29 = posAnimCurve:getFromKeyframes(posAnimCurve.keyframes[1], posAnimCurve.keyframes[1 + 1], 1, 1 + 1, 1 - 1 / 32)
-  local v30 = MathUtil.vector3Length(v27 - v20, v28 - v21, v29 - v22)
-  {}[(1 - 1) * 33 + 1 + 1] = 0 + v30
-  -- TODO: structure LOP_FORNLOOP (pc 184, target 162)
-  posAnimCurve.keyframes[1 + 1].time = 0 + 0 + v30
-  rotAnimCurve.keyframes[1 + 1].time = 0 + 0 + v30
-  speedAnimCurve.keyframes[1 + 1].time = 0 + 0 + v30
-  -- TODO: structure LOP_FORNLOOP (pc 204, target 137)
-  posAnimCurve.segmentTimes = {}
-  posAnimCurve.numTimesPerKeyframe = 32
-  rotAnimCurve.segmentTimes = {}
-  rotAnimCurve.numTimesPerKeyframe = 32
-  speedAnimCurve.segmentTimes = {}
-  speedAnimCurve.numTimesPerKeyframe = 32
-  posAnimCurve.maxTime = 0 + 0 + v30
-  rotAnimCurve.maxTime = 0 + 0 + v30
-  speedAnimCurve.maxTime = 0 + 0 + v30
-  delete(v3)
-  return CameraPath.new(posAnimCurve, rotAnimCurve, speedAnimCurve, speedScale, camera, 0 + 0 + v30)
+	local i3dNode = loadI3DFile(filename, false, false)
+	if i3dNode == 0 then
+		print("Error: failed to load camera path: " .. filename)
+		return nil
+	end
+
+	local positionsNode = getChild(i3dNode, "positions")
+	if positionsNode == 0 then
+		print("Error: failed to load camera path: " .. filename .. ". No positions found.")
+		delete(i3dNode)
+		return nil
+	end
+
+	local posAnimCurve = AnimCurve.new(catmullRomInterpolator3, 3)
+	local rotAnimCurve = AnimCurve.new(quaternionInterpolator2, 3)
+	local speedAnimCurve = AnimCurve.new(catmullRomInterpolator1, 3)
+
+	local numChildren = getNumOfChildren(positionsNode)
+	local totalTime = 0
+	local lastX, lastY, lastZ
+
+	for i = 0, numChildren - 1 do
+		local child = getChildAt(positionsNode, i)
+		local x, y, z = getTranslation(child)
+		local rx, ry, rz = getRotation(child)
+		local sx, sy, sz = getScale(child)
+
+		if i > 0 then
+			totalTime = totalTime + MathUtil.vector3Length(x - lastX, y - lastY, z - lastZ)
+		end
+
+		posAnimCurve:addKeyframe({time = totalTime, x = x, y = y, z = z})
+		local qx, qy, qz, qw = mathEulerToQuaternion(rx, ry, rz)
+		rotAnimCurve:addKeyframe({time = totalTime, x = qx, y = qy, z = qz, w = qw})
+		speedAnimCurve:addKeyframe({time = totalTime, v = sx})
+
+		lastX, lastY, lastZ = x, y, z
+	end
+
+	-- Re-calculating times based on segment lengths for smoother interpolation (FS23 logic)
+	local numKeyframes = #posAnimCurve.keyframes
+	local segmentTimes = {}
+	local numTimesPerKeyframe = 32
+	local currentTime = 0
+
+	for i = 1, numKeyframes - 1 do
+		local first = posAnimCurve.keyframes[i]
+		local second = posAnimCurve.keyframes[i + 1]
+		local lastX, lastY, lastZ = posAnimCurve:getFromKeyframes(first, second, i, i + 1, 0)
+		
+		segmentTimes[(i - 1) * (numTimesPerKeyframe + 1) + 1] = 0
+		local segmentLength = 0
+
+		for j = 1, numTimesPerKeyframe do
+			local x, y, z = posAnimCurve:getFromKeyframes(first, second, i, i + 1, j / numTimesPerKeyframe)
+			segmentLength = segmentLength + MathUtil.vector3Length(x - lastX, y - lastY, z - lastZ)
+			segmentTimes[(i - 1) * (numTimesPerKeyframe + 1) + j + 1] = segmentLength
+			lastX, lastY, lastZ = x, y, z
+		end
+
+		currentTime = currentTime + segmentLength
+		posAnimCurve.keyframes[i + 1].time = currentTime
+		rotAnimCurve.keyframes[i + 1].time = currentTime
+		speedAnimCurve.keyframes[i + 1].time = currentTime
+	end
+
+	posAnimCurve.segmentTimes = segmentTimes
+	posAnimCurve.numTimesPerKeyframe = numTimesPerKeyframe
+	rotAnimCurve.segmentTimes = segmentTimes
+	rotAnimCurve.numTimesPerKeyframe = numTimesPerKeyframe
+	speedAnimCurve.segmentTimes = segmentTimes
+	speedAnimCurve.numTimesPerKeyframe = numTimesPerKeyframe
+
+	posAnimCurve.maxTime = currentTime
+	rotAnimCurve.maxTime = currentTime
+	speedAnimCurve.maxTime = currentTime
+
+	delete(i3dNode)
+
+	return CameraPath.new(posAnimCurve, rotAnimCurve, speedAnimCurve, speedScale, camera, currentTime)
 end
+
 function CameraPath:update(dt)
-  if self.speedAnimCurve ~= nil then
-    local v3 = v3:get(self.time)
-  end
-  self.time = self.time + dt * v2
-  self:placeCamera()
-  v3 = getCamera()
-  if v3 ~= self.camera then
-    self.overriddenCamera = v3
-    setCamera(self.camera)
-  end
-  if self.finishedCallback ~= nil and self.maxTime < self.time then
-    self.finishedCallback()
-  end
+	local speedScale = self.speedScale
+	if self.speedAnimCurve ~= nil then
+		speedScale = speedScale * self.speedAnimCurve:get(self.time)
+	end
+
+	self.time = self.time + dt * speedScale
+	self:placeCamera()
+
+	local currentCamera = getCamera()
+	if currentCamera ~= self.camera then
+		self.overriddenCamera = currentCamera
+		setCamera(self.camera)
+	end
+
+	if self.finishedCallback ~= nil and self.maxTime < self.time then
+		self.finishedCallback()
+	end
 end
+
 function CameraPath:placeCamera()
-  local v1, v2, v3 = v1:get(self.time)
-  local v4, v5, v6, v7 = v4:get(self.time)
-  setTranslation(self.camera, v1, v2, v3)
-  setQuaternion(self.camera, v4, v5, v6, v7)
+	local x, y, z = self.posAnimCurve:get(self.time)
+	local qx, qy, qz, qw = self.rotAnimCurve:get(self.time)
+	setTranslation(self.camera, x, y, z)
+	setQuaternion(self.camera, qx, qy, qz, qw)
 end
+
 function CameraPath:activate()
-  self:placeCamera()
-  local v1 = getCamera()
-  self.overriddenCamera = v1
-  setCamera(self.camera)
+	self:placeCamera()
+	self.overriddenCamera = getCamera()
+	setCamera(self.camera)
 end
+
 function CameraPath:deactivate()
-  self.time = 0
-  if self.overriddenCamera ~= nil then
-    setCamera(self.overriddenCamera)
-  end
-  v1:removeUpdateable(self)
+	self.time = 0
+	if self.overriddenCamera ~= nil then
+		setCamera(self.overriddenCamera)
+	end
+	g_currentMission:removeUpdateable(self)
 end
