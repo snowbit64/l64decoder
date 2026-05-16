@@ -1,781 +1,586 @@
-Utils = {
-	getNoNil = function (value, setTo)
-		if value == nil then
-			return setTo
-		end
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
 
-		return value
-	end,
-	getNoNilRad = function (valueDeg, defaultRad)
-		if valueDeg == nil then
-			return defaultRad
-		end
-
-		return math.rad(valueDeg)
-	end,
-	limitTextToWidth = function (text, textSize, width, trimFront, trimReplaceText)
-		local replaceTextWidth = getTextWidth(textSize, trimReplaceText)
-		local indexOfFirstCharacter = 1
-		local indexOfLastCharacter = utf8Strlen(text)
-
-		if width >= 0 then
-			local totalWidth = getTextWidth(textSize, text)
-
-			if width < totalWidth then
-				if trimFront then
-					indexOfFirstCharacter = getTextLineLength(textSize, text, totalWidth - width + replaceTextWidth)
-					text = trimReplaceText .. utf8Substr(text, indexOfFirstCharacter)
-				else
-					indexOfLastCharacter = getTextLineLength(textSize, text, width - replaceTextWidth)
-					text = utf8Substr(text, 0, indexOfLastCharacter) .. trimReplaceText
-				end
-			end
-		end
-
-		return text, indexOfFirstCharacter, indexOfLastCharacter
-	end,
-	getMovedLimitedValue = function (curVal, maxVal, minVal, speed, dt, inverted)
-		local limitF = math.min
-		local limitF2 = math.max
-
-		if inverted then
-			minVal = maxVal
-			maxVal = minVal
-		end
-
-		if maxVal < minVal then
-			limitF = math.max
-			limitF2 = math.min
-		end
-
-		return limitF2(limitF(curVal + (maxVal - minVal) / speed * dt, maxVal), minVal)
-	end
-}
-
-function Utils.getMovedLimitedValues(currentValues, maxValues, minValues, numValues, speed, dt, inverted)
-	local ret = {}
-
-	for i = 1, numValues do
-		ret[i] = Utils.getMovedLimitedValue(currentValues[i], maxValues[i], minValues[i], speed, dt, inverted)
-	end
-
-	return ret
+Utils = {}
+function Utils.getNoNil(v0, v1)
+  if v0 == nil then
+    return v1
+  end
+  return v0
 end
-
-function Utils.setMovedLimitedValues(values, maxValues, minValues, numValues, speed, dt, inverted)
-	local changed = false
-
-	for i = 1, numValues do
-		local newValue = Utils.getMovedLimitedValue(values[i], maxValues[i], minValues[i], speed, dt, inverted)
-
-		if newValue ~= values[i] then
-			changed = true
-			values[i] = newValue
-		end
-	end
-
-	return changed
+function Utils.getNoNilRad(v0, v1)
+  if v0 == nil then
+    return v1
+  end
+  return math.rad(v0)
 end
-
-function Utils.removeModDirectory(filename)
-	local isMod = false
-	local isDlc = false
-	local dlcsDirectoryIndex = 0
-
-	if filename == nil then
-		printCallstack()
-	end
-
-	local filenameLower = filename:lower()
-
-	if g_modsDirectory then
-		local modsDirLen = g_modsDirectory:len()
-		local modsDirLower = g_modsDirectory:lower()
-
-		if filenameLower:sub(1, modsDirLen) == modsDirLower then
-			filename = filename:sub(modsDirLen + 1)
-			isMod = true
-		end
-
-		if not isMod then
-			local internalModsDirLen = g_internalModsDirectory:len()
-
-			if filenameLower:sub(1, internalModsDirLen) == g_internalModsDirectory:lower() then
-				filename = filename:sub(internalModsDirLen + 1)
-				isMod = true
-			end
-		end
-	end
-
-	if not isMod then
-		for i = 1, #g_dlcsDirectories do
-			local dlcsDir = g_dlcsDirectories[i].path:lower()
-			local dlcsDirLen = dlcsDir:len()
-
-			if filenameLower:sub(1, dlcsDirLen) == dlcsDir then
-				filename = filename:sub(dlcsDirLen + 1)
-				dlcsDirectoryIndex = i
-				isDlc = true
-
-				break
-			end
-		end
-	end
-
-	return filename, isMod, isDlc, dlcsDirectoryIndex
+function Utils.limitTextToWidth(v0, v1, v2, v3, v4)
+  local v5 = getTextWidth(v1, v4)
+  local v7 = utf8Strlen(v0)
+  if 0 <= v2 then
+    local v8 = getTextWidth(v1, v0)
+    if v2 < v8 then
+      if v3 then
+        local v9 = getTextLineLength(v1, v0, v8 - v2 + v5)
+        local v10 = utf8Substr(v0, v9)
+      else
+        v9 = getTextLineLength(v1, v0, v2 - v5)
+        local v11 = utf8Substr(v0, 0, v9)
+      end
+    end
+  end
+  return v0, v6, v7
 end
-
+function Utils.getMovedLimitedValue(v0, v1, v2, v3, v4, v5)
+  if v5 then
+  end
+  if v1 < v2 then
+  elseif v1 == v2 then
+    return v2
+  end
+  local v9 = v6(v0 + (v1 - v2) / v3 * v4, v1)
+  return v7(v9, v2)
+end
+function Utils:getMovedLimitedValues(v1, v2, v3, v4, v5, v6)
+  -- TODO: structure LOP_FORNPREP (pc 5, target 19)
+  local v11 = Utils.getMovedLimitedValue(self[1], v1[1], v2[1], v4, v5, v6)
+  {}[1] = v11
+  -- TODO: structure LOP_FORNLOOP (pc 18, target 6)
+  return {}
+end
+function Utils:setMovedLimitedValues(v1, v2, v3, v4, v5, v6)
+  -- TODO: structure LOP_FORNPREP (pc 4, target 22)
+  local v11 = Utils.getMovedLimitedValue(self[1], v1[1], v2[1], v4, v5, v6)
+  if v11 ~= self[1] then
+    self[1] = v11
+  end
+  -- TODO: structure LOP_FORNLOOP (pc 21, target 5)
+  return v7
+end
+function Utils:removeModDirectory()
+  if self == nil then
+    printCallstack()
+  end
+  local v4 = self:lower()
+  if g_modsDirectory then
+    local v5 = v5:len()
+    local v6 = v6:lower()
+    local v7 = v4:sub(1, v5)
+    if v7 == v6 then
+      v7 = self:sub(v5 + 1)
+    end
+    if not v1 then
+      v7 = v7:len()
+      local v8 = v4:sub(1, v7)
+      local v9 = v9:lower()
+      if v8 == v9 then
+        v8 = self:sub(v7 + 1)
+      end
+    end
+  end
+  if not v1 then
+    -- TODO: structure LOP_FORNPREP (pc 67, target 95)
+    v8 = v8:lower()
+    v9 = v8:len()
+    local v10 = v4:sub(1, v9)
+    if v10 == v8 then
+      v10 = self:sub(v9 + 1)
+      return v10, v1, true, 1
+    end
+    -- TODO: structure LOP_FORNLOOP (pc 94, target 68)
+  end
+  return self, v1, v2, v3
+end
 function Utils.getModNameAndBaseDirectory(filename)
-	local modName = nil
-	local baseDirectory = ""
-	local modFilename, isMod, isDlc, dlcsDirectoryIndex = Utils.removeModDirectory(filename)
-
-	if isMod or isDlc then
-		local f, l = modFilename:find("/")
-
-		if f ~= nil and l ~= nil and f > 1 then
-			modName = modFilename:sub(1, f - 1)
-
-			if isDlc then
-				baseDirectory = g_dlcsDirectories[dlcsDirectoryIndex].path .. modName .. "/"
-
-				if g_dlcModNameHasPrefix[modName] then
-					modName = g_uniqueDlcNamePrefix .. modName
-				end
-			else
-				baseDirectory = g_modNameToDirectory[modName] or g_modsDirectory .. modName .. "/"
-			end
-		end
-	end
-
-	return modName, baseDirectory
+  local v3, v4, v5, v6 = Utils.removeModDirectory(filename)
+  if not v4 then
+    -- if not v5 then goto L55 end
+  end
+  local v7, v8 = v3:find("/")
+  if v7 ~= nil and v8 ~= nil and 1 < v7 then
+    local v9 = v3:sub(1, v7 - 1)
+    if v5 then
+      -- if not g_dlcModNameHasPrefix[v9] then goto L55 end
+      return g_uniqueDlcNamePrefix .. v9, g_dlcsDirectories[v6].path .. v9 .. "/"
+    end
+    if not g_modNameToDirectory[v1] then
+    end
+  end
+  return v1, v2
 end
-
 function Utils.getVersatileRotation(repr, componentNode, dt, posX, posY, posZ, currentAngle, minAngle, maxAngle)
-	local vx, vy, vz = getVelocityAtLocalPos(componentNode, posX, posY, posZ)
-	local x, _, z = worldDirectionToLocal(getParent(repr), vx, vy, vz)
-	local length = MathUtil.vector2Length(x, z)
-	local steeringAngle = currentAngle
-
-	if length > 0.15 then
-		steeringAngle = math.atan2(x / length, z / length)
-
-		if steeringAngle < -math.pi * 0.5 then
-			steeringAngle = steeringAngle + 2 * math.pi
-		end
-	end
-
-	if minAngle ~= nil and minAngle ~= 0 and maxAngle ~= nil and maxAngle ~= 0 then
-		if maxAngle < steeringAngle then
-			steeringAngle = maxAngle
-		elseif steeringAngle < minAngle then
-			steeringAngle = minAngle
-		end
-	end
-
-	steeringAngle = MathUtil.normalizeRotationForShortestPath(steeringAngle, currentAngle)
-
-	if currentAngle < steeringAngle then
-		steeringAngle = math.min(currentAngle + 0.003 * dt, steeringAngle)
-	else
-		steeringAngle = math.max(currentAngle - 0.003 * dt, steeringAngle)
-	end
-
-	return steeringAngle
+  local v9, v10, v11 = getVelocityAtLocalPos(componentNode, posX, posY, posZ)
+  local v13 = getParent(repr)
+  local v12, v13, v14 = worldDirectionToLocal(v13, v9, v10, v11)
+  local v15 = MathUtil.vector2Length(v12, v14)
+  if 0.15 < v15 then
+    local v17 = math.atan2(v12 / v15, v14 / v15)
+    if v17 < -math.pi * 0.5 then
+    end
+  end
+  if minAngle ~= nil and minAngle ~= 0 and maxAngle ~= nil and maxAngle ~= 0 then
+    if maxAngle < v16 then
+    elseif v16 < minAngle then
+    end
+  end
+  v17 = MathUtil.normalizeRotationForShortestPath(v16, currentAngle)
+  if currentAngle < v17 then
+    v17 = math.min(currentAngle + 0.003 * dt, v17)
+    return v17
+  end
+  v17 = math.max(currentAngle - 0.003 * dt, v16)
+  return v17
 end
-
-function Utils.getYRotationBetweenNodes(node1, node2, offset1, offset2)
-	local dirX1 = 0
-	local dirZ1 = 1
-	local dirX2 = 0
-	local dirZ2 = 1
-
-	if offset1 ~= nil and offset1 ~= 0 then
-		dirX1, dirZ1 = MathUtil.getDirectionFromYRotation(offset1)
-	end
-
-	if offset2 ~= nil and offset2 ~= 0 then
-		dirX2, dirZ2 = MathUtil.getDirectionFromYRotation(offset2)
-	end
-
-	local wDirX1, _, wDirZ1 = localDirectionToWorld(node1, dirX1, 0, dirZ1)
-	local wDirX2, _, wDirZ2 = localDirectionToWorld(node2, dirX2, 0, dirZ2)
-	wDirX1, _, wDirZ1 = worldDirectionToLocal(node1, wDirX1, 0, wDirZ1)
-	wDirX2, _, wDirZ2 = worldDirectionToLocal(node1, wDirX2, 0, wDirZ2)
-	local dir = 1
-
-	if wDirX1 - wDirX2 > 0 then
-		dir = -dir
-	end
-
-	local angle = MathUtil.getVectorAngleDifference(wDirX1, 0, wDirZ1, wDirX2, 0, wDirZ2)
-
-	if math.abs(angle) > math.pi * 0.5 then
-		angle = -(math.pi - angle)
-	end
-
-	return angle * dir
+function Utils.getYRotationBetweenNodes(repr, componentNode, dt, posX, posY)
+  if dt ~= nil and dt ~= 0 then
+    local v9, v10 = MathUtil.getDirectionFromYRotation(dt)
+  end
+  if posX ~= nil and posX ~= 0 then
+    v9, v10 = MathUtil.getDirectionFromYRotation(posX)
+  end
+  local v9, v10, v11 = localDirectionToWorld(repr, posZ, 0, currentAngle)
+  local v12, v13, v14 = localDirectionToWorld(componentNode, minAngle, 0, maxAngle)
+  local v15, v16, v17 = worldDirectionToLocal(repr, v9, 0, v11)
+  v15, v16, v17 = worldDirectionToLocal(repr, v12, 0, v14)
+  if 0 < v15 - v15 then
+  end
+  v16 = MathUtil.getVectorAngleDifference(v9, 0, v11, v12, 0, v14)
+  if posY ~= false then
+    v17 = math.abs(v16)
+    if math.pi * 0.5 < v17 then
+    end
+  end
+  return v16 * v15
 end
-
-function Utils.getPerformanceClassIndex(profileClass)
-	profileClass = profileClass:lower()
-	local currentProfileIndex = GS_PROFILE_LOW
-
-	if profileClass == "medium" then
-		currentProfileIndex = GS_PROFILE_MEDIUM
-	elseif profileClass == "high" then
-		currentProfileIndex = GS_PROFILE_HIGH
-	elseif profileClass == "very high" then
-		currentProfileIndex = GS_PROFILE_VERY_HIGH
-	end
-
-	return currentProfileIndex
+function Utils:getPerformanceClassIndex()
+  local componentNode = self:lower()
+  if componentNode == "medium" then
+    return GS_PROFILE_MEDIUM
+  end
+  if self == "high" then
+    return GS_PROFILE_HIGH
+  end
+  if self == "very high" then
+  end
+  return componentNode
 end
-
 function Utils.getPerformanceClassFromIndex(profileClassIndex)
-	local currentProfileClass = "Low"
-
-	if profileClassIndex == GS_PROFILE_MEDIUM then
-		currentProfileClass = "Medium"
-	elseif profileClassIndex == GS_PROFILE_HIGH then
-		currentProfileClass = "High"
-	elseif profileClassIndex == GS_PROFILE_VERY_HIGH then
-		currentProfileClass = "Very High"
-	end
-
-	return currentProfileClass
+  if profileClassIndex == GS_PROFILE_MEDIUM then
+    return "Medium"
+  end
+  if profileClassIndex == GS_PROFILE_HIGH then
+    return "High"
+  end
+  if profileClassIndex == GS_PROFILE_VERY_HIGH then
+  end
+  return componentNode
 end
-
 function Utils.getPerformanceClassId()
-	return Utils.getPerformanceClassIndex(getPerformanceClass())
+  local componentNode = getPerformanceClass()
+  return Utils.getPerformanceClassIndex(...)
 end
-
-function Utils.getStateFromValues(values, steps, value)
-	local state = #values
-
-	for i = 1, #values do
-		if value <= values[i] + steps * 0.5 then
-			state = i
-
-			break
-		end
-	end
-
-	return state
+function Utils:getStateFromValues(componentNode, dt)
+  -- TODO: structure LOP_FORNPREP (pc 4, target 13)
+  if dt <= self[1] + componentNode * 0.5 then
+    return 1
+  end
+  -- TODO: structure LOP_FORNLOOP (pc 12, target 5)
+  return posX
 end
-
 function Utils.getValueIndex(targetValue, values)
-	local index = 1
-	local threshold = 0.0001
-
-	for k, val in pairs(values) do
-		if targetValue < val - threshold then
-			break
-		end
-
-		index = k
-	end
-
-	return index
+  for currentAngle, minAngle in pairs(values) do
+    if not (targetValue >= minAngle - 0.0001) then
+      break
+    end
+  end
+  return dt
 end
-
 function Utils.getNumTimeScales()
-	local timeScaleSettings = Platform.gameplay.timeScaleSettings
-	local numSettings = #timeScaleSettings
-
-	if g_addTestCommands then
-		local timeScaleDevSettings = Platform.gameplay.timeScaleDevSettings
-		numSettings = numSettings + #timeScaleDevSettings
-	end
-
-	return numSettings
+  if g_addTestCommands then
+  end
+  return componentNode
 end
-
 function Utils.getTimeScaleString(timeScaleIndex)
-	local timeScaleSettings = Platform.gameplay.timeScaleSettings
-	local speed = Utils.getTimeScaleFromIndex(timeScaleIndex)
-
-	if speed == 1 then
-		return g_i18n:getText("ui_realTime")
-	elseif timeScaleIndex > #timeScaleSettings then
-		return string.format("%dx (dev only)", speed)
-	elseif speed < 1 then
-		return string.format("%0.2fx", speed)
-	else
-		return string.format("%dx", speed)
-	end
+  local speed = Utils.getTimeScaleFromIndex(timeScaleIndex)
+  if speed == 1 then
+    return posX:getText("ui_realTime")
+  end
+  if #componentNode < timeScaleIndex then
+    posX = string.format("%dx (dev only)", speed)
+    return posX
+  end
+  if speed < 1 then
+    posX = string.format("%0.2fx", speed)
+    return posX
+  end
+  posX = string.format("%dx", speed)
+  return posX
 end
-
 function Utils.getTimeScaleIndex(timeScale)
-	local timeScaleSettings = Platform.gameplay.timeScaleSettings
-
-	if g_addTestCommands then
-		local timeScaleDevSettings = Platform.gameplay.timeScaleDevSettings
-
-		for i = #timeScaleDevSettings, 1, -1 do
-			if timeScaleDevSettings[i] <= timeScale then
-				return i + #timeScaleSettings
-			end
-		end
-	end
-
-	for i = #timeScaleSettings, 1, -1 do
-		if timeScaleSettings[i] <= timeScale then
-			return i
-		end
-	end
-
-	return 3
+  if g_addTestCommands then
+    -- TODO: structure LOP_FORNPREP (pc 10, target 18)
+    if Platform.gameplay.timeScaleDevSettings[#Platform.gameplay.timeScaleDevSettings] <= timeScale then
+      return #Platform.gameplay.timeScaleDevSettings + #Platform.gameplay.timeScaleSettings
+    end
+    -- TODO: structure LOP_FORNLOOP (pc 17, target 11)
+  end
+  -- TODO: structure LOP_FORNPREP (pc 21, target 27)
+  if componentNode[#componentNode] <= timeScale then
+    return #componentNode
+  end
+  -- TODO: structure LOP_FORNLOOP (pc 26, target 22)
+  return 3
 end
-
 function Utils.getTimeScaleFromIndex(timeScaleIndex)
-	local timeScaleSettings = Platform.gameplay.timeScaleSettings
-	timeScaleIndex = math.max(timeScaleIndex, 1)
-
-	if g_addTestCommands and timeScaleIndex > #timeScaleSettings then
-		local timeScaleDevSettings = Platform.gameplay.timeScaleDevSettings
-
-		return timeScaleDevSettings[timeScaleIndex - #timeScaleSettings]
-	end
-
-	return timeScaleSettings[timeScaleIndex]
+  local dt = math.max(timeScaleIndex, 1)
+  if g_addTestCommands and #Platform.gameplay.timeScaleSettings < dt then
+    return Platform.gameplay.timeScaleDevSettings[dt - #Platform.gameplay.timeScaleSettings]
+  end
+  return componentNode[timeScaleIndex]
 end
-
 function Utils.getMasterVolumeIndex(masterVolume)
-	masterVolume = masterVolume + 0.01
-	local masterVolumeIndex = 1
-
-	if masterVolume >= 1 then
-		masterVolumeIndex = 11
-	elseif masterVolume >= 0.9 then
-		masterVolumeIndex = 10
-	elseif masterVolume >= 0.8 then
-		masterVolumeIndex = 9
-	elseif masterVolume >= 0.7 then
-		masterVolumeIndex = 8
-	elseif masterVolume >= 0.6 then
-		masterVolumeIndex = 7
-	elseif masterVolume >= 0.5 then
-		masterVolumeIndex = 6
-	elseif masterVolume >= 0.4 then
-		masterVolumeIndex = 5
-	elseif masterVolume >= 0.3 then
-		masterVolumeIndex = 4
-	elseif masterVolume >= 0.2 then
-		masterVolumeIndex = 3
-	elseif masterVolume >= 0.1 then
-		masterVolumeIndex = 2
-	end
-
-	return masterVolumeIndex
+  if 1 <= masterVolume + 0.01 then
+    return 11
+  end
+  if 0.9 <= masterVolume then
+    return 10
+  end
+  if 0.8 <= masterVolume then
+    return 9
+  end
+  if 0.7 <= masterVolume then
+    return 8
+  end
+  if 0.6 <= masterVolume then
+    return 7
+  end
+  if 0.5 <= masterVolume then
+    return 6
+  end
+  if 0.4 <= masterVolume then
+    return 5
+  end
+  if 0.3 <= masterVolume then
+    return 4
+  end
+  if 0.2 <= masterVolume then
+    return 3
+  end
+  if 0.1 <= masterVolume then
+  end
+  return componentNode
 end
-
 function Utils.getMasterVolumeFromIndex(masterVolumeIndex)
-	if masterVolumeIndex >= 1 and masterVolumeIndex <= 10 then
-		return (masterVolumeIndex - 1) * 0.1
-	else
-		return 1
-	end
+  if 1 <= masterVolumeIndex and masterVolumeIndex <= 10 then
+    return (masterVolumeIndex - 1) * 0.1
+  end
+  return 1
 end
-
 function Utils.getUIScaleIndex(uiScale)
-	uiScale = uiScale + 0.01
-	local uiScaleIndex = 1
-
-	if uiScale >= 1.25 then
-		uiScaleIndex = 16
-	elseif uiScale >= 1.2 then
-		uiScaleIndex = 15
-	elseif uiScale >= 1.15 then
-		uiScaleIndex = 14
-	elseif uiScale >= 1.1 then
-		uiScaleIndex = 13
-	elseif uiScale >= 1.05 then
-		uiScaleIndex = 12
-	elseif uiScale >= 1 then
-		uiScaleIndex = 11
-	elseif uiScale >= 0.95 then
-		uiScaleIndex = 10
-	elseif uiScale >= 0.9 then
-		uiScaleIndex = 9
-	elseif uiScale >= 0.85 then
-		uiScaleIndex = 8
-	elseif uiScale >= 0.8 then
-		uiScaleIndex = 7
-	elseif uiScale >= 0.75 then
-		uiScaleIndex = 6
-	elseif uiScale >= 0.7 then
-		uiScaleIndex = 5
-	elseif uiScale >= 0.65 then
-		uiScaleIndex = 4
-	elseif uiScale >= 0.6 then
-		uiScaleIndex = 3
-	elseif uiScale >= 0.55 then
-		uiScaleIndex = 2
-	end
-
-	return uiScaleIndex
+  if 1.25 <= uiScale + 0.01 then
+    return 16
+  end
+  if 1.2 <= uiScale then
+    return 15
+  end
+  if 1.15 <= uiScale then
+    return 14
+  end
+  if 1.1 <= uiScale then
+    return 13
+  end
+  if 1.05 <= uiScale then
+    return 12
+  end
+  if 1 <= uiScale then
+    return 11
+  end
+  if 0.95 <= uiScale then
+    return 10
+  end
+  if 0.9 <= uiScale then
+    return 9
+  end
+  if 0.85 <= uiScale then
+    return 8
+  end
+  if 0.8 <= uiScale then
+    return 7
+  end
+  if 0.75 <= uiScale then
+    return 6
+  end
+  if 0.7 <= uiScale then
+    return 5
+  end
+  if 0.65 <= uiScale then
+    return 4
+  end
+  if 0.6 <= uiScale then
+    return 3
+  end
+  if 0.55 <= uiScale then
+  end
+  return componentNode
 end
-
 function Utils.getUIScaleFromIndex(uiScaleIndex)
-	if uiScaleIndex >= 1 and uiScaleIndex <= 16 then
-		return (uiScaleIndex - 1) * 0.05 + 0.5
-	else
-		return 1
-	end
+  if 1 <= uiScaleIndex and uiScaleIndex <= 16 then
+    return (uiScaleIndex - 1) * 0.05 + 0.5
+  end
+  return 1
 end
-
 function Utils.getRecordingVolumeIndex(volume)
-	volume = volume + 0.01
-
-	if volume >= 1.5 then
-		return 12
-	elseif volume >= 1.4 then
-		return 11
-	elseif volume >= 1.3 then
-		return 10
-	elseif volume >= 1.2 then
-		return 9
-	elseif volume >= 1.1 then
-		return 8
-	elseif volume >= 1 then
-		return 7
-	elseif volume >= 0.9 then
-		return 6
-	elseif volume >= 0.8 then
-		return 5
-	elseif volume >= 0.7 then
-		return 4
-	elseif volume >= 0.6 then
-		return 3
-	elseif volume > 0 then
-		return 2
-	else
-		return 1
-	end
+  if 1.5 <= volume + 0.01 then
+    return 12
+  end
+  if 1.4 <= volume then
+    return 11
+  end
+  if 1.3 <= volume then
+    return 10
+  end
+  if 1.2 <= volume then
+    return 9
+  end
+  if 1.1 <= volume then
+    return 8
+  end
+  if 1 <= volume then
+    return 7
+  end
+  if 0.9 <= volume then
+    return 6
+  end
+  if 0.8 <= volume then
+    return 5
+  end
+  if 0.7 <= volume then
+    return 4
+  end
+  if 0.6 <= volume then
+    return 3
+  end
+  if 0 < volume then
+    return 2
+  end
+  return 1
 end
-
 function Utils.getRecordingVolumeFromIndex(index)
-	if index == 1 then
-		return -1
-	else
-		return (index - 2) * 0.1 + 0.5
-	end
+  if index == 1 then
+    return -1
+  end
+  return (index - 2) * 0.1 + 0.5
 end
-
-function Utils.getFilename(filename, baseDir)
-	if filename == nil then
-		printCallstack()
-
-		return nil
-	end
-
-	if type(filename) ~= "string" then
-		Logging.warning("Invalid type for filename in Utils.getFilename")
-		printCallstack()
-
-		return nil
-	end
-
-	if filename:sub(1, 1) == "$" then
-		return filename:sub(2), false
-	elseif baseDir == nil or baseDir == "" then
-		return filename, false
-	elseif filename == "" then
-		return filename, true
-	end
-
-	return baseDir .. filename, true
+function Utils:getFilename(componentNode)
+  if self == nil then
+    return nil
+  end
+  local dt = type(self)
+  if dt ~= "string" then
+    Logging.warning("Invalid type for filename in Utils.getFilename")
+    printCallstack()
+    return nil
+  end
+  dt = self:sub(1, 1)
+  if dt == "$" then
+    dt = self:sub(2)
+    return dt, false
+  end
+  if componentNode ~= nil then
+    -- cmp-jump LOP_JUMPXEQKS R1 aux=0x8000000b -> L40
+  end
+  return self, false
+  if self == "" then
+    return self, true
+  end
+  return componentNode .. self, true
 end
-
-function Utils.getFilenameFromPath(path)
-	path = path:gsub("\\", "/")
-	local elems = path:split("/")
-
-	return elems[#elems]
+function Utils:getFilenameFromPath()
+  local componentNode = self:gsub("\\", "/")
+  componentNode = componentNode:split("/")
+  return componentNode[#componentNode]
 end
-
-function Utils.getDirectory(path)
-	path = path:gsub("\\", "/")
-	local elems = path:split("/")
-
-	if #elems > 0 then
-		return table.concat(elems, "/", 1, #elems - 1) .. "/"
-	end
-
-	return path
+function Utils:getDirectory()
+  local componentNode = self:gsub("\\", "/")
+  componentNode = componentNode:split("/")
+  if 0 < #componentNode then
+    local posZ = table.concat(componentNode, "/", 1, #componentNode - 1)
+    return posZ .. "/"
+  end
+  return self
 end
-
 function Utils.getMaxJointForceLimit(forceLimit1, forceLimit2)
-	if forceLimit1 < 0 or forceLimit2 < 0 then
-		return -1
-	end
-
-	return math.max(forceLimit1, forceLimit2)
+  if forceLimit1 >= 0 then
+    -- if v1 >= 0 then goto L8 end
+  end
+  return -1
+  return math.max(forceLimit1, forceLimit2)
 end
-
 function Utils.appendedFunction(oldFunc, newFunc)
-	if oldFunc ~= nil then
-		return function (...)
-			oldFunc(...)
-			newFunc(...)
-		end
-	else
-		return newFunc
-	end
+  if oldFunc ~= nil then
+    return function(...)
+      u0(...)
+      u1(...)
+    end
+  end
+  return newFunc
 end
-
 function Utils.prependedFunction(oldFunc, newFunc)
-	if oldFunc ~= nil then
-		return function (...)
-			newFunc(...)
-			oldFunc(...)
-		end
-	else
-		return newFunc
-	end
+  if oldFunc ~= nil then
+    return function(...)
+      u0(...)
+      u1(...)
+    end
+  end
+  return newFunc
 end
-
 function Utils.overwrittenFunction(oldFunc, newFunc)
-	if oldFunc ~= nil then
-		return function (self, ...)
-			return newFunc(self, oldFunc, ...)
-		end
-	else
-		return function (self, ...)
-			return newFunc(self, nil, ...)
-		end
-	end
+  if oldFunc ~= nil then
+    return function(oldFunc, ...)
+      return u0(...)
+    end
+  end
+  return function(oldFunc, ...)
+    return u0(...)
+  end
 end
-
-function Utils.shuffle(t)
-	local n = #t
-
-	while n > 2 do
-		local k = math.random(n)
-		t[k] = t[n]
-		t[n] = t[k]
-		n = n - 1
-	end
-
-	return t
+function Utils:shuffle()
+  while true do
+    if not (2 < componentNode) then
+      break
+    end
+    dt = math.random(componentNode)
+    self[componentNode] = self[dt]
+    self[dt] = self[componentNode]
+  end
+  return self
 end
-
-function Utils.get2DArray(str)
-	if str ~= nil then
-		local parts = str:split(" ")
-		local x, y = unpack(parts)
-
-		if x ~= nil and y ~= nil then
-			return {
-				Utils.evaluateFormula(x),
-				Utils.evaluateFormula(y)
-			}
-		end
-	end
-
-	return nil
-end
-
 function Utils.getFilenameInfo(filename, excludePath)
-	local cleanFilename = filename
-	local pos, _, extension = string.find(filename, "([^.]*)$")
-
-	if pos == 1 then
-		extension = nil
-	else
-		cleanFilename = string.sub(filename, 1, pos - 2)
-
-		if excludePath ~= nil and excludePath then
-			local lastSlash = cleanFilename:find("/[^/]*$")
-
-			if lastSlash ~= nil then
-				cleanFilename = string.sub(cleanFilename, lastSlash + 1)
-			end
-		end
-	end
-
-	return cleanFilename, extension
+  local posX, posY, posZ = string.find(filename, "([^.]*)$")
+  if posX == 1 then
+  else
+    local currentAngle = string.sub(filename, 1, posX - 2)
+    if excludePath ~= nil and excludePath then
+      currentAngle = currentAngle:find("/[^/]*$")
+      if currentAngle ~= nil then
+        local minAngle = string.sub(currentAngle, currentAngle + 1)
+      end
+    end
+  end
+  return dt, posZ
 end
-
-function Utils.stringToBoolean(value)
-	local ret = value ~= nil and value:lower() == "true"
-
-	return ret
+function Utils:stringToBoolean()
+  if self ~= nil then
+    local dt = self:lower()
+    if dt ~= "true" then
+    end
+  end
+  return componentNode
 end
-
 function Utils.getMinuteOfDayFromTime(value)
-	if value ~= nil then
-		local sepPos = string.find(value, ":")
-
-		if sepPos ~= nil then
-			local hours = tonumber(string.sub(value, 0, sepPos - 1))
-			local minutes = tonumber(string.sub(value, sepPos + 1))
-
-			if hours ~= nil and minutes ~= nil and hours <= 24 and minutes < 60 then
-				return hours * 60 + minutes
-			end
-		end
-	end
-
-	return nil
+  if value ~= nil then
+    local sepPos = string.find(value, ":")
+    if sepPos ~= nil then
+      local posX = string.sub(value, 0, sepPos - 1)
+      local dt = tonumber(...)
+      local posY = string.sub(value, sepPos + 1)
+      posX = tonumber(...)
+      if dt ~= nil and posX ~= nil and dt <= 24 and posX < 60 then
+        return dt * 60 + posX
+      end
+    end
+  end
+  return nil
 end
-
 function Utils.formatTime(timeInMinutes)
-	local timeHoursF = timeInMinutes / 60 + 0.0001
-	local timeHours = math.floor(timeHoursF)
-	local timeMinutes = math.floor((timeHoursF - timeHours) * 60)
-
-	return string.format("%02d:%02d", timeHours, timeMinutes)
+  local dt = math.floor(timeInMinutes / 60 + 0.0001)
+  local posX = math.floor((timeInMinutes / 60 + 0.0001 - dt) * 60)
+  return string.format("%02d:%02d", dt, posX)
 end
-
 function Utils.renderMultiColumnText(x, y, textSize, texts, spacingX, aligns)
-	for i, text in ipairs(texts) do
-		local align = aligns ~= nil and aligns[i] or RenderText.ALIGN_LEFT
-
-		setTextAlignment(align)
-
-		local w = getTextWidth(textSize, text)
-
-		if align == RenderText.ALIGN_RIGHT then
-			renderText(x + w, y, textSize, text)
-		elseif align == RenderText.ALIGN_CENTER then
-			renderText(x + w * 0.5, y, textSize, text)
-		else
-			renderText(x, y, textSize, text)
-		end
-
-		x = x + w + spacingX
-	end
-
-	setTextAlignment(RenderText.ALIGN_LEFT)
+  for v9, v10 in ipairs(texts) do
+    if aligns ~= nil then
+      -- if v5[v9] then goto L11 end
+    end
+    setTextAlignment(RenderText.ALIGN_LEFT)
+    local v12 = getTextWidth(textSize, v10)
+    if RenderText.ALIGN_LEFT == RenderText.ALIGN_RIGHT then
+      renderText(x + v12, y, textSize, v10)
+    elseif RenderText.ALIGN_LEFT == RenderText.ALIGN_CENTER then
+      renderText(x + v12 * 0.5, y, textSize, v10)
+    else
+      renderText(x, y, textSize, v10)
+    end
+  end
+  setTextAlignment(RenderText.ALIGN_LEFT)
 end
-
 function Utils.getCoinToss()
-	return math.random() >= 0.5
+  local y = math.random()
+  if 0.5 > y then
+  end
+  return true
 end
-
 function Utils.getNormallyDistributedRandomVariables(mean, sigmaSq)
-	local u, v = nil
-	local q = -1
-
-	while q >= 1 or q <= 0 do
-		u = -1 + 2 * math.random()
-		v = -1 + 2 * math.random()
-		q = u^2 + v^2
-	end
-
-	local p = math.sqrt(-2 * math.log(q) / math.log(math.exp(1)) / q)
-	local x1 = u * p
-	local x2 = v * p
-	local sigma = math.sqrt(sigmaSq)
-
-	return mean + sigma * x1, mean + sigma * x2
+  while true do
+    if 1 > spacingX and not (spacingX <= 0) then
+      break
+    end
+    maxAngle = math.random()
+    maxAngle = math.random()
+  end
+  local v10 = math.log(spacingX)
+  local aligns = math.sqrt(-2 * v10 / 1 / spacingX)
+  maxAngle = math.sqrt(sigmaSq)
+  return mean + maxAngle * textSize * aligns, mean + maxAngle * texts * aligns
 end
-
 function Utils.getIntersectionOfLinearMovementAndTerrain(node, speed)
-	local cx, cy, cz = nil
-	local x0, y0, z0 = getWorldTranslation(node)
-	local dx, dy, dz = localDirectionToWorld(node, 0, -1, 0)
-	local vx = dx * speed
-	local vy = dy * speed
-	local vz = dz * speed
-	local stepT = 1 / speed
-	local maxT = 50 / speed
-
-	for t = 2 * stepT, maxT, stepT do
-		local x = x0 + vx * t
-		local z = z0 + vz * t
-		local y = y0 + vy * t - 4.905 * t * t
-		local h = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, x, 0, z)
-
-		if y <= h then
-			cx = x
-			cy = h
-			cz = z
-
-			break
-		end
-
-		if VehicleDebug.state == VehicleDebug.DEBUG then
-			drawDebugPoint(x, y, z, 0, 0, 1, 1)
-		end
-	end
-
-	return cx, cy, cz
+  local aligns, currentAngle, minAngle = getWorldTranslation(node)
+  local maxAngle, v9, v10 = localDirectionToWorld(node, 0, -1, 0)
+  -- TODO: structure LOP_FORNPREP (pc 25, target 67)
+  local v22 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, aligns + maxAngle * speed * 2 * 1 / speed, 0, minAngle + v10 * speed * 2 * 1 / speed)
+  if currentAngle + v9 * speed * 2 * 1 / speed - 4.905 * 2 * 1 / speed * 2 * 1 / speed <= v22 then
+    return aligns + maxAngle * speed * 2 * 1 / speed, v22, minAngle + v10 * speed * 2 * 1 / speed
+  end
+  if VehicleDebug.state == VehicleDebug.DEBUG then
+    drawDebugPoint(v19, v21, v20, 0, 0, 1, 1)
+  end
+  -- TODO: structure LOP_FORNLOOP (pc 66, target 26)
+  return textSize, texts, spacingX
 end
-
 function Utils.clearBit(bitMask, bit)
-	local bitFlag = 2^bit
-
-	return bitAND(bitMask, bitNOT(bitFlag))
+  local aligns = bitNOT(2 ^ bit)
+  return bitAND(...)
 end
-
 function Utils.setBit(bitMask, bit)
-	local bitFlag = 2^bit
-
-	return bitOR(bitMask, bitFlag)
+  return bitOR(bitMask, 2 ^ bit)
 end
-
 function Utils.isBitSet(bitMask, bit)
-	local bitFlag = 2^bit
-
-	return bitAND(bitMask, bitFlag) ~= 0
+  local spacingX = bitAND(bitMask, 2 ^ bit)
+  if spacingX == 0 then
+  end
+  return true
 end
-
-function Utils.evaluateFormula(str)
-	if str == nil then
-		printCallstack()
-	end
-
-	if str:find("[_%a]") == nil then
-		local f = loadstring("g_asd_tempMathValue = " .. str)
-
-		if f ~= nil then
-			f()
-
-			str = g_asd_tempMathValue
-			g_asd_tempMathValue = nil
-		end
-	end
-
-	return tonumber(str)
-end
-
 function Utils.randomFloat(lowerValue, upperValue)
-	return lowerValue + math.random() * (upperValue - lowerValue)
+  local spacingX = math.random()
+  return lowerValue + spacingX * (upperValue - lowerValue)
 end
-
 function Utils.renderTextAtWorldPosition(x, y, z, text, textSize, textOffset, color)
-	local sx, sy, sz = project(x, y, z)
-	textOffset = textOffset or 0
-	local r = 0.5
-	local g = 1
-	local b = 0.5
-	local a = 1
-
-	if color then
-		a = color[4] or 1
-		b = color[3]
-		g = color[2]
-		r = color[1]
-	end
-
-	if sx > -1 and sx < 2 and sy > -1 and sy < 2 and sz <= 1 then
-		setTextAlignment(RenderText.ALIGN_CENTER)
-		setTextBold(false)
-		setTextColor(0, 0, 0, 0.75)
-		renderText(sx, sy - 0.0015 + textOffset, textSize, text)
-		setTextColor(r, g, b, a)
-		renderText(sx, sy + textOffset, textSize, text)
-		setTextAlignment(RenderText.ALIGN_LEFT)
-		setTextColor(1, 1, 1, 1)
-	end
+  local minAngle, maxAngle, v9 = project(x, y, z)
+  if color then
+  end
+  if -1 < minAngle and minAngle < 2 and -1 < maxAngle and maxAngle < 2 and v9 <= 1 then
+    setTextAlignment(RenderText.ALIGN_CENTER)
+    setTextBold(false)
+    setTextColor(0, 0, 0, 0.75)
+    renderText(minAngle, maxAngle - 0.0015 + textOffset, textSize, text)
+    setTextColor(v10, v11, v12, v13)
+    renderText(minAngle, maxAngle + textOffset, textSize, text)
+    setTextAlignment(RenderText.ALIGN_LEFT)
+    setTextColor(1, 1, 1, 1)
+  end
 end
-
 function Utils.getGreenRedBlendedColor(factor)
-	local r = math.min(2 * factor, 1)
-	local g = math.min(2 * (1 - factor), 1)
-
-	return r, g, 0, 1
+  local r = math.min(2 * factor, 1)
+  local g = math.min(2 * (1 - factor), 1)
+  return r, g, 0, 1
 end

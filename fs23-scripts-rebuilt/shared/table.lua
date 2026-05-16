@@ -1,326 +1,264 @@
-function table.addElement(t, newElement)
-	if t ~= nil and newElement ~= nil then
-		for k, element in ipairs(t) do
-			if element == newElement then
-				return false, k
-			end
-		end
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
 
-		t[#t + 1] = newElement
-
-		return true, #t
-	end
-
-	return false, -1
+table.addElement = function(self, v1)
+  if self ~= nil and v1 ~= nil then
+    for v5, v6 in ipairs(self) do
+      if not (v6 == v1) then
+        continue
+      end
+      return false, v5
+    end
+    self[#self + 1] = v1
+    return true, #self
+  end
+  return false, -1
 end
-
-function table.removeElement(list, element)
-	if list ~= nil and element ~= nil then
-		for i, v in ipairs(list) do
-			if v == element then
-				table.remove(list, i)
-
-				return true
-			end
-		end
-	end
-
-	return false
+table.removeElement = function(v0, v1)
+  if v0 ~= nil and v1 ~= nil then
+    for v5, v6 in ipairs(v0) do
+      if not (v6 == v1) then
+        continue
+      end
+      table.remove(v0, v5)
+      return true
+    end
+  end
+  return false
 end
-
-function table.clear(t)
-	for index, _ in pairs(t) do
-		t[index] = nil
-	end
+table.clear = function(self)
+  for v4, v5 in pairs(self) do
+    self[v4] = nil
+  end
 end
-
-function table.copy(sourceTable, depth)
-	if sourceTable == nil then
-		return nil
-	end
-
-	depth = (depth or 1) - 1
-	local newTable = {}
-
-	for key, value in pairs(sourceTable) do
-		if type(value) == "table" and depth > 0 then
-			newTable[key] = table.copy(value, depth)
-		else
-			newTable[key] = value
-		end
-	end
-
-	return setmetatable(newTable, getmetatable(sourceTable))
+table.copy = function(v0, v1)
+  if v0 == nil then
+    return nil
+  end
+  for v6, v7 in pairs(v0) do
+    local v8 = type(v7)
+    if v8 == "table" then
+      -- if 0 >= v1 then goto L30 end
+      v8 = table.copy(v7, v1)
+      v2[v6] = v8
+    else
+      v2[v6] = v7
+    end
+  end
+  v5 = getmetatable(v0)
+  v3 = setmetatable(...)
+  return v3
 end
-
-function table.copyIndex(sourceTable)
-	if sourceTable == nil then
-		return nil
-	end
-
-	local newTable = {}
-
-	for i = 1, #sourceTable do
-		newTable[i] = sourceTable[i]
-	end
-
-	return newTable
+table.copyIndex = function(self)
+  if self == nil then
+    return nil
+  end
+  -- TODO: structure LOP_FORNPREP (pc 9, target 13)
+  {}[1] = self[1]
+  -- TODO: structure LOP_FORNLOOP (pc 12, target 10)
+  return {}
 end
-
-function table.getRandomElement(t)
-	return t[math.random(#t)]
+table.getRandomElement = function(self)
+  local v2 = math.random(#self)
+  return self[v2]
 end
-
-function table.ifilter(list, closure)
-	local result = {}
-
-	for index, element in ipairs(list) do
-		if closure(element, index) then
-			result[#result + 1] = element
-		end
-	end
-
-	return result
+table.ifilter = function(v0, v1)
+  for v6, v7 in ipairs(v0) do
+    local v8 = v1(v7, v6)
+    if not v8 then
+      continue
+    end
+    v2[#v2 + 1] = v7
+  end
+  return v2
 end
-
-function table.filter(list, closure)
-	local result = {}
-
-	for key, element in pairs(list) do
-		if closure(element, key) then
-			result[key] = element
-		end
-	end
-
-	return result
+table.filter = function(v0, v1)
+  for v6, v7 in pairs(v0) do
+    local v8 = v1(v7, v6)
+    if not v8 then
+      continue
+    end
+    v2[v6] = v7
+  end
+  return v2
 end
-
-function table.size(t)
-	local count = 0
-
-	for _ in pairs(t) do
-		count = count + 1
-	end
-
-	return count
+table.size = function(v0)
+  for v5 in pairs(v0) do
+  end
+  return v1
 end
-
-function table.getSetUnion(set1, set2)
-	local result = {}
-
-	for element, _ in pairs(set1) do
-		result[element] = element
-	end
-
-	for element, _ in pairs(set2) do
-		result[element] = element
-	end
-
-	return result
+table.getSetUnion = function(v0, v1)
+  for v6, v7 in pairs(v0) do
+    v2[v6] = v6
+  end
+  for v6, v7 in pairs(v1) do
+    v2[v6] = v6
+  end
+  return v2
 end
-
-function table.getSetSubtraction(set1, set2)
-	local result = {}
-
-	for element, _ in pairs(set1) do
-		if set2[element] == nil then
-			result[element] = element
-		end
-	end
-
-	return result
+table.getSetSubtraction = function(v0, v1)
+  for v6, v7 in pairs(v0) do
+    if not (v1[v6] == nil) then
+      continue
+    end
+    v2[v6] = v6
+  end
+  return v2
 end
-
-function table.getSetIntersection(set1, set2)
-	local result = {}
-
-	for element1, _ in pairs(set1) do
-		if set2[element1] ~= nil then
-			result[element1] = element1
-		end
-	end
-
-	return result
+table.getSetIntersection = function(v0, v1)
+  for v6, v7 in pairs(v0) do
+    if not (v1[v6] ~= nil) then
+      continue
+    end
+    v2[v6] = v6
+  end
+  return v2
 end
-
-function table.hasSetIntersection(set1, set2)
-	for element1, _ in pairs(set1) do
-		if set2[element1] ~= nil then
-			return true
-		end
-	end
-
-	return false
+table.hasSetIntersection = function(v0, v1)
+  for v5, v6 in pairs(v0) do
+    if not (v1[v5] ~= nil) then
+      continue
+    end
+    return true
+  end
+  return false
 end
-
-function table.hasElement(list, element)
-	if list ~= nil and element ~= nil then
-		for _, element1 in pairs(list) do
-			if element1 == element then
-				return true
-			end
-		end
-	end
-
-	return false
+table.hasElement = function(v0, v1)
+  if v0 ~= nil and v1 ~= nil then
+    for v5, v6 in pairs(v0) do
+      if not (v6 == v1) then
+        continue
+      end
+      return true
+    end
+  end
+  return false
 end
-
-function table.findListElementFirstIndex(list, element, defaultReturn)
-	if list ~= nil and element ~= nil then
-		for key, value in ipairs(list) do
-			if value == element then
-				return key
-			end
-		end
-	end
-
-	return defaultReturn
+table.findListElementFirstIndex = function(v0, v1, v2)
+  if v0 ~= nil and v1 ~= nil then
+    for v6, v7 in ipairs(v0) do
+      if not (v7 == v1) then
+        continue
+      end
+      return v6
+    end
+  end
+  return v2
 end
-
-function table.equals(list1, list2, orderIndependent)
-	if #list1 ~= #list2 then
-		return false
-	end
-
-	if orderIndependent then
-		for _, element1 in ipairs(list1) do
-			if not table.hasElement(list2, element1) then
-				return false
-			end
-		end
-
-		for _, element2 in ipairs(list2) do
-			if not table.hasElement(list1, element2) then
-				return false
-			end
-		end
-
-		return true
-	else
-		for i, element1 in ipairs(list1) do
-			if list2[i] ~= element1 then
-				return false
-			end
-		end
-
-		return true
-	end
+table.equals = function(v0, v1, v2)
+  if #v0 ~= #v1 then
+    return false
+  end
+  if v2 then
+    for v6, v7 in ipairs(v0) do
+      local v8 = table.hasElement(v1, v7)
+      if not not v8 then
+        continue
+      end
+      return false
+    end
+    for v6, v7 in ipairs(v1) do
+      v8 = table.hasElement(v0, v7)
+      if not not v8 then
+        continue
+      end
+      return false
+    end
+    return true
+  end
+  for v6, v7 in ipairs(v0) do
+    if not (v1[v6] ~= v7) then
+      continue
+    end
+    return false
+  end
+  return true
 end
-
-function table.toSet(list)
-	local result = {}
-
-	for _, element in ipairs(list) do
-		result[element] = element
-	end
-
-	return result
+table.toSet = function(v0)
+  for v5, v6 in ipairs(v0) do
+    v1[v6] = v6
+  end
+  return v1
 end
-
-function table.toList(set)
-	local result = {}
-
-	for element, _ in pairs(set) do
-		result[#result + 1] = element
-	end
-
-	return result
+table.toList = function(v0)
+  for v5, v6 in pairs(v0) do
+    v1[#v1 + 1] = v5
+  end
+  return v1
 end
-
-function table.toHash(set)
-	local result = {}
-
-	for element, value in pairs(set) do
-		result[element] = value
-	end
-
-	return result
+table.toHash = function(v0)
+  for v5, v6 in pairs(v0) do
+    v1[v5] = v6
+  end
+  return v1
 end
-
-function table.equalSets(set1, set2)
-	for k, _ in pairs(set1) do
-		if set2[k] == nil then
-			return false
-		end
-	end
-
-	for k, _ in pairs(set2) do
-		if set1[k] == nil then
-			return false
-		end
-	end
-
-	return true
+table.equalSets = function(self, v1)
+  for v5, v6 in pairs(self) do
+    if not (v1[v5] == nil) then
+      continue
+    end
+    return false
+  end
+  for v5, v6 in pairs(v1) do
+    if not (self[v5] == nil) then
+      continue
+    end
+    return false
+  end
+  return true
 end
-
-function table.isSubset(set1, set2)
-	for k, _ in pairs(set1) do
-		if set2[k] == nil then
-			return false
-		end
-	end
-
-	return true
+table.isSubset = function(v0, v1)
+  for v5, v6 in pairs(v0) do
+    if not (v1[v5] == nil) then
+      continue
+    end
+    return false
+  end
+  return true
 end
-
-function table.isRealSubset(set1, set2)
-	for k, _ in pairs(set1) do
-		if set2[k] == nil then
-			return false
-		end
-	end
-
-	for k, _ in pairs(set2) do
-		if set1[k] ~= nil then
-			return true
-		end
-	end
-
-	return false
+table.isRealSubset = function(self, v1)
+  for v5, v6 in pairs(self) do
+    if not (v1[v5] == nil) then
+      continue
+    end
+    return false
+  end
+  for v5, v6 in pairs(v1) do
+    if not (self[v5] ~= nil) then
+      continue
+    end
+    return true
+  end
+  return false
 end
-
-function table.pack(...)
-	return {
-		n = select("#", ...),
-		...
-	}
+table.push = function(self, v1)
+  self[#self + 1] = v1
 end
-
-function table.unpack(t, startIndex, length)
-	return unpack(t, startIndex, length)
+table.pop = function(self)
+  self[#self] = nil
+  return self[#self]
 end
-
-function table.push(t, v)
-	t[#t + 1] = v
+table.concatKeys = function(v0, v1)
+  for v6, v7 in pairs(v0) do
+    local v9 = tostring(v6)
+    v2[#v2 + 1] = v9
+  end
+  v3 = table.concat(v2, v1)
+  return v3
 end
-
-function table.pop(t)
-	local v = t[#t]
-	t[#t] = nil
-
-	return v
+table.pack = function(...)
+  local v2 = select(...)
+  return {n = v2}
 end
-
-function table.concatKeys(t, separator)
-	local keys = {}
-
-	for k, _ in pairs(t) do
-		keys[#keys + 1] = tostring(k)
-	end
-
-	return table.concat(keys, separator)
+table.unpack = function(v0, v1, v2)
+  return unpack(v0, v1, v2)
 end
-
-function table.isArray(t)
-	local i = 0
-
-	for _ in pairs(t) do
-		i = i + 1
-
-		if t[i] == nil then
-			return false
-		end
-	end
-
-	return true
+table.isArray = function(self)
+  for v5 in pairs(self) do
+    if not (self[v1 + 1] == nil) then
+      continue
+    end
+    return false
+  end
+  return true
 end

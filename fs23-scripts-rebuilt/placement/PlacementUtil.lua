@@ -1,210 +1,197 @@
-PlacementUtil = {
-	TEST_HEIGHT = 10,
-	TEST_STEP_SIZE = 1,
-	NETHER_HEIGHT = -100
-}
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
 
+PlacementUtil = {TEST_HEIGHT = 10, TEST_STEP_SIZE = 1, NETHER_HEIGHT = -100}
 function PlacementUtil.getPlace(places, size, usage, includeDynamics, includeStatics, doExactTest)
-	for _, place in pairs(places) do
-		if size.width <= place.maxWidth and size.length <= place.maxLength and size.height <= place.maxHeight then
-			local placeUsage = usage[place]
-
-			if placeUsage == nil then
-				placeUsage = 0
-			end
-
-			local halfSizeX = size.width * 0.5
-
-			for width = placeUsage + halfSizeX, place.width - halfSizeX, PlacementUtil.TEST_STEP_SIZE do
-				local x = place.startX + width * place.dirX
-				local y = place.startY + width * place.dirY
-				local z = place.startZ + width * place.dirZ
-				local terrainHeight = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, x, y, z)
-				y = math.max(terrainHeight + 0.5, y)
-				PlacementUtil.tempHasCollision = false
-
-				overlapBox(x, y, z, place.rotX, place.rotY, place.rotZ, size.width * 0.5, PlacementUtil.TEST_HEIGHT * 0.5, size.length * 0.5, "PlacementUtil.collisionTestCallback", nil, 1577471, includeDynamics, includeStatics, doExactTest)
-
-				if not PlacementUtil.tempHasCollision then
-					local vehicleX = x - size.widthOffset * place.dirX - size.lengthOffset * place.dirPerpX
-					local vehicleY = y - size.widthOffset * place.dirY - size.lengthOffset * place.dirPerpY
-					local vehicleZ = z - size.widthOffset * place.dirZ - size.lengthOffset * place.dirPerpZ
-					terrainHeight = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, x, y, z)
-					y = math.max(terrainHeight + place.yOffset, y)
-
-					return vehicleX, vehicleY, vehicleZ, place, width + halfSizeX, y - terrainHeight
-				end
-			end
-		end
-	end
-
-	return nil
+  for v9, v10 in pairs(places) do
+    if not (size.width <= v10.maxWidth) then
+      continue
+    end
+    if not (size.length <= v10.maxLength) then
+      continue
+    end
+    if not (size.height <= v10.maxHeight) then
+      continue
+    end
+    if usage[v10] == nil then
+    end
+    -- TODO: structure LOP_FORNPREP (pc 38, target 175)
+    local v19 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, v10.startX + (v11 + size.width * 0.5) * v10.dirX, v10.startY + (v11 + size.width * 0.5) * v10.dirY, v10.startZ + (v11 + size.width * 0.5) * v10.dirZ)
+    local v20 = math.max(v19 + 0.5, v10.startY + (v11 + size.width * 0.5) * v10.dirY)
+    PlacementUtil.tempHasCollision = false
+    overlapBox(v10.startX + (v11 + size.width * 0.5) * v10.dirX, v20, v10.startZ + (v11 + size.width * 0.5) * v10.dirZ, v10.rotX, v10.rotY, v10.rotZ, size.width * 0.5, PlacementUtil.TEST_HEIGHT * 0.5, size.length * 0.5, "PlacementUtil.collisionTestCallback", nil, 1577471, includeDynamics, includeStatics, doExactTest)
+    if not PlacementUtil.tempHasCollision then
+      local v23 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, v10.startX + (v11 + size.width * 0.5) * v10.dirX, v20, v10.startZ + (v11 + size.width * 0.5) * v10.dirZ)
+      v23 = math.max(v23 + v10.yOffset, v20)
+      return v10.startX + (v11 + size.width * 0.5) * v10.dirX - size.widthOffset * v10.dirX - size.lengthOffset * v10.dirPerpX, v20 - size.widthOffset * v10.dirY - size.lengthOffset * v10.dirPerpY, v10.startZ + (v11 + size.width * 0.5) * v10.dirZ - size.widthOffset * v10.dirZ - size.lengthOffset * v10.dirPerpZ, v10, v11 + size.width * 0.5 + size.width * 0.5, v23 - v23
+    end
+    -- TODO: structure LOP_FORNLOOP (pc 174, target 39)
+  end
+  return nil
 end
-
-function PlacementUtil.markPlaceUsed(usage, place, width)
-	usage[place] = width
+function PlacementUtil:markPlaceUsed(v1, v2)
+  self[v1] = v2
 end
-
-function PlacementUtil.unmarkPlaceUsed(usage, place)
-	usage[place] = nil
+function PlacementUtil:unmarkPlaceUsed(v1)
+  self[v1] = nil
 end
-
-function PlacementUtil:collisionTestCallback(transformId)
-	if g_currentMission.nodeToObject[transformId] ~= nil or g_currentMission.players[transformId] ~= nil or g_currentMission:getNodeObject(transformId) ~= nil then
-		PlacementUtil.tempHasCollision = true
-
-		return false
-	end
-
-	return true
+function PlacementUtil.collisionTestCallback(v0, v1)
+  if g_currentMission.nodeToObject[v1] == nil and g_currentMission.players[v1] == nil then
+    local v2 = v2:getNodeObject(v1)
+    -- cmp-jump LOP_JUMPXEQKNIL R2 aux=0x0 -> L25
+  end
+  PlacementUtil.tempHasCollision = true
+  return false
+  return true
 end
-
-function PlacementUtil.loadPlaceFromXML(xmlFile, key, rootNode, i3dMappings)
-	local startNode = xmlFile:getValue(key .. "#startNode", nil, rootNode, i3dMappings)
-	local endNode = xmlFile:getValue(key .. "#endNode", nil, rootNode, i3dMappings)
-	local place = PlacementUtil.loadPlaceFromNode(startNode, endNode)
-
-	if place == nil then
-		return nil
-	end
-
-	place.maxWidth = xmlFile:getValue(key .. "#maxWidth") or place.maxWidth
-	place.maxLength = xmlFile:getValue(key .. "#maxLength") or place.maxLength
-	place.maxHeight = xmlFile:getValue(key .. "#maxHeight") or place.maxHeight
-	place.length = xmlFile:getValue(key .. "#length") or place.length
-
-	return place
+function PlacementUtil:loadPlaceFromXML(v1, v2, v3)
+  local v4 = self:getValue(v1 .. "#startNode", nil, v2, v3)
+  local v5 = self:getValue(v1 .. "#endNode", nil, v2, v3)
+  local v6 = PlacementUtil.loadPlaceFromNode(v4, v5)
+  if v6 == nil then
+    return nil
+  end
+  local v7 = self:getValue(v1 .. "#maxWidth")
+  if not v7 then
+  end
+  v6.maxWidth = v7
+  v7 = self:getValue(v1 .. "#maxLength")
+  if not v7 then
+  end
+  v6.maxLength = v7
+  v7 = self:getValue(v1 .. "#maxHeight")
+  if not v7 then
+  end
+  v6.maxHeight = v7
+  v7 = self:getValue(v1 .. "#length")
+  if not v7 then
+  end
+  v6.length = v7
+  return v6
 end
-
 function PlacementUtil.loadPlaceFromNode(startNode, endNode)
-	if startNode == nil then
-		return nil
-	end
-
-	local place = {}
-	place.startX, place.startY, place.startZ = getWorldTranslation(startNode)
-	place.width = getUserAttribute(startNode, "width") or 2
-	place.length = getUserAttribute(startNode, "length") or 20
-	place.yOffset = getUserAttribute(startNode, "yOffset") or 1
-	place.maxWidth = getUserAttribute(startNode, "maxWidth") or math.huge
-	place.maxLength = getUserAttribute(startNode, "maxLength") or math.huge
-	place.maxHeight = getUserAttribute(startNode, "maxHeight") or math.huge
-	local numChildren = getNumOfChildren(startNode)
-
-	if endNode == nil then
-		if numChildren == 1 then
-			endNode = getChildAt(startNode, 0)
-		else
-			Logging.warning("No end node given and no child node present for place %s", getName(startNode))
-		end
-	end
-
-	if endNode ~= nil then
-		local x, y, z = getWorldTranslation(endNode)
-		local dx = x - place.startX
-		local dy = y - place.startY
-		local dz = z - place.startZ
-		place.width = MathUtil.vector3Length(dx, dy, dz)
-		local dirX, dirY, dirZ = MathUtil.vector3Normalize(dx, dy, dz)
-		local wdirX, wdirY, wdirZ = worldDirectionToLocal(getParent(startNode), dirX, dirY, dirZ)
-
-		setDirection(startNode, wdirX, wdirY, wdirZ, 0, 1, 0)
-		rotateAboutLocalAxis(startNode, math.rad(-90), 0, 1, 0)
-	end
-
-	if numChildren > 1 then
-		Logging.warning("loadPlaceFromNode: Node '%s' has more than one child node. Use 'maxLength' user- or xml-attribute to limit the maximum vehicle length.", getName(startNode))
-	end
-
-	place.rotX, place.rotY, place.rotZ = getWorldRotation(startNode)
-	place.dirX, place.dirY, place.dirZ = localDirectionToWorld(startNode, 1, 0, 0)
-	place.dirPerpX, place.dirPerpY, place.dirPerpZ = localDirectionToWorld(startNode, 0, 0, 1)
-
-	return place
+  if startNode == nil then
+    return nil
+  end
+  local v3, v4, v5 = getWorldTranslation(startNode)
+  v4 = getUserAttribute(startNode, "width")
+  v4 = getUserAttribute(startNode, "length")
+  v4 = getUserAttribute(startNode, "yOffset")
+  v3 = getUserAttribute(startNode, "maxWidth")
+  if not v3 then
+  end
+  v2.maxWidth = v3
+  v3 = getUserAttribute(startNode, "maxLength")
+  if not v3 then
+  end
+  v2.maxLength = v3
+  v3 = getUserAttribute(startNode, "maxHeight")
+  if not v3 then
+  end
+  v2.maxHeight = v3
+  v3 = getNumOfChildren(startNode)
+  if endNode == nil then
+    if v3 == 1 then
+      v4 = getChildAt(startNode, 0)
+    else
+      local v6 = getName(startNode)
+      Logging.warning(...)
+    end
+  end
+  if endNode ~= nil then
+    v4, v5, v6 = getWorldTranslation(endNode)
+    local v10 = MathUtil.vector3Length(v4 - v2.startX, v5 - v2.startY, v6 - v2.startZ)
+    v2.width = v10
+    local v10, v11, v12 = MathUtil.vector3Normalize(v4 - v2.startX, v5 - v2.startY, v6 - v2.startZ)
+    local v14 = getParent(startNode)
+    local v13, v14, v15 = worldDirectionToLocal(v14, v10, v11, v12)
+    setDirection(startNode, v13, v14, v15, 0, 1, 0)
+    rotateAboutLocalAxis(startNode, -1.5707963267948966, 0, 1, 0)
+  end
+  if 1 < v3 then
+    v6 = getName(startNode)
+    Logging.warning(...)
+  end
+  v4, v5, v6 = getWorldRotation(startNode)
+  v2.rotX = v4
+  v2.rotY = v5
+  v2.rotZ = v6
+  v4, v5, v6 = localDirectionToWorld(startNode, 1, 0, 0)
+  v2.dirX = v4
+  v2.dirY = v5
+  v2.dirZ = v6
+  v4, v5, v6 = localDirectionToWorld(startNode, 0, 0, 1)
+  v2.dirPerpX = v4
+  v2.dirPerpY = v5
+  v2.dirPerpZ = v6
+  return v2
 end
-
 function PlacementUtil.createRestrictedZone(node)
-	local restrictedZone = {}
-	local _ = nil
-	restrictedZone.x, _, restrictedZone.z = getWorldTranslation(node)
-
-	if getNumOfChildren(node) > 0 then
-		local x, _, z = getTranslation(getChildAt(node, 0))
-		restrictedZone.width = math.abs(x)
-		restrictedZone.length = math.abs(z)
-
-		if x < 0 then
-			restrictedZone.x = restrictedZone.x + x
-		end
-
-		if z < 0 then
-			restrictedZone.z = restrictedZone.z + z
-		end
-	else
-		restrictedZone.width = 1
-		restrictedZone.length = 1
-	end
-
-	return restrictedZone
+  local v3, v4, v5 = getWorldTranslation(node)
+  v3 = getNumOfChildren(node)
+  if 0 < v3 then
+    v4 = getChildAt(node, 0)
+    v3, v4, v5 = getTranslation(...)
+    local v6 = math.abs(v3)
+    v6 = math.abs(v5)
+    if v3 < 0 then
+    end
+    -- if v5 >= 0 then goto L64 end
+    v1.z = v1.z + v5
+    return v1
+  end
+  v1.width = 1
+  v1.length = 1
+  return v1
 end
-
 function PlacementUtil.isInsideRestrictedZone(restrictedZones, x, y, z, doWaterCheck)
-	for _, restrictedZone in pairs(restrictedZones) do
-		local dx = restrictedZone.x + restrictedZone.width - x
-		local dz = restrictedZone.z + restrictedZone.length - z
-
-		if dx > 0 and dx < restrictedZone.width and dz > 0 and dz < restrictedZone.length then
-			return true
-		end
-	end
-
-	doWaterCheck = Utils.getNoNil(doWaterCheck, true)
-
-	if doWaterCheck then
-		local waterY = g_currentMission.environmentAreaSystem:getWaterYAtWorldPosition(x, y, z) or -2000
-
-		if y < waterY - 0.5 then
-			return true
-		end
-	end
-
-	return false
+  for v8, v9 in pairs(restrictedZones) do
+    if not (0 < v9.x + v9.width - x) then
+      continue
+    end
+    if not (v9.x + v9.width - x < v9.width) then
+      continue
+    end
+    if not (0 < v9.z + v9.length - z) then
+      continue
+    end
+    if not (v9.z + v9.length - z < v9.length) then
+      continue
+    end
+    return true
+  end
+  v5 = Utils.getNoNil(doWaterCheck, true)
+  if v5 then
+    v6 = v6:getWaterYAtWorldPosition(x, y, z)
+    if y < (v6 or -2000) - 0.5 then
+      return true
+    end
+  end
+  return false
 end
-
 function PlacementUtil.isInsidePlacementPlaces(places, x, y, z)
-	for _, place in pairs(places) do
-		local dx = place.dirX
-		local dz = place.dirZ
-		local sx = place.startX
-		local sz = place.startZ
-		local width = place.width
-		local t = (x - sx) * dx + (z - sz) * dz
-		local distance = nil
-
-		if t >= 0 and t <= width then
-			distance = math.abs((sz - z) * dx - (sx - x) * dz)
-		elseif t < 0 then
-			distance = math.sqrt((sx - x) * (sx - x) + (sz - z) * (sz - z))
-		else
-			local ex = place.startX + width * dx
-			local ez = place.startZ + width * dz
-			distance = math.sqrt((ex - x) * (ex - x) + (ez - z) * (ez - z))
-		end
-
-		if distance <= place.length * 0.5 then
-			return true
-		end
-	end
-
-	return false
+  for v7, v8 in pairs(places) do
+    if 0 <= (x - v8.startX) * v8.dirX + (z - v8.startZ) * v8.dirZ then
+      -- if (v1 - v8.startX) * v8.dirX + (v3 - v8.startZ) * v8.dirZ > v8.width then goto L37 end
+      local v16 = math.abs((v8.startZ - z) * v8.dirX - (v8.startX - x) * v8.dirZ)
+    elseif (x - v8.startX) * v8.dirX + (z - v8.startZ) * v8.dirZ < 0 then
+      v16 = math.sqrt((v8.startX - x) * (v8.startX - x) + (v8.startZ - z) * (v8.startZ - z))
+    else
+      local v18 = math.sqrt((v8.startX + v8.width * v8.dirX - x) * (v8.startX + v8.width * v8.dirX - x) + (v8.startZ + v8.width * v8.dirZ - z) * (v8.startZ + v8.width * v8.dirZ - z))
+    end
+    if not (v15 <= v8.length * 0.5) then
+      continue
+    end
+    return true
+  end
+  return false
 end
-
-function PlacementUtil.registerXMLPaths(schema, basePath)
-	schema:register(XMLValueType.NODE_INDEX, basePath .. ".spawnPlaces.spawnPlace(?)#startNode", "Spawn area start node, end node default is first child")
-	schema:register(XMLValueType.NODE_INDEX, basePath .. ".spawnPlaces.spawnPlace(?)#endNode", "Spawn area end node, end node is first child")
-	schema:register(XMLValueType.FLOAT, basePath .. ".spawnPlaces.spawnPlace(?)#width", "Spawn area width in m if no child is present for node")
-	schema:register(XMLValueType.FLOAT, basePath .. ".spawnPlaces.spawnPlace(?)#length", "Spawn area length in m if no child is present for node")
-	schema:register(XMLValueType.FLOAT, basePath .. ".spawnPlaces.spawnPlace(?)#maxWidth", "Spawn area maximum width of object to spawn")
-	schema:register(XMLValueType.FLOAT, basePath .. ".spawnPlaces.spawnPlace(?)#maxLength", "Spawn area maximum length of object to spawn")
-	schema:register(XMLValueType.FLOAT, basePath .. ".spawnPlaces.spawnPlace(?)#maxHeight", "Spawn area maximum height of object to spawn")
+function PlacementUtil:registerXMLPaths(x)
+  self:register(XMLValueType.NODE_INDEX, x .. ".spawnPlaces.spawnPlace(?)#startNode", "Spawn area start node, end node default is first child")
+  self:register(XMLValueType.NODE_INDEX, x .. ".spawnPlaces.spawnPlace(?)#endNode", "Spawn area end node, end node is first child")
+  self:register(XMLValueType.FLOAT, x .. ".spawnPlaces.spawnPlace(?)#width", "Spawn area width in m if no child is present for node")
+  self:register(XMLValueType.FLOAT, x .. ".spawnPlaces.spawnPlace(?)#length", "Spawn area length in m if no child is present for node")
+  self:register(XMLValueType.FLOAT, x .. ".spawnPlaces.spawnPlace(?)#maxWidth", "Spawn area maximum width of object to spawn")
+  self:register(XMLValueType.FLOAT, x .. ".spawnPlaces.spawnPlace(?)#maxLength", "Spawn area maximum length of object to spawn")
+  self:register(XMLValueType.FLOAT, x .. ".spawnPlaces.spawnPlace(?)#maxHeight", "Spawn area maximum height of object to spawn")
 end
