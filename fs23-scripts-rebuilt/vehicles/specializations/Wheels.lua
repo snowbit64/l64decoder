@@ -2867,9 +2867,9 @@ function Wheels:updateWheelSink(wheel, dt, groundWetness)
         v19 = math.min(...)
         v20 = math.max(0.333 * (2 * v19 + groundWetness) * v16, v17)
       end
-      if wheel.densityType == FieldGroundType.PLOWED and wheel.oppositeWheelIndex ~= nil and wheelMass.wheels[wheel.oppositeWheelIndex].densityType ~= nil and wheelMass.wheels[wheel.oppositeWheelIndex].densityType ~= FieldGroundType.PLOWED then
+      if wheel.densityType == FieldGroundType.PLOWED and wheel.oppositeWheelIndex ~= nil and rainScale.wheels[wheel.oppositeWheelIndex].densityType ~= nil and rainScale.wheels[wheel.oppositeWheelIndex].densityType ~= FieldGroundType.PLOWED then
       end
-      local v16 = math.min(additionalMass, wheel.maxWheelSink)
+      local v16 = math.min(timeSinceLastRain, wheel.maxWheelSink)
       local v13 = math.min(0.2 * wheel.radiusOriginal, v16 * brakeForce)
     elseif wheel.contact == Wheels.WHEEL_NO_CONTACT then
     end
@@ -2891,8 +2891,8 @@ function Wheels:updateWheelSink(wheel, dt, groundWetness)
         wheel.radius = wheel.radiusOriginal - wheel.sink
         if self.isServer then
           self:setWheelPositionDirty(wheel)
-          wheel.sinkLongStiffnessFactor = 1 - 0.1 * wheel.sink / additionalMass * (1 + 0.4 * groundWetness)
-          wheel.sinkLatStiffnessFactor = 1 - 0.2 * wheel.sink / additionalMass * (1 + 0.4 * groundWetness)
+          wheel.sinkLongStiffnessFactor = 1 - 0.1 * wheel.sink / timeSinceLastRain * (1 + 0.4 * groundWetness)
+          wheel.sinkLatStiffnessFactor = 1 - 0.2 * wheel.sink / timeSinceLastRain * (1 + 0.4 * groundWetness)
           self:setWheelTireFrictionDirty(wheel)
         end
       end
@@ -2907,7 +2907,7 @@ function Wheels:updateWheelFriction(wheel, dt, groundWetness)
     end
     if wheel.contact == Wheels.WHEEL_GROUND_CONTACT then
     end
-    local v7 = v7(v8, true, additionalMass)
+    local v7 = v7(v8, true, timeSinceLastRain)
     local v8 = WheelsUtil.getTireFriction(wheel.tireType, v7, groundWetness, temperature)
     local v9 = self:getLastSpeed()
     if 0.2 < v9 and v8 ~= wheel.tireGroundFrictionCoeff then
@@ -2918,8 +2918,8 @@ function Wheels:updateWheelFriction(wheel, dt, groundWetness)
 end
 function Wheels:updateWheelBase(wheel)
   if self.isServer and self.isAddedToPhysics then
-    local additionalMass = createWheelShape(wheel.node, wheel.positionX - wheel.directionX * wheel.deltaY, wheel.positionY - wheel.directionY * wheel.deltaY, wheel.positionZ - wheel.directionZ * wheel.deltaY, wheel.radius, wheel.suspTravel, wheel.spring, wheel.damperCompressionLowSpeed, wheel.damperCompressionHighSpeed, wheel.damperCompressionLowSpeedThreshold, wheel.damperRelaxationLowSpeed, wheel.damperRelaxationHighSpeed, wheel.damperRelaxationLowSpeedThreshold, wheel.mass, 251, wheel.wheelShape)
-    wheel.wheelShape = additionalMass
+    local timeSinceLastRain = createWheelShape(wheel.node, wheel.positionX - wheel.directionX * wheel.deltaY, wheel.positionY - wheel.directionY * wheel.deltaY, wheel.positionZ - wheel.directionZ * wheel.deltaY, wheel.radius, wheel.suspTravel, wheel.spring, wheel.damperCompressionLowSpeed, wheel.damperCompressionHighSpeed, wheel.damperCompressionLowSpeedThreshold, wheel.damperRelaxationLowSpeed, wheel.damperRelaxationHighSpeed, wheel.damperRelaxationLowSpeedThreshold, wheel.mass, 251, wheel.wheelShape)
+    wheel.wheelShape = timeSinceLastRain
     local v7 = getParent(wheel.repr)
     local temperature, v7, v8 = localToLocal(v7, wheel.node, wheel.startPositionX, wheel.startPositionY + wheel.deltaY, wheel.startPositionZ)
     setWheelShapeForcePoint(wheel.node, wheel.wheelShape, wheel.positionX, wheel.positionY - wheel.directionY * wheel.deltaY - wheel.radius * wheel.forcePointRatio, wheel.positionZ - wheel.directionZ * wheel.deltaY)
@@ -2948,8 +2948,8 @@ function Wheels:getDriveGroundParticleSystemsScale(particleSystem, speed)
     if not Wheels.GROUND_PARTICLES[groundWetness.lastTerrainAttribute] and not groundWetness.hasSnowContact then
       return 0
     end
-    local wheelMass = wheelMass:getFieldGroundValue(FieldGroundType.GRASS)
-    if groundWetness.densityType == wheelMass then
+    local rainScale = rainScale:getFieldGroundValue(FieldGroundType.GRASS)
+    if groundWetness.densityType == rainScale then
       return 0
     end
   end
@@ -2961,7 +2961,7 @@ function Wheels:getDriveGroundParticleSystemsScale(particleSystem, speed)
       end
       -- if v6 ~= true then goto L88 end
     end
-    local v7 = math.min((speed - wheelMass) / (particleSystem.maxSpeed - wheelMass), 1)
+    local v7 = math.min((speed - rainScale) / (particleSystem.maxSpeed - rainScale), 1)
     return MathUtil.lerp(particleSystem.minScale, particleSystem.maxScale, v7)
   end
   return 0
@@ -2987,8 +2987,8 @@ end
 function Wheels:getWheels()
   return self.spec_wheels.wheels
 end
-function Wheels.destroyFruitArea(v0, wheel, dt, groundWetness, wheelMass, additionalMass, temperature)
-  FSDensityMapUtil.updateWheelDestructionArea(wheel, dt, groundWetness, wheelMass, additionalMass, temperature)
+function Wheels.destroyFruitArea(v0, wheel, dt, groundWetness, rainScale, timeSinceLastRain, temperature)
+  FSDensityMapUtil.updateWheelDestructionArea(wheel, dt, groundWetness, rainScale, timeSinceLastRain, temperature)
 end
 function Wheels:destroySnowArea(x0, z0, x1, z1, x2, z2)
   local v9 = v9:getSnowHeightAtArea(x0, z0, x1, z1, x2, z2)
@@ -3045,8 +3045,8 @@ function Wheels.updateWheelChockPosition(v0, wheel, dt)
     setVisibility(wheel.node, false)
   else
     setVisibility(wheel.node, true)
-    local additionalMass = math.acos((wheel.wheel.radius - wheel.wheel.deformation - wheel.height) / wheel.wheel.radius)
-    local v8 = math.sin(additionalMass)
+    local timeSinceLastRain = math.acos((wheel.wheel.radius - wheel.wheel.deformation - wheel.height) / wheel.wheel.radius)
+    local v8 = math.sin(timeSinceLastRain)
     link(wheel.wheel.node, wheel.node)
     local v9 = getParent(wheel.wheel.repr)
     local v11 = getRotation(wheel.wheel.repr)
@@ -3069,7 +3069,7 @@ function Wheels.updateWheelChockPosition(v0, wheel, dt)
 end
 function Wheels:onLeaveVehicle()
   if self.isServer and self.isAddedToPhysics then
-    for additionalMass, temperature in pairs(self.spec_wheels.wheels) do
+    for timeSinceLastRain, temperature in pairs(self.spec_wheels.wheels) do
       local brakeForce = self:getBrakeForce()
       setWheelShapeProps(temperature.node, temperature.wheelShape, 0, brakeForce * temperature.brakeFactor, temperature.steeringAngle, temperature.rotationDamping)
     end
@@ -3199,15 +3199,15 @@ function Wheels:getTireNames()
   end
   return table.toList(dt)
 end
-function Wheels:loadBrandName(wheel, dt, groundWetness, wheelMass, additionalMass)
+function Wheels:loadBrandName(wheel, dt, groundWetness, rainScale, timeSinceLastRain)
   local temperature = self:getValue(wheel .. "#brand")
-  additionalMass.wheelBrandKey = wheel
+  timeSinceLastRain.wheelBrandKey = wheel
   if temperature ~= nil then
     local v7 = v7:getBrandByName(temperature)
     if v7 ~= nil then
-      additionalMass.wheelBrandName = v7.title
-      additionalMass.wheelBrandIconFilename = v7.image
-      table.insert(additionalMass.nameCompareParams, "wheelBrandName")
+      timeSinceLastRain.wheelBrandName = v7.title
+      timeSinceLastRain.wheelBrandIconFilename = v7.image
+      table.insert(timeSinceLastRain.nameCompareParams, "wheelBrandName")
       return
     end
     Logging.xmlWarning(self, "Wheel brand '%s' is not defined for '%s'!", temperature, wheel)
@@ -3273,7 +3273,7 @@ function Wheels.getWheelMassFromExternalFile(filename, wheelConfigId)
   return dt
 end
 function Wheels:loadSpecValueWheelWeight(wheel, dt)
-  local groundWetness, wheelMass = Wheels.createConfigSaveIdMapping(self)
+  local groundWetness, rainScale = Wheels.createConfigSaveIdMapping(self)
   self:iterate("vehicle.wheels.wheelConfigurations.wheelConfiguration", function(self, wheel)
     local dt = dt:getValue(wheel .. "#isDefault")
     if dt then
@@ -3293,22 +3293,22 @@ function Wheels:loadSpecValueWheelWeight(wheel, dt)
     local groundWetness = Wheels.getConfigurationValue(...)
     if groundWetness ~= nil then
       local v10 = string.format(".wheels.wheel(%d)#configId", self - 1)
-      local wheelMass = Wheels.getConfigurationValue(...)
-      local additionalMass = Utils.getFilename(groundWetness, u6)
-      local v7 = Wheels.getWheelMassFromExternalFile(additionalMass, wheelMass)
+      local rainScale = Wheels.getConfigurationValue(...)
+      local timeSinceLastRain = Utils.getFilename(groundWetness, u6)
+      local v7 = Wheels.getWheelMassFromExternalFile(timeSinceLastRain, rainScale)
       u5 = u5 + v7
     else
       u5 = u5 + 0.1
     end
     v8 = string.format(".wheels.wheel(%d).additionalWheel", self - 1)
-    wheelMass:iterate(u4 .. v8, function(self, wheel)
+    rainScale:iterate(u4 .. v8, function(self, wheel)
       local v8 = string.format(".wheels.wheel(%d).additionalWheel(%d)#filename", u5 - 1, self - 1)
       local dt = Wheels.getConfigurationValue(...)
       if dt ~= nil then
         local v9 = string.format(".wheels.wheel(%d).additionalWheel(%d)#configId", u5 - 1, self - 1)
         local groundWetness = Wheels.getConfigurationValue(...)
-        local wheelMass = Utils.getFilename(dt, u6)
-        local temperature = Wheels.getWheelMassFromExternalFile(wheelMass, groundWetness)
+        local rainScale = Utils.getFilename(dt, u6)
+        local temperature = Wheels.getWheelMassFromExternalFile(rainScale, groundWetness)
         u7 = u7 + temperature
       end
     end)

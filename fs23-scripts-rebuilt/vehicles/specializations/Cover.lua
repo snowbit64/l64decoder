@@ -60,7 +60,7 @@ function Cover:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.cover#animationName", "vehicle.cover.coverConfigurations.coverConfiguration.cover#openAnimation")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.foldable.foldingParts#closeCoverOnFold", "vehicle.cover.coverConfigurations.coverConfiguration.cover#closeCoverIfNotAllowed")
   local coverConfigurationId = Utils.getNoNil(self.configurations.cover, 1)
-  local v4 = string.format("vehicle.cover.coverConfigurations.coverConfiguration(%d)", coverConfigurationId - 1)
+  local configKey = string.format("vehicle.cover.coverConfigurations.coverConfiguration(%d)", coverConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.cover.coverConfigurations.coverConfiguration", coverConfigurationId, self.components, self)
   self.spec_cover.state = 0
   self.spec_cover.runningAnimations = {}
@@ -68,7 +68,7 @@ function Cover:onLoad(savegame)
   self.spec_cover.fillUnitIndexToCovers = {}
   self.spec_cover.isStateSetAutomatically = false
   while true do
-    v6 = string.format("%s.cover(%d)", v4, v5)
+    v6 = string.format("%s.cover(%d)", configKey, v5)
     v7 = v7:hasProperty(v6)
     if not v7 then
       break
@@ -86,9 +86,9 @@ function Cover:onLoad(savegame)
       v7.index = #v2.covers
     end
   end
-  v6 = v6:getValue(v4 .. "#closeCoverIfNotAllowed", false)
+  v6 = v6:getValue(configKey .. "#closeCoverIfNotAllowed", false)
   v2.closeCoverIfNotAllowed = v6
-  v6 = v6:getValue(v4 .. "#openCoverWhileTipping", false)
+  v6 = v6:getValue(configKey .. "#openCoverWhileTipping", false)
   v2.openCoverWhileTipping = v6
   if 0 >= #v2.covers then
   end

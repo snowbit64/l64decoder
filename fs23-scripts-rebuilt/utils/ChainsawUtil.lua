@@ -93,10 +93,10 @@ function ChainsawUtil.cutSplitShape(shape, x, y, z, nx, ny, nz, yx, yy, yz, cutS
       constr:setRotationLimit(0, 0, 0)
       constr:setTranslationLimit(0, false, 0, 0)
       constr:setEnableCollision(true)
-      local v42 = constr:finalize()
+      local jointIndex = constr:finalize()
       local v43, v44, v45 = MathUtil.crossProduct(0, 0.8, 0, yx, yy, yz)
       setAngularVelocity(v20.shape, v43, v44, v45)
-      v46:addTreeCutJoint(v42, v20.shape, nx, ny, nz, 0.7853981633974483, 2000)
+      v46:addTreeCutJoint(jointIndex, v20.shape, nx, ny, nz, 0.7853981633974483, 2000)
       if v15 ~= nil then
         local v46 = v46:updateStats("cutTreeCount", 1)
         v47:tryUnlock("CutTreeFirst", v46)

@@ -38,14 +38,14 @@ function TreeSaplingPallet.registerEventListeners(vehicleType)
 end
 function TreeSaplingPallet:onLoad(savegame)
   local treeSaplingTypeConfigurationId = Utils.getNoNil(self.configurations.treeSaplingType, 1)
-  local v4 = string.format("vehicle.treeSaplingPallet.treeSaplingTypeConfigurations.treeSaplingTypeConfiguration(%d)", treeSaplingTypeConfigurationId - 1)
+  local baseKey = string.format("vehicle.treeSaplingPallet.treeSaplingTypeConfigurations.treeSaplingTypeConfiguration(%d)", treeSaplingTypeConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.treeSaplingPallet.treeSaplingTypeConfigurations.treeSaplingTypeConfiguration", treeSaplingTypeConfigurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(baseKey)
   if not v5 then
   end
-  v5 = v5:getValue(v4 .. "#fillUnitIndex", 1)
+  v5 = v5:getValue(baseKey .. "#fillUnitIndex", 1)
   v2.fillUnitIndex = v5
-  v5 = v5:getValue(v4 .. "#treeType", "spruce1")
+  v5 = v5:getValue(baseKey .. "#treeType", "spruce1")
   v2.treeTypeName = v5
   v5 = v5:getTreeTypeDescFromName(v2.treeTypeName)
   v2.treeTypeDesc = v5
@@ -53,12 +53,12 @@ function TreeSaplingPallet:onLoad(savegame)
   v5 = v5:getTreeTypeFilename(v2.treeTypeDesc, 1)
   v2.treeTypeFilename = v5
   if v2.treeTypeFilename ~= nil then
-    v5 = v5:getValue(v4 .. "#filename")
+    v5 = v5:getValue(baseKey .. "#filename")
     if v5 ~= nil then
       local v6 = Utils.getFilename(v5, self.baseDirectory)
     else
     end
-    local v7 = v7:hasProperty(v4 .. ".saplingNodes.saplingNode")
+    local v7 = v7:hasProperty(baseKey .. ".saplingNodes.saplingNode")
     if not v7 then
     end
     v7:iterate(v6, function(self, savegame)

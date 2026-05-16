@@ -45,10 +45,10 @@ function SemiTrailerFront:onUpdate(dt, isActiveForInput, isActiveForInputIgnoreS
       v5.joint.lowerRotLimitScale[3] = v5.joint.lowerRotLimitScaleBackup[3] * v5.inputAttacherCurFade
       local attacherVehicle = self:getAttacherVehicle()
       if attacherVehicle ~= nil then
-        local v9 = attacherVehicle:getAttacherJoints()
-        setJointRotationLimit(v9[v5.inputAttacherImplement.jointDescIndex].jointIndex, 0, true, -(v5.inputAttacherImplement.lowerRotLimit[1] * v5.joint.lowerRotLimitScale[1]), v5.inputAttacherImplement.lowerRotLimit[1] * v5.joint.lowerRotLimitScale[1])
-        setJointRotationLimit(v9[v5.inputAttacherImplement.jointDescIndex].jointIndex, 1, true, -(v5.inputAttacherImplement.lowerRotLimit[2] * v5.joint.lowerRotLimitScale[2]), v5.inputAttacherImplement.lowerRotLimit[2] * v5.joint.lowerRotLimitScale[2])
-        setJointRotationLimit(v9[v5.inputAttacherImplement.jointDescIndex].jointIndex, 2, true, -(v5.inputAttacherImplement.lowerRotLimit[3] * v5.joint.lowerRotLimitScale[3]), v5.inputAttacherImplement.lowerRotLimit[3] * v5.joint.lowerRotLimitScale[3])
+        local attacherJoints = attacherVehicle:getAttacherJoints()
+        setJointRotationLimit(attacherJoints[v5.inputAttacherImplement.jointDescIndex].jointIndex, 0, true, -(v5.inputAttacherImplement.lowerRotLimit[1] * v5.joint.lowerRotLimitScale[1]), v5.inputAttacherImplement.lowerRotLimit[1] * v5.joint.lowerRotLimitScale[1])
+        setJointRotationLimit(attacherJoints[v5.inputAttacherImplement.jointDescIndex].jointIndex, 1, true, -(v5.inputAttacherImplement.lowerRotLimit[2] * v5.joint.lowerRotLimitScale[2]), v5.inputAttacherImplement.lowerRotLimit[2] * v5.joint.lowerRotLimitScale[2])
+        setJointRotationLimit(attacherJoints[v5.inputAttacherImplement.jointDescIndex].jointIndex, 2, true, -(v5.inputAttacherImplement.lowerRotLimit[3] * v5.joint.lowerRotLimitScale[3]), v5.inputAttacherImplement.lowerRotLimit[3] * v5.joint.lowerRotLimitScale[3])
       end
     end
   end

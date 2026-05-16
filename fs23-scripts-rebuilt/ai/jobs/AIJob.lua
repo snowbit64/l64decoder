@@ -81,8 +81,8 @@ function AIJob:update(dt)
       local v3, v4 = self:canStartWork()
       if v3 then
         local taskIndex = self:getStartTaskIndex()
-        local v6 = self:getTaskByIndex(taskIndex)
-        self:startTask(v6)
+        local task = self:getTaskByIndex(taskIndex)
+        self:startTask(task)
         -- goto L39  (LOP_JUMP +15)
       end
       taskIndex:stopJob(self, v4)
@@ -101,17 +101,17 @@ function AIJob:update(dt)
         end
         taskIndex = self:getNextTaskIndex()
         if #self.tasks < taskIndex then
-          v6 = self:getIsLooping()
-          if v6 then
+          task = self:getIsLooping()
+          if task then
           else
             local v9 = AIMessageSuccessFinishedJob.new()
-            v6:stopJob(...)
+            task:stopJob(...)
             return
           end
         end
         self:stopTask(v2, false)
-        v6 = self:getTaskByIndex(taskIndex)
-        self:startTask(v6)
+        task = self:getTaskByIndex(taskIndex)
+        self:startTask(task)
       end
     end
   end

@@ -58,40 +58,40 @@ function PowerConsumer.registerEventListeners(vehicleType)
 end
 function PowerConsumer:onLoad(savegame)
   local foldingConfigurationId = Utils.getNoNil(self.configurations.powerConsumer, 1)
-  local v4 = string.format("vehicle.powerConsumer.powerConsumerConfigurations.powerConsumerConfiguration(%d)", foldingConfigurationId - 1)
+  local configKey = string.format("vehicle.powerConsumer.powerConsumerConfigurations.powerConsumerConfiguration(%d)", foldingConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.powerConsumer.powerConsumerConfigurations.powerConsumerConfiguration", foldingConfigurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(configKey)
   if not v5 then
   end
-  v5 = v5:getValue(v4 .. "#forceNode", nil, self.components, self.i3dMappings)
+  v5 = v5:getValue(configKey .. "#forceNode", nil, self.components, self.i3dMappings)
   v2.forceNode = v5
-  v5 = v5:getValue(v4 .. "#forceDirNode", v2.forceNode, self.components, self.i3dMappings)
+  v5 = v5:getValue(configKey .. "#forceDirNode", v2.forceNode, self.components, self.i3dMappings)
   v2.forceDirNode = v5
-  v5 = v5:getValue(v4 .. "#forceFactor", 1)
+  v5 = v5:getValue(configKey .. "#forceFactor", 1)
   v2.forceFactor = v5
-  v5 = v5:getValue(v4 .. "#maxForce", 0)
+  v5 = v5:getValue(configKey .. "#maxForce", 0)
   v2.maxForce = v5
-  v5 = v5:getValue(v4 .. "#forceDir", 1)
+  v5 = v5:getValue(configKey .. "#forceDir", 1)
   v2.forceDir = v5
-  v5 = v5:getValue(v4 .. "#useTurnOnState", true)
+  v5 = v5:getValue(configKey .. "#useTurnOnState", true)
   v2.useTurnOnState = v5
-  local v6 = v6:getValue(v4 .. "#turnOnNotAllowedWarning", "warning_insufficientPowerOutput", self.customEnvironment)
+  local v6 = v6:getValue(configKey .. "#turnOnNotAllowedWarning", "warning_insufficientPowerOutput", self.customEnvironment)
   v5 = string.format(v6, self.typeDesc)
   v2.turnOnNotAllowedWarning = v5
-  self:loadPowerSetup(self.xmlFile, v4)
+  self:loadPowerSetup(self.xmlFile, configKey)
   v2.speedLimitModifier = {}
   v2.sourceMotorPeakPower = math.huge
-  v5 = v5:getValue(v4 .. "#turnOnPeakPowerMultiplier", 3)
+  v5 = v5:getValue(configKey .. "#turnOnPeakPowerMultiplier", 3)
   v2.turnOnPeakPowerMultiplier = v5
-  v5 = v5:getValue(v4 .. "#turnOnPeakPowerDuration", 2.5)
+  v5 = v5:getValue(configKey .. "#turnOnPeakPowerDuration", 2.5)
   v2.turnOnPeakPowerDuration = v5
   v2.turnOnPeakPowerTimer = -1
-  v5:iterate(v4 .. ".speedLimitModifier", function(self, savegame)
+  v5:iterate(configKey .. ".speedLimitModifier", function(self, savegame)
     local foldingConfigurationId = foldingConfigurationId:getValue(savegame .. "#offset")
     if {offset = foldingConfigurationId}.offset ~= nil then
-      local v4 = v4:getValue(savegame .. "#minPowerHp", 0)
-      v4 = v4:getValue(savegame .. "#maxPowerHp", 0)
-      table.insert(u1.speedLimitModifier, {offset = foldingConfigurationId, minPowerKw = v4 * 0.735499, maxPowerKw = v4 * 0.735499})
+      local configKey = configKey:getValue(savegame .. "#minPowerHp", 0)
+      configKey = configKey:getValue(savegame .. "#maxPowerHp", 0)
+      table.insert(u1.speedLimitModifier, {offset = foldingConfigurationId, minPowerKw = configKey * 0.735499, maxPowerKw = configKey * 0.735499})
       return
     end
     Logging.xmlWarning(u0.xmlFile, "Invalid offset found for '%s'", savegame)

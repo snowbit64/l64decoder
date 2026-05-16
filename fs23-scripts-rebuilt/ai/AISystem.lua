@@ -91,30 +91,30 @@ function AISystem:loadMapData(xmlFile, missionInfo, baseDirectory)
   self.isLeftHandTraffic = false
   local relFilename = getXMLString(xmlFile, "map.aiSystem#filename")
   if relFilename ~= nil then
-    local v5 = Utils.getFilename(relFilename, baseDirectory)
-    if v5 ~= nil then
-      local v6 = XMLFile.load("mapAISystem", v5, AISystem.xmlSchema)
-      if v6 ~= nil then
-        local v7 = v6:getValue("aiSystem.maxSlopeAngle")
+    local filepath = Utils.getFilename(relFilename, baseDirectory)
+    if filepath ~= nil then
+      local xmlFileAISystem = XMLFile.load("mapAISystem", filepath, AISystem.xmlSchema)
+      if xmlFileAISystem ~= nil then
+        local v7 = xmlFileAISystem:getValue("aiSystem.maxSlopeAngle")
         if not v7 then
         end
         self.maxSlopeAngle = v7
-        v7 = v6:getValue("aiSystem.blockedAreaInfoLayer#name")
+        v7 = xmlFileAISystem:getValue("aiSystem.blockedAreaInfoLayer#name")
         if not v7 then
         end
         self.infoLayerName = v7
-        v7 = v6:getValue("aiSystem.blockedAreaInfoLayer#channel")
+        v7 = xmlFileAISystem:getValue("aiSystem.blockedAreaInfoLayer#channel")
         if not v7 then
         end
         self.infoLayerChannel = v7
-        v7 = v6:getValue("aiSystem.vehicleMaxHeight")
+        v7 = xmlFileAISystem:getValue("aiSystem.vehicleMaxHeight")
         if not v7 then
         end
         self.vehicleMaxHeight = v7
-        local v8 = v6:getValue("aiSystem.isLeftHandTraffic")
+        local v8 = xmlFileAISystem:getValue("aiSystem.isLeftHandTraffic")
         v7 = Utils.getNoNil(v8, self.isLeftHandTraffic)
         self.isLeftHandTraffic = v7
-        v6:delete()
+        xmlFileAISystem:delete()
       end
     end
   end
@@ -126,7 +126,7 @@ function AISystem:loadMapData(xmlFile, missionInfo, baseDirectory)
   self.activeJobs = {}
   self.jobsToRemove = {}
   self.roadSplines = {}
-  v5:loadI3DFileAsync("data/shared/aiMarker.i3d", false, false, self.onAIMarkerLoaded, self, nil)
+  filepath:loadI3DFileAsync("data/shared/aiMarker.i3d", false, false, self.onAIMarkerLoaded, self, nil)
 end
 function AISystem:onAIMarkerLoaded(node, failedReason, args)
   if node ~= 0 then

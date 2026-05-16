@@ -83,10 +83,10 @@ function TensionBelts.registerEventListeners(vehicleType)
 end
 function TensionBelts:onLoad(savegame)
   local tensionBeltConfigurationId = Utils.getNoNil(self.configurations.tensionBelts, 1)
-  local v4 = string.format("vehicle.tensionBelts.tensionBeltsConfigurations.tensionBeltsConfiguration(%d).tensionBelts", tensionBeltConfigurationId - 1)
+  local configKey = string.format("vehicle.tensionBelts.tensionBeltsConfigurations.tensionBeltsConfiguration(%d).tensionBelts", tensionBeltConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.tensionBelts.tensionBeltsConfigurations.tensionBeltsConfiguration", tensionBeltConfigurationId, self.components, self)
   self.spec_tensionBelts.hasTensionBelts = true
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(configKey)
   if not v5 then
     self.spec_tensionBelts.hasTensionBelts = false
     SpecializationUtil.removeEventListener(self, "onPostLoad", TensionBelts)
@@ -106,13 +106,13 @@ function TensionBelts:onLoad(savegame)
   v2.sortedBelts = {}
   v5 = TensionBeltsActivatable.new(self)
   v2.activatable = v5
-  v5 = v5:getValue(v4 .. "#totalInteractionRadius", 6)
+  v5 = v5:getValue(configKey .. "#totalInteractionRadius", 6)
   v2.totalInteractionRadius = v5
-  v5 = v5:getValue(v4 .. "#interactionRadius", 1)
+  v5 = v5:getValue(configKey .. "#interactionRadius", 1)
   v2.interactionRadius = v5
-  v5 = v5:getValue(v4 .. "#interactionBaseNode", self.rootNode, self.components, self.i3dMappings)
+  v5 = v5:getValue(configKey .. "#interactionBaseNode", self.rootNode, self.components, self.i3dMappings)
   v2.interactionBaseNode = v5
-  v5 = v5:getValue(v4 .. "#activationTrigger", nil, self.components, self.i3dMappings)
+  v5 = v5:getValue(configKey .. "#activationTrigger", nil, self.components, self.i3dMappings)
   v2.activationTrigger = v5
   if v2.activationTrigger ~= nil then
     v5 = CollisionFlag.getHasFlagSet(v2.activationTrigger, CollisionFlag.TRIGGER_PLAYER)
@@ -123,41 +123,41 @@ function TensionBelts:onLoad(savegame)
       addTrigger(v2.activationTrigger, "tensionBeltActivationTriggerCallback", self)
     end
   end
-  v5 = v5:getValue(v4 .. "#allowFoldingWhileFasten", true)
+  v5 = v5:getValue(configKey .. "#allowFoldingWhileFasten", true)
   v2.allowFoldingWhileFasten = v5
   v2.isPlayerInTrigger = false
   v2.checkSizeOffsets = {0, 2.5, 1.5}
   v2.numObjectsIntensionBeltRange = 0
-  v5 = v5:getValue(v4 .. "#tensionBeltType", "basic")
+  v5 = v5:getValue(configKey .. "#tensionBeltType", "basic")
   local v6 = v6:getBeltData(v5)
   if v6 ~= nil then
-    local v7 = v7:getValue(v4 .. "#width")
+    local v7 = v7:getValue(configKey .. "#width")
     v2.width = v7
-    v7 = v7:getValue(v4 .. "#ratchetPosition")
+    v7 = v7:getValue(configKey .. "#ratchetPosition")
     v2.ratchetPosition = v7
-    v7 = v7:getValue(v4 .. "#useHooks", true)
+    v7 = v7:getValue(configKey .. "#useHooks", true)
     v2.useHooks = v7
-    v7 = v7:getValue(v4 .. "#maxEdgeLength", 0.1)
+    v7 = v7:getValue(configKey .. "#maxEdgeLength", 0.1)
     v2.maxEdgeLength = v7
-    v7 = v7:getValue(v4 .. "#geometryBias", 0.01)
+    v7 = v7:getValue(configKey .. "#geometryBias", 0.01)
     v2.geometryBias = v7
-    v7 = v7:getValue(v4 .. "#defaultOffsetSide", 0.1)
+    v7 = v7:getValue(configKey .. "#defaultOffsetSide", 0.1)
     v2.defaultOffsetSide = v7
-    v7 = v7:getValue(v4 .. "#defaultOffset", 0)
+    v7 = v7:getValue(configKey .. "#defaultOffset", 0)
     v2.defaultOffset = v7
-    v7 = v7:getValue(v4 .. "#defaultHeight", 5)
+    v7 = v7:getValue(configKey .. "#defaultHeight", 5)
     v2.defaultHeight = v7
     v2.beltData = v6
-    v7 = v7:getValue(v4 .. "#linkNode", nil, self.components, self.i3dMappings)
+    v7 = v7:getValue(configKey .. "#linkNode", nil, self.components, self.i3dMappings)
     v2.linkNode = v7
-    v7 = v7:getValue(v4 .. "#rootNode", self.components[1].node, self.components, self.i3dMappings)
+    v7 = v7:getValue(configKey .. "#rootNode", self.components[1].node, self.components, self.i3dMappings)
     v2.rootNode = v7
-    v7 = v7:getValue(v4 .. "#jointNode", v2.rootNode, self.components, self.i3dMappings)
+    v7 = v7:getValue(configKey .. "#jointNode", v2.rootNode, self.components, self.i3dMappings)
     v2.jointNode = v7
     v2.checkTimerDuration = 500
     v2.checkTimer = v2.checkTimerDuration
     if v2.linkNode == nil then
-      Logging.xmlError(self.xmlFile, "No tension belts link node given at %s%s", v4, "#linkNode")
+      Logging.xmlError(self.xmlFile, "No tension belts link node given at %s%s", configKey, "#linkNode")
       self:setLoadingState(VehicleLoadingUtil.VEHICLE_LOAD_ERROR)
       return
     end
@@ -182,7 +182,7 @@ function TensionBelts:onLoad(savegame)
     local v14 = self:getParentComponent(v2.jointNode)
     v2.jointComponent = v14
     while true do
-      v15 = string.format(v4 .. ".tensionBelt(%d)", v14)
+      v15 = string.format(configKey .. ".tensionBelt(%d)", v14)
       v16 = v16:hasProperty(v15)
       if not v16 then
         break
@@ -265,11 +265,11 @@ function TensionBelts:onLoad(savegame)
   v2.fastedAllBeltsState = true
   if self.isClient then
     v2.samples = {}
-    v8 = v8:loadSampleFromXML(self.xmlFile, v4 .. ".sounds", "toggleBelt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+    v8 = v8:loadSampleFromXML(self.xmlFile, configKey .. ".sounds", "toggleBelt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
     v2.samples.toggleBelt = v8
-    v8 = v8:loadSampleFromXML(self.xmlFile, v4 .. ".sounds", "addBelt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+    v8 = v8:loadSampleFromXML(self.xmlFile, configKey .. ".sounds", "addBelt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
     v2.samples.addBelt = v8
-    v8 = v8:loadSampleFromXML(self.xmlFile, v4 .. ".sounds", "removeBelt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
+    v8 = v8:loadSampleFromXML(self.xmlFile, configKey .. ".sounds", "removeBelt", self.baseDirectory, self.components, 1, AudioGroup.VEHICLE, self.i3dMappings, self)
     v2.samples.removeBelt = v8
   end
   v2.texts = {}

@@ -368,8 +368,8 @@ function I18N:formatMass(mass, maxMass, showKg)
   v10 = MathUtil.round(mass, v5)
   v8 = self:formatNumber(v10, v5)
   v9 = v9:getText(v4)
-  currencyString = string.format(...)
-  return currencyString
+  v6 = string.format(...)
+  return v6
 end
 function I18N:getPower(power)
   return power * self.powerFactorHP, power * self.powerFactorKW
@@ -387,8 +387,8 @@ function I18N:formatNumber(number, precision, forcePrecision)
   end
   local v5 = MathUtil.round(number, precision)
   v4 = tostring(...)
-  local v5, currencyString, v7 = string.match(v4, "^([^%d]*%d)(%d*)[.]?(%d*)")
-  local v10 = currencyString:reverse()
+  local v5, v6, v7 = string.match(v4, "^([^%d]*%d)(%d*)[.]?(%d*)")
+  local v10 = v6:reverse()
   v10 = v10:gsub("(%d%d%d)", "%1" .. self.thousandsGroupingChar)
   v10 = v10:reverse()
   if 0 < precision then
@@ -477,7 +477,7 @@ function I18N:consoleCommandVerifyAll(ignoreTodos, l10nDir, l10nFilePrefix)
     self:loadEntriesFromXML(v15, nil, "l10n.elements.e(%d)", {})
     v5[v13] = {}
     for v20, v21 in pairs({}) do
-      currencyString[v20] = true
+      v6[v20] = true
     end
     v20 = table.size(v16)
     v18 = string.format("loaded %d entries from %s", v20, v14)
@@ -492,7 +492,7 @@ function I18N:consoleCommandVerifyAll(ignoreTodos, l10nDir, l10nFilePrefix)
   if v9 == nil then
     return "Error: no l10n entries were loaded"
   end
-  for v12, v13 in pairs(currencyString) do
+  for v12, v13 in pairs(v6) do
     for v17, v18 in pairs(v5) do
       if v18[v12] == nil then
         v21 = string.format("Warning: Missing text for %s in %s", v12, v17)
@@ -626,12 +626,12 @@ end
 function I18N:formatNumMonth(numMonth)
   if 1 < numMonth then
   end
-  local currencyString = self:getText(maxMass)
+  local v6 = self:getText(maxMass)
   return string.format(...)
 end
 function I18N:formatNumDay(numDay)
   if 1 < numDay then
   end
-  local currencyString = self:getText(maxMass)
+  local v6 = self:getText(maxMass)
   return string.format(...)
 end

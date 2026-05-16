@@ -47,8 +47,8 @@ function FillTriggerVehicle:onReadStream(streamId, connection)
   local v3 = connection:getIsServer()
   if v3 and self.spec_fillTriggerVehicle.fillTrigger ~= nil then
     local moneyTypeId = streamReadUInt16(streamId)
-    local v5 = MoneyType.registerWithId(moneyTypeId, "other", "finance_purchaseFuel")
-    v6:setMoneyChangeType(v5)
+    local moneyChangeType = MoneyType.registerWithId(moneyTypeId, "other", "finance_purchaseFuel")
+    v6:setMoneyChangeType(moneyChangeType)
   end
 end
 function FillTriggerVehicle:onWriteStream(streamId, connection)

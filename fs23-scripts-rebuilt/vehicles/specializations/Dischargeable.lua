@@ -141,9 +141,9 @@ end
 function Dischargeable:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipeEffect", "vehicle.dischargeable.dischargeNode.effects")
   local coverConfigurationId = Utils.getNoNil(self.configurations.dischargeable, 1)
-  local v4 = string.format("vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(%d)", coverConfigurationId - 1)
+  local configKey = string.format("vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration(%d)", coverConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.dischargeable.dischargeableConfigurations.dischargeableConfiguration", coverConfigurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(configKey)
   if not v5 then
   end
   v2.dischargeNodes = {}
@@ -151,12 +151,12 @@ function Dischargeable:onLoad(savegame)
   v2.dischargNodeMapping = {}
   v2.triggerToDischargeNode = {}
   v2.activationTriggerToDischargeNode = {}
-  v5 = v5:getValue(v4 .. "#requiresTipOcclusionArea", true)
+  v5 = v5:getValue(configKey .. "#requiresTipOcclusionArea", true)
   v2.requiresTipOcclusionArea = v5
-  v5 = v5:getValue(v4 .. "#stopDischargeOnDeactivate", true)
+  v5 = v5:getValue(configKey .. "#stopDischargeOnDeactivate", true)
   v2.stopDischargeOnDeactivate = v5
   v2.dischargedLiters = 0
-  v5:iterate(v4 .. ".dischargeNode", function(self, savegame)
+  v5:iterate(configKey .. ".dischargeNode", function(self, savegame)
     local coverConfigurationId = coverConfigurationId:loadDischargeNode(u0.xmlFile, savegame, {})
     if coverConfigurationId then
       if u1.dischargNodeMapping[{}.node] ~= nil then
@@ -172,8 +172,8 @@ function Dischargeable:onLoad(savegame)
         Logging.xmlWarning(...)
       end
       if u0.getFillUnitExists ~= nil then
-        local v4 = v4:getFillUnitExists(v2.fillUnitIndex)
-        if not v4 then
+        local configKey = configKey:getFillUnitExists(v2.fillUnitIndex)
+        if not configKey then
           Logging.xmlWarning(u0.xmlFile, "FillUnit with index '%d' does not exist for discharge node '%s'. Ignoring discharge node!", v2.fillUnitIndex, savegame)
         end
       end

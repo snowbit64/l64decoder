@@ -69,14 +69,14 @@ function WorkArea:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.workAreas.workArea(0)#foldMaxLimit", "vehicle.workAreas.workArea(0).folding#maxLimit")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.workAreas.workArea(0)#refNodeIndex", "vehicle.workAreas.workArea(0).groundReferenceNode#index")
   local configurationId = Utils.getNoNil(self.configurations.workArea, 1)
-  local v4 = string.format("vehicle.workAreas.workAreaConfigurations.workAreaConfiguration(%d)", configurationId - 1)
+  local configKey = string.format("vehicle.workAreas.workAreaConfigurations.workAreaConfiguration(%d)", configurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.workAreas.workAreaConfigurations.workAreaConfiguration", configurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(configKey)
   if not v5 then
   end
   v2.workAreas = {}
   while true do
-    v6 = string.format("%s.workArea(%d)", v4, v5)
+    v6 = string.format("%s.workArea(%d)", configKey, v5)
     v7 = v7:hasProperty(v6)
     if not v7 then
       break

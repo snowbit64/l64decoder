@@ -117,14 +117,14 @@ function Trailer:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.tipRotationNodes.tipRotationNode", "vehicle.trailer.trailerConfigurations.trailerConfiguration.trailer.tipSide.animationNodes.animationNode")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.tipAnimations.tipAnimation", "vehicle.trailer.trailerConfigurations.trailerConfiguration.trailer.tipSide")
   local trailerConfigurationId = Utils.getNoNil(self.configurations.trailer, 1)
-  local v4 = string.format("vehicle.trailer.trailerConfigurations.trailerConfiguration(%d).trailer", trailerConfigurationId - 1)
+  local configKey = string.format("vehicle.trailer.trailerConfigurations.trailerConfiguration(%d).trailer", trailerConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.trailer.trailerConfigurations.trailerConfiguration", trailerConfigurationId, self.components, self)
   self.spec_trailer.fillLevelDependentTipSides = false
   self.spec_trailer.tipSideUpdateDirty = false
   self.spec_trailer.tipSides = {}
   self.spec_trailer.dischargeNodeIndexToTipSide = {}
   while true do
-    v6 = string.format("%s.tipSide(%d)", v4, v5)
+    v6 = string.format("%s.tipSide(%d)", configKey, v5)
     v7 = v7:hasProperty(v6)
     if not v7 then
       break
@@ -135,7 +135,7 @@ function Trailer:onLoad(savegame)
       v2.dischargeNodeIndexToTipSide[{index = #v2.tipSides}.dischargeNodeIndex] = {index = #v2.tipSides}
     end
   end
-  v6 = v6:getValue(v4 .. "#infoText", "action_toggleTipSide", self.customEnvironment, false)
+  v6 = v6:getValue(configKey .. "#infoText", "action_toggleTipSide", self.customEnvironment, false)
   v2.infoText = v6
   v2.tipSideCount = #v2.tipSides
   v2.preferedTipSideIndex = 1

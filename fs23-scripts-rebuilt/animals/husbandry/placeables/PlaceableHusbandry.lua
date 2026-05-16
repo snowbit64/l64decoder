@@ -309,13 +309,13 @@ end
 function PlaceableHusbandry:onHourChanged(currentHour)
   if self.isServer then
     local foodFactor = self:updateFeeding()
-    local v4 = self:updateProduction(foodFactor)
-    if self.spec_husbandry.productionThreshold < v4 then
+    local productionFactor = self:updateProduction(foodFactor)
+    if self.spec_husbandry.productionThreshold < productionFactor then
     else
     end
     local v8 = MathUtil.clamp(v2.globalProductionFactor + v6 * v5, 0, 1)
     v2.globalProductionFactor = v8
-    self:updateOutput(foodFactor, v4, v2.globalProductionFactor)
+    self:updateOutput(foodFactor, productionFactor, v2.globalProductionFactor)
     self:raiseDirtyFlags(v2.dirtyFlag)
   end
 end

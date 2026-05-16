@@ -133,14 +133,14 @@ function XMLFile:getValue(path, default, ...)
   local valueType = XMLFile.getValueType(self, path)
   if valueType ~= nil then
     if valueType.isBasicFunction then
-      local v4 = valueType.get(self.handle, path)
-      if v4 == nil then
+      local value = valueType.get(self.handle, path)
+      if value == nil then
         return default
       end
-      return v4
+      return value
     end
-    v4 = valueType.get(...)
-    return v4
+    value = valueType.get(...)
+    return value
   end
 end
 function XMLFile:setValue(path, ...)
@@ -225,26 +225,26 @@ function XMLFile:getI18NValue(path, default, customEnvironment, showWarning)
 end
 function XMLFile:initInheritance()
   local rootName = self:getRootName()
-  local v2 = self:getString(rootName .. ".parentFile#xmlFilename")
-  if v2 ~= nil then
+  local parentFilename = self:getString(rootName .. ".parentFile#xmlFilename")
+  if parentFilename ~= nil then
     local v3, v4 = Utils.getModNameAndBaseDirectory(self.filename)
-    local v5 = Utils.getFilename(v2, v4)
+    local v5 = Utils.getFilename(parentFilename, v4)
     v5 = loadXMLFile(self.objectName, v5)
     if v5 ~= 0 then
       self:iterate(rootName .. ".parentFile.attributes.remove", function(self, rootName)
-        local v2 = v2:getString(rootName .. "#path")
-        removeXMLProperty(u1, v2)
+        local parentFilename = parentFilename:getString(rootName .. "#path")
+        removeXMLProperty(u1, parentFilename)
       end)
       self:iterate(rootName .. ".parentFile.attributes.set", function(self, rootName)
-        local v2 = v2:getString(rootName .. "#path")
+        local parentFilename = parentFilename:getString(rootName .. "#path")
         local v3 = v3:getString(rootName .. "#value")
-        setXMLString(u1, v2, v3)
+        setXMLString(u1, parentFilename, v3)
       end)
       self:iterate(rootName .. ".parentFile.attributes.clearList", function(self, rootName)
-        local v2 = v2:getString(rootName .. "#path")
+        local parentFilename = parentFilename:getString(rootName .. "#path")
         local v3 = v3:getInt(rootName .. "#keepIndex")
         while true do
-          v7 = string.format(v2 .. "(%d)", v4)
+          v7 = string.format(parentFilename .. "(%d)", v4)
           v5 = hasXMLProperty(...)
           if not v5 then
             break
@@ -254,7 +254,7 @@ function XMLFile:initInheritance()
         end
         -- TODO: structure LOP_FORNPREP (pc 34, target 49)
         if v4 ~= v3 then
-          local v10 = string.format(v2 .. "(%d)", v4 - 1)
+          local v10 = string.format(parentFilename .. "(%d)", v4 - 1)
           removeXMLProperty(...)
         end
         -- TODO: structure LOP_FORNLOOP (pc 48, target 35)
@@ -263,6 +263,6 @@ function XMLFile:initInheritance()
       self.handle = v5
       return
     end
-    Logging.warning("Failed to load parent xml file '%s'", v2)
+    Logging.warning("Failed to load parent xml file '%s'", parentFilename)
   end
 end

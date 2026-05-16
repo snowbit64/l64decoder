@@ -105,19 +105,19 @@ function KioskMode:loadFromPath(path)
     return false
   end
   local v5 = v3:getString("kioskMode.defaultProfile.configFile", "")
-  local savegamePath = Utils.getFilename(v5, path)
-  v5 = fileExists(savegamePath)
+  local v4 = Utils.getFilename(v5, path)
+  v5 = fileExists(v4)
   if not v5 then
-    Logging.xmlWarning(v3, "KioskMode:loadFromPath - default config file '%s' not found", savegamePath)
+    Logging.xmlWarning(v3, "KioskMode:loadFromPath - default config file '%s' not found", v4)
     return false
   end
-  self.defaultConfigFile = savegamePath
+  self.defaultConfigFile = v4
   v3:iterate("kioskMode.profiles.profile", function(self, path)
     local v2 = v2:getString(path .. "#name", "")
-    local savegamePath = savegamePath:getString(path .. ".configFile", "")
-    local v3 = Utils.getFilename(savegamePath, u1)
-    savegamePath = fileExists(v3)
-    if not savegamePath then
+    local v4 = v4:getString(path .. ".configFile", "")
+    local v3 = Utils.getFilename(v4, u1)
+    v4 = fileExists(v3)
+    if not v4 then
       Logging.xmlWarning(u0, "KioskMode:loadFromPath - config file '%s' for profile '%s' not found", v3, v2)
       return false
     end
@@ -134,19 +134,19 @@ function KioskMode:loadFromPath(path)
       local v12 = tonumber(v11)
       if v12 == 1 then
         if KioskMode.BIT_TO_BUTTON_ID[v5] ~= nil then
-          v12 = Utils.setBit(savegamePath, v5)
+          v12 = Utils.setBit(v4, v5)
         elseif v5 == 18 then
           Logging.xmlWarning(u0, "KioskMode:loadFromPath - Bit %d cannot be used. Please replace it with 0 for profile '%s'", v5, v2)
         end
       end
     end
     -- TODO: structure LOP_FORNLOOP (pc 102, target 64)
-    if u2.maskToProfile[savegamePath] ~= nil then
-      Logging.xmlWarning(u0, "KioskMode:loadFromPath - %s mask already used for profile '%s'", v2, u2.maskToProfile[savegamePath].name)
+    if u2.maskToProfile[v4] ~= nil then
+      Logging.xmlWarning(u0, "KioskMode:loadFromPath - %s mask already used for profile '%s'", v2, u2.maskToProfile[v4].name)
       return false
     end
-    u2.maskToProfile[savegamePath] = {id = #u2.profiles + 1, name = v2, mask = savegamePath, configFile = v3}
-    table.insert(u2.profiles, {id = #u2.profiles + 1, name = v2, mask = savegamePath, configFile = v3})
+    u2.maskToProfile[v4] = {id = #u2.profiles + 1, name = v2, mask = v4, configFile = v3}
+    table.insert(u2.profiles, {id = #u2.profiles + 1, name = v2, mask = v4, configFile = v3})
   end)
   v3:delete()
   if #self.profiles == 0 then
@@ -159,9 +159,9 @@ end
 function KioskMode:loadInputBindings()
   if self.configFileName ~= nil then
     local xmlFileObj = XMLFile.load("KioskMode Inputs", self.configFileName)
-    local v2 = xmlFileObj:getHandle()
-    v3:loadActionsFromXMLPath(v2, "kioskMode.input.actions", g_i18n, nil)
-    v3:loadActionBindingsFromXMLPath(v2, "kioskMode.input.bindings", true, nil, true, true)
+    local xmlFile = xmlFileObj:getHandle()
+    v3:loadActionsFromXMLPath(xmlFile, "kioskMode.input.actions", g_i18n, nil)
+    v3:loadActionBindingsFromXMLPath(xmlFile, "kioskMode.input.bindings", true, nil, true, true)
     xmlFileObj:delete()
   end
 end
@@ -550,11 +550,11 @@ function KioskMode.setSavegame(v0, path)
     local v5 = getUserProfileAppPath()
     deleteFolder(v5 .. "savegame1")
     createFolder(v5 .. "savegame1")
-    local savegamePath = Files.new(path)
-    for v7, v8 in ipairs(savegamePath.files) do
+    local v4 = Files.new(path)
+    for v7, v8 in ipairs(v4.files) do
       copyFile(path .. "/" .. v8.filename, v2 .. "/" .. v8.filename, true)
     end
-    savegamePath = fileExists(v2 .. "/careerSavegame.xml")
+    v4 = fileExists(v2 .. "/careerSavegame.xml")
     -- if v4 then goto L78 end
     Logging.error("Failed to copy savegame from '%s' to '%s'!", path, v2)
     return
@@ -642,7 +642,7 @@ function KioskMode:inj_mapManager_addMapItem(path, ...)
   if v2 then
     local v3 = table.remove(self.maps, #self.maps)
     self.idToMap[v3.id] = nil
-    savegamePath:addRegisteredMaps(v3)
+    v4:addRegisteredMaps(v3)
   end
   v3:updateAvailableMaps()
   return v2
@@ -859,9 +859,9 @@ function KioskMode:inj_hud_createDisplayComponents(name)
     className:setIsVisible(false)
     className = className:getSetting("logoWidth")
     local v3 = v3:getSetting("logoHeight")
-    local savegamePath = savegamePath:getSetting("logoFilename")
+    local v4 = v4:getSetting("logoFilename")
     local v5, v6 = getNormalizedScreenValues(className, v3)
-    v5 = Overlay.new(savegamePath, g_safeFrameOffsetX, g_safeFrameOffsetY, v5, v6)
+    v5 = Overlay.new(v4, g_safeFrameOffsetX, g_safeFrameOffsetY, v5, v6)
     v6 = HUDElement.new(v5)
     self.kioskModeLogoElement = v6
     table.insert(self.displayComponents, self.kioskModeLogoElement)
@@ -985,7 +985,7 @@ function KioskMode:inj_mainScreen_onOpen()
     end, false, true, false, true)
     self.toggleLanguageEventId = v3
     if className then
-      savegamePath:setActionEventTextVisibility(v3, false)
+      v4:setActionEventTextVisibility(v3, false)
     end
   end
   className, v3 = className:registerActionEvent(InputAction.KIOSK_MODE_START_VIDEOS, InputBinding.NO_EVENT_TARGET, function()
@@ -995,7 +995,7 @@ function KioskMode:inj_mainScreen_onOpen()
   end, false, true, false, true)
   self.startVideosEventId = v3
   if className then
-    savegamePath:setActionEventTextVisibility(v3, false)
+    v4:setActionEventTextVisibility(v3, false)
   end
-  savegamePath:openMainMenu()
+  v4:openMainMenu()
 end

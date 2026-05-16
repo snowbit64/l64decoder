@@ -353,12 +353,12 @@ end
 function ConnectionHoseManager:getClonedHoseNode(typeName, hoseName, length, diameter, color, customEnvironment)
   local hoseType = self:getHoseTypeByName(typeName, customEnvironment)
   if hoseType ~= nil then
-    local v8 = self:getHoseMaterialByName(hoseType, hoseName, customEnvironment)
-    if v8 ~= nil then
+    local material = self:getHoseMaterialByName(hoseType, hoseName, customEnvironment)
+    if material ~= nil then
       local v9, v10, v11, v12, v13, v14 = self:getClonedBasicHose(length, diameter)
       if v9 ~= nil then
-        local v15 = getMaterial(v8.materialNode, 0)
-        setMaterial(v9, v15, 0)
+        local mat = getMaterial(material.materialNode, 0)
+        setMaterial(v9, mat, 0)
         if color == nil then
           -- cmp-jump LOP_JUMPXEQKNIL R16 aux=0x0 -> L79
         end
@@ -375,13 +375,13 @@ function ConnectionHoseManager:getClonedHoseNode(typeName, hoseName, length, dia
         -- TODO: structure LOP_FORNLOOP (pc 78, target 44)
         local v16, v17, v18, v19 = getShaderParameter(v9, "lengthAndDiameter")
         setShaderParameter(v9, "lengthAndDiameter", v10, diameter / v14, v18, v19, false)
-        if v8.uvScale ~= nil then
+        if material.uvScale ~= nil then
         end
         v23, v24, v25, v26 = getShaderParameter(v9, "uvScale")
         setShaderParameter(v9, "uvScale", length / v10 * v20, v24 * v21, v25, v26, false)
-        if v8.uvOffset ~= nil then
+        if material.uvOffset ~= nil then
           v23, v24, v25, v26 = getShaderParameter(v9, "offsetUV")
-          setShaderParameter(v9, "offsetUV", v8.uvOffset[1], v8.uvOffset[2], v25, v26, false)
+          setShaderParameter(v9, "offsetUV", material.uvOffset[1], material.uvOffset[2], v25, v26, false)
         end
         return v9, v11, v12, v13
       end

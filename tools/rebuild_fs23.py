@@ -293,6 +293,7 @@ class RebuildStats:
     files_with_match: int = 0
     funcs_matched: int = 0
     params_renamed: int = 0
+    inner_locals_renamed: int = 0
     top_locals_renamed: int = 0
 
 
@@ -422,13 +423,19 @@ def rebuild_file(
         # the same for `local vN = <rhs>` and rename when the RHS
         # matches verbatim.  Only valid FS22 identifiers that don't
         # already exist in the FS23 body are accepted.
-        body_rename = _match_inner_locals(
-            body_join,
-            "".join(fs22_lines[ref.body_start : ref.body_end]),
-        )
-        if body_rename:
-            stats.params_renamed += 0  # no-op, kept for clarity
+        # Iterate because each successful rename can unlock additional
+        # unique-RHS matches in the same function.
+        renamed_now = 0
+        while True:
+            body_rename = _match_inner_locals(
+                body_join,
+                "".join(fs22_lines[ref.body_start : ref.body_end]),
+            )
+            if not body_rename:
+                break
+            renamed_now += len(body_rename)
             body_join = substitute_identifiers(body_join, body_rename)
+        stats.inner_locals_renamed += renamed_now
 
         new_body_lines = body_join.splitlines(keepends=True)
         fs23_lines[fd.body_start : fd.body_end] = new_body_lines
@@ -530,7 +537,9 @@ def main() -> int:
         print(
             f"rebuilt={processed} files_with_match={stats.files_with_match} "
             f"funcs_matched={stats.funcs_matched} "
-            f"params_renamed={stats.params_renamed}"
+            f"params_renamed={stats.params_renamed} "
+            f"inner_locals_renamed={stats.inner_locals_renamed} "
+            f"top_locals_renamed={stats.top_locals_renamed}"
         )
     return 0
 

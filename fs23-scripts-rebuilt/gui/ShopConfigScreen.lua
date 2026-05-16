@@ -1280,7 +1280,7 @@ function ShopConfigScreen:getOrCreateConfigItem(type)
   priceElement = configIndex:getDescendantByName("button")
   priceElement:setVisible(v5)
   priceElement = configIndex:getDescendantByName("price")
-  priceElement:setVisible(fovY)
+  priceElement:setVisible(v6)
   if v7 ~= nil then
     if self.focusableElementForScroll ~= nil then
     end
@@ -1308,17 +1308,17 @@ function ShopConfigScreen:getOrCreateLargeConfigItem(type)
 end
 function ShopConfigScreen:updateConfigSetOptionElement(configElementIndex, storeItem, vehicle, saleItem)
   local listElement = self:getOrCreateConfigItem("option")
-  local fovY = listElement:getDescendantByName("option")
-  fovY:setDisabled(false)
-  fovY:setTexts(self.configSelection.texts)
-  fovY:setState(self.currentConfigSet)
-  fovY:reloadFocusHandling(true)
-  fovY.onClickCallback = function(self, configElementIndex)
-    for listElement, fovY in pairs(u0.configurationSets[u1.currentConfigSet].configurations) do
+  local optionElement = listElement:getDescendantByName("option")
+  optionElement:setDisabled(false)
+  optionElement:setTexts(self.configSelection.texts)
+  optionElement:setState(self.currentConfigSet)
+  optionElement:reloadFocusHandling(true)
+  optionElement.onClickCallback = function(self, configElementIndex)
+    for listElement, optionElement in pairs(u0.configurationSets[u1.currentConfigSet].configurations) do
       u1.configurations[listElement] = 1
     end
-    for listElement, fovY in pairs(u0.configurationSets[configElementIndex].configurations) do
-      u1.configurations[listElement] = fovY
+    for listElement, optionElement in pairs(u0.configurationSets[configElementIndex].configurations) do
+      u1.configurations[listElement] = optionElement
     end
     u1.currentConfigSet = configElementIndex
     storeItem:playSample(GuiSoundPlayer.SOUND_SAMPLES.CONFIG_WRENCH)
@@ -1344,7 +1344,7 @@ function ShopConfigScreen:updateConfigOptionElement(configElementIndex, option, 
   if #option.options > 1 then
   end
   priceElement:setDisabled(v11)
-  if fovY then
+  if v6 then
     priceElement:setIcons(option.icons)
   else
     priceElement:setTexts(option.texts)
@@ -1383,7 +1383,7 @@ function ShopConfigScreen:updateSubConfigOptionElement(configElementIndex, optio
   priceElement = v7:getDescendantByName("option")
   priceElement:setVisible(true)
   priceElement:setDisabled(false)
-  if fovY then
+  if v6 then
     priceElement:setIcons(option.icons)
   else
     priceElement:setTexts(option.texts)
@@ -1478,7 +1478,7 @@ function ShopConfigScreen:updateConfigOptionsData(storeItem, vehicle, saleItem)
         vehicle:setShowMouseCursor(true)
         if not u0[u1.configurations[u2.configName]].uiColor then
         end
-        vehicle(saleItem, vehicle, v5, fovY, v7, storeItem.material)
+        vehicle(saleItem, vehicle, v5, v6, v7, storeItem.material)
       end
       if not self.configurations[v13.configName] then
         v19 = self:getDefaultConfigurationColorIndex(v13.configName, v13.colorItems, vehicle)
@@ -1514,15 +1514,15 @@ function ShopConfigScreen:updateConfigOptionsDisplay(storeItem, vehicle, saleIte
   local num = self:updateConfigOptionsData(storeItem, vehicle, saleItem)
   if 0 >= num then
   end
-  fovY:setVisible(true)
+  v6:setVisible(true)
   if 0 >= num then
   end
-  fovY:setVisible(true)
+  v6:setVisible(true)
   if 0 >= num then
   end
-  fovY:setVisible(true)
-  fovY:invalidateLayout()
-  fovY:setGui(vehicle)
+  v6:setVisible(true)
+  v6:invalidateLayout()
+  v6:setGui(vehicle)
   if self.needsRefocus then
     self:selectFirstConfig()
     self.needsRefocus = false
@@ -1558,9 +1558,9 @@ function ShopConfigScreen:update(dt)
   if self.loadingDelayTime <= 0 and self.loadingDelayFrames <= 0 then
     self:onFinishedLoading()
   end
-  for v5, fovY in pairs(self.previewVehicles) do
-    fovY:update(dt)
-    fovY:updateTick(dt)
+  for v5, v6 in pairs(self.previewVehicles) do
+    v6:update(dt)
+    v6:updateTick(dt)
   end
   configIndex:update(dt)
   self:updateInput(dt)
@@ -1581,13 +1581,13 @@ function ShopConfigScreen:update(dt)
   end
 end
 function ShopConfigScreen:updateCamera(dt)
-  local fovY = math.cos(self.rotY)
+  local v6 = math.cos(self.rotY)
   local v7 = math.sin(self.rotY)
-  setTranslation(self.rotateNode, self.workshopWorldPosition[1] + fovY * self.previewVehicleSize * ShopConfigScreen.CAMERA_MIN_DISTANCE_TO_X_OFFSET_FACTOR * g_screenAspectRatio * self.cameraDistance / self.cameraMinDistance, self.workshopWorldPosition[2] + self.focusY, self.workshopWorldPosition[3] + -v7 * self.previewVehicleSize * ShopConfigScreen.CAMERA_MIN_DISTANCE_TO_X_OFFSET_FACTOR * g_screenAspectRatio * self.cameraDistance / self.cameraMinDistance)
+  setTranslation(self.rotateNode, self.workshopWorldPosition[1] + v6 * self.previewVehicleSize * ShopConfigScreen.CAMERA_MIN_DISTANCE_TO_X_OFFSET_FACTOR * g_screenAspectRatio * self.cameraDistance / self.cameraMinDistance, self.workshopWorldPosition[2] + self.focusY, self.workshopWorldPosition[3] + -v7 * self.previewVehicleSize * ShopConfigScreen.CAMERA_MIN_DISTANCE_TO_X_OFFSET_FACTOR * g_screenAspectRatio * self.cameraDistance / self.cameraMinDistance)
   setRotation(self.rotateNode, self.rotX, self.rotY, 0)
-  local fovY, v7, priceElement = getWorldTranslation(self.cameraNode)
+  local v6, v7, priceElement = getWorldTranslation(self.cameraNode)
   local v9, v10, v11 = getWorldTranslation(self.rotateNode)
-  local v12, v13, v14 = MathUtil.vector3Normalize(v9 - fovY, v10 - v7, v11 - priceElement)
+  local v12, v13, v14 = MathUtil.vector3Normalize(v9 - v6, v10 - v7, v11 - priceElement)
   local v18, v19, v20 = worldToLocal(self.rotateNode, v9 - v12 * self.cameraDistance, v10 - v13 * self.cameraDistance, v11 - v14 * self.cameraDistance)
   setTranslation(self.cameraNode, v18, v19, v20)
   self:updateDepthOfField()
@@ -1632,7 +1632,7 @@ function ShopConfigScreen:updateLicensePlateGraphics()
     vehicle:setRenderDirty()
   end
   if self.licensePlateData.placementIndex == LicensePlateManager.PLATE_POSITION.NONE then
-    local fovY = fovY:getText("configuration_valueLicensePlateNone")
+    local v6 = v6:getText("configuration_valueLicensePlateNone")
     vehicle:setText(...)
     vehicle:setVisible(false)
     return
@@ -1694,7 +1694,7 @@ function ShopConfigScreen:onClickBuy()
     end
   end
   v5 = v5:hasEnoughSlots(self.storeItem)
-  fovY:setShowMouseCursor(true)
+  v6:setShowMouseCursor(true)
   if not vehicle then
     self:playSample(GuiSoundPlayer.SOUND_SAMPLES.ERROR)
     local v7 = v7:getText(ShopConfigScreen.L10N_SYMBOL.NOT_ENOUGH_MONEY_BUY)
@@ -1710,8 +1710,8 @@ function ShopConfigScreen:onClickBuy()
   self:playSample(GuiSoundPlayer.SOUND_SAMPLES.CLICK)
   v7 = v7:getText(ShopConfigScreen.L10N_SYMBOL.CONFIRM_BUY)
   local priceElement = priceElement:formatMoney(self.totalPrice, 0, true, true)
-  local fovY = string.format(...)
-  YesNoDialog.show(self.onYesNoBuy, self, fovY)
+  local v6 = string.format(...)
+  YesNoDialog.show(self.onYesNoBuy, self, v6)
 end
 function ShopConfigScreen:onClickConfigAction()
   if self.focusedColorElement ~= nil then
@@ -1896,14 +1896,14 @@ function ShopConfigScreen:onCameraUpDown(actionName, inputValue, callbackState, 
 end
 function ShopConfigScreen:onCameraZoom(actionName, inputValue, direction, isAnalog, isMouse)
   if isMouse then
-    local fovY = fovY:getIsVisible()
-    if fovY then
-      local fovY, v7 = fovY:getMousePosition()
-      local priceElement = GuiUtils.checkOverlayOverlap(fovY, v7, self.configSlider.absPosition[1], self.configSlider.absPosition[2], self.configSlider.size[1], self.configSlider.size[2])
+    local v6 = v6:getIsVisible()
+    if v6 then
+      local v6, v7 = v6:getMousePosition()
+      local priceElement = GuiUtils.checkOverlayOverlap(v6, v7, self.configSlider.absPosition[1], self.configSlider.absPosition[2], self.configSlider.size[1], self.configSlider.size[2])
       if priceElement then
         return
       end
-      local v9 = GuiUtils.checkOverlayOverlap(fovY, v7, self.configurationLayout.absPosition[1], self.configurationLayout.absPosition[2], self.configurationLayout.size[1], self.configurationLayout.size[2])
+      local v9 = GuiUtils.checkOverlayOverlap(v6, v7, self.configurationLayout.absPosition[1], self.configurationLayout.absPosition[2], self.configurationLayout.size[1], self.configurationLayout.size[2])
       if v9 then
         return
       end
@@ -1911,7 +1911,7 @@ function ShopConfigScreen:onCameraZoom(actionName, inputValue, direction, isAnal
   end
   if not isAnalog and isMouse then
   end
-  self.inputZoom = self.inputZoom + inputValue * fovY
+  self.inputZoom = self.inputZoom + inputValue * v6
 end
 function ShopConfigScreen:updateInput(dt)
   self:updateInputContext()

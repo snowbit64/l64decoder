@@ -66,16 +66,16 @@ function VariableWorkWidth.registerEventListeners(vehicleType)
 end
 function VariableWorkWidth:onPostLoad(savegame)
   local configurationId = Utils.getNoNil(self.configurations.variableWorkWidth, 1)
-  local v4 = string.format("vehicle.variableWorkWidth.variableWorkWidthConfigurations.variableWorkWidthConfiguration(%d)", configurationId - 1)
+  local configKey = string.format("vehicle.variableWorkWidth.variableWorkWidthConfigurations.variableWorkWidthConfiguration(%d)", configurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.variableWorkWidth.variableWorkWidthConfigurations.variableWorkWidthConfiguration", configurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(configKey)
   if not v5 then
   end
   v2.hasCenter = false
   v2.sections = {}
   v2.sectionsLeft = {}
   v2.sectionsRight = {}
-  v7:iterate(v4 .. ".sections.section", function(self, savegame)
+  v7:iterate(configKey .. ".sections.section", function(self, savegame)
     local configurationId = configurationId:getValue(savegame .. "#isLeft", false)
     configurationId = configurationId:getValue(savegame .. "#isCenter", false)
     configurationId = configurationId:getValue(savegame .. "#maxWidthNode", nil, u0.components, u0.i3dMappings)
@@ -103,7 +103,7 @@ function VariableWorkWidth:onPostLoad(savegame)
   v2.sectionNodes = {}
   v2.sectionNodesLeft = {}
   v2.sectionNodesRight = {}
-  v7:iterate(v4 .. ".sectionNodes.sectionNode", function(self, savegame)
+  v7:iterate(configKey .. ".sectionNodes.sectionNode", function(self, savegame)
     local configurationId = configurationId:getValue(savegame .. "#node", nil, u0.components, u0.i3dMappings)
     if {node = configurationId}.node ~= nil then
       configurationId = configurationId:getValue(savegame .. "#isLeft", false)
@@ -203,7 +203,7 @@ end
 function VariableWorkWidth:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
   self:clearActionEventsTable(self.spec_variableWorkWidth.actionEvents)
   if isActiveForInputIgnoreSelection then
-    local v4, v5 = self:addActionEvent(self.spec_variableWorkWidth.actionEvents, InputAction.VARIABLE_WORK_WIDTH_LEFT, self, VariableWorkWidth.actionEventWorkWidthLeft, false, true, false, true, nil)
+    local configKey, v5 = self:addActionEvent(self.spec_variableWorkWidth.actionEvents, InputAction.VARIABLE_WORK_WIDTH_LEFT, self, VariableWorkWidth.actionEventWorkWidthLeft, false, true, false, true, nil)
     v6:setActionEventTextPriority(v5, GS_PRIO_HIGH)
     local v6, v7 = self:addActionEvent(self.spec_variableWorkWidth.actionEvents, InputAction.VARIABLE_WORK_WIDTH_RIGHT, self, VariableWorkWidth.actionEventWorkWidthRight, false, true, false, true, nil)
     v8:setActionEventTextPriority(v7, GS_PRIO_HIGH)
@@ -248,14 +248,14 @@ function VariableWorkWidth:setSectionsActive(leftSide, rightSide, noEventSend)
   if self.spec_variableWorkWidth.leftSide == v5 then
     -- if v0.spec_variableWorkWidth.rightSide == v5 then goto L42 end
   end
-  v4.leftSide = leftSide
-  v4.rightSide = rightSide
+  configKey.leftSide = leftSide
+  configKey.rightSide = rightSide
   self:updateSections()
-  VariableWorkWidthStateEvent.sendEvent(self, v4.leftSide, v4.rightSide, noEventSend)
+  VariableWorkWidthStateEvent.sendEvent(self, configKey.leftSide, configKey.rightSide, noEventSend)
 end
 function VariableWorkWidth:setSectionNodePercentage(sectionNodes, percentage)
-  local v4 = math.min(percentage, 1)
-  local configurationId = math.max(v4, 0)
+  local configKey = math.min(percentage, 1)
+  local configurationId = math.max(configKey, 0)
   -- TODO: structure LOP_FORNPREP (pc 17, target 100)
   if sectionNodes[1].startTrans ~= nil and sectionNodes[1].endTrans ~= nil then
     local v9 = MathUtil.vector3ArrayLerp(sectionNodes[1].startTrans, sectionNodes[1].endTrans, configurationId)
@@ -319,15 +319,15 @@ function VariableWorkWidth:getVariableWorkWidth(isLeft)
     return v8.widthAbs, v9, true
   end
   -- TODO: structure LOP_FORNLOOP (pc 34, target 20)
-  return 0, v4 or 1, true
+  return 0, configKey or 1, true
 end
 function VariableWorkWidth.getVariableWorkWidthUsage(v0)
   return nil
 end
-function VariableWorkWidth.loadWorkAreaFromXML(v0, savegame, v2, configurationId, v4)
-  local v5 = configurationId:getValue(v4 .. ".section#index")
+function VariableWorkWidth.loadWorkAreaFromXML(v0, savegame, v2, configurationId, configKey)
+  local v5 = configurationId:getValue(configKey .. ".section#index")
   v2.sectionIndex = v5
-  v5 = savegame(v0, v2, configurationId, v4)
+  v5 = savegame(v0, v2, configurationId, configKey)
   return v5
 end
 function VariableWorkWidth:getIsWorkAreaActive(superFunc, workArea)

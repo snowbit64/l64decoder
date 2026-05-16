@@ -64,11 +64,11 @@ function Crawlers.registerEventListeners(vehicleType)
 end
 function Crawlers:onLoad(savegame)
   local wheelConfigId = Utils.getNoNil(self.configurations.wheel, 1)
-  local v4 = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", wheelConfigId - 1)
+  local wheelKey = string.format("vehicle.wheels.wheelConfigurations.wheelConfiguration(%d)", wheelConfigId - 1)
   self.spec_crawlers.crawlers = {}
   self.spec_crawlers.sharedLoadRequestIds = {}
   self.spec_crawlers.xmlLoadingHandles = {}
-  v5:iterate(v4 .. ".crawlers.crawler", function(self, savegame)
+  v5:iterate(wheelKey .. ".crawlers.crawler", function(self, savegame)
     v2:loadCrawlerFromXML(u0.xmlFile, savegame)
   end)
 end

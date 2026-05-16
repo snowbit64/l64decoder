@@ -163,7 +163,7 @@ function Shovel:onWriteUpdateStream(streamId, connection, dirtyMask)
 end
 function Shovel:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSelection, isSelected)
   if self.isServer then
-    for allowFillType, v11 in pairs(self.spec_shovel.shovelNodes) do
+    for v10, v11 in pairs(self.spec_shovel.shovelNodes) do
       local v12 = self:getShovelNodeIsActive(v11)
       if v12 then
         v12 = self:getFillUnitFillLevel(v11.fillUnitIndex)
@@ -463,7 +463,7 @@ function Shovel:getCanShovelAtPosition(shovelNode)
   if not v9 then
     return false
   end
-  return allowFillType:canFarmAccessLand(activeFarm, v6, v8)
+  return v10:canFarmAccessLand(activeFarm, v6, v8)
 end
 function Shovel:updateDebugValues(values)
   if self.spec_shovel.shovelDischargeInfo.node ~= nil then
@@ -476,7 +476,7 @@ function Shovel:updateDebugValues(values)
     v11 = math.deg(self.spec_shovel.shovelDischargeInfo.maxSpeedAngle)
     table.insert(values, {name = "maxSpeedAngle", value = v11})
     if self.spec_shovel.shovelDischargeInfo.minSpeedAngle < v7 then
-      local allowFillType = math.min(1, (v7 - self.spec_shovel.shovelDischargeInfo.minSpeedAngle) / (self.spec_shovel.shovelDischargeInfo.maxSpeedAngle - self.spec_shovel.shovelDischargeInfo.minSpeedAngle))
+      local v10 = math.min(1, (v7 - self.spec_shovel.shovelDischargeInfo.minSpeedAngle) / (self.spec_shovel.shovelDischargeInfo.maxSpeedAngle - self.spec_shovel.shovelDischargeInfo.minSpeedAngle))
       local v8 = math.max(...)
       table.insert(values, {name = "factor", value = v8})
       return
