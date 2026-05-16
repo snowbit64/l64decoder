@@ -19,15 +19,15 @@ end
 function SuperCupHUD:loadSamples()
   self.samples = {}
   local filename = Utils.getFilename("resources/sounds/sounds.xml", self.modDirectory)
-  local v2 = XMLFile.load("superCupSounds", filename)
-  if v2 == nil then
+  local xmlFile = XMLFile.load("superCupSounds", filename)
+  if xmlFile == nil then
     return
   end
-  local v4 = v4:loadSample2DFromXML(v2.handle, "superCup.sounds", "countdown", self.modDirectory, 1, AudioGroup.ENVIRONMENT)
+  local v4 = v4:loadSample2DFromXML(xmlFile.handle, "superCup.sounds", "countdown", self.modDirectory, 1, AudioGroup.ENVIRONMENT)
   self.samples.countdown = v4
-  v4 = v4:loadSample2DFromXML(v2.handle, "superCup.sounds", "go", self.modDirectory, 1, AudioGroup.ENVIRONMENT)
+  v4 = v4:loadSample2DFromXML(xmlFile.handle, "superCup.sounds", "go", self.modDirectory, 1, AudioGroup.ENVIRONMENT)
   self.samples.go = v4
-  v2:delete()
+  xmlFile:delete()
 end
 function SuperCupHUD:delete()
   self:setIsActive(false)

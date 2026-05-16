@@ -46,22 +46,22 @@ function Roller:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.rollerSound", "vehicle.roller.sounds.work")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.onlyActiveWhenLowered#value", "vehicle.roller#onlyActiveWhenLowered")
   local rollerConfigurationId = Utils.getNoNil(self.configurations.roller, 1)
-  local v4 = string.format("vehicle.roller.rollerConfigurations.rollerConfiguration(%d).roller", rollerConfigurationId - 1)
+  local configKey = string.format("vehicle.roller.rollerConfigurations.rollerConfiguration(%d).roller", rollerConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.roller.rollerConfigurations.rollerConfiguration", rollerConfigurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(configKey)
   if not v5 then
   end
-  v5 = v5:getValue(v4 .. ".directionNode#node", self.components[1].node, self.components, self.i3dMappings)
+  v5 = v5:getValue(configKey .. ".directionNode#node", self.components[1].node, self.components, self.i3dMappings)
   v2.directionNode = v5
   if self.isClient then
     v2.samples = {}
     v2.isWorkSamplePlaying = false
-    local v6 = v6:loadSampleFromXML(self.xmlFile, v4 .. ".sounds", "work", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
+    local v6 = v6:loadSampleFromXML(self.xmlFile, configKey .. ".sounds", "work", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
     v2.samples.work = v6
   end
-  v5 = v5:getValue(v4 .. "#isSoilRoller")
+  v5 = v5:getValue(configKey .. "#isSoilRoller")
   v2.isSoilRoller = v5
-  v5 = v5:getValue(v4 .. "#isGrassRoller")
+  v5 = v5:getValue(configKey .. "#isGrassRoller")
   v2.isGrassRoller = v5
   if v2.isSoilRoller == nil then
     -- cmp-jump LOP_JUMPXEQKNIL R5 aux=0x80000000 -> L136
@@ -76,9 +76,9 @@ function Roller:onLoad(savegame)
     end
   end
   v2.grassFruitTypes = {FruitType.GRASS, FruitType.MEADOW}
-  v5 = v5:getValue(v4 .. "#usingAIRequirements", true)
+  v5 = v5:getValue(configKey .. "#usingAIRequirements", true)
   v2.usingAIRequirements = v5
-  v5 = v5:getValue(v4 .. "#onlyActiveWhenLowered", true)
+  v5 = v5:getValue(configKey .. "#onlyActiveWhenLowered", true)
   v2.onlyActiveWhenLowered = v5
   v2.startActivationTimeout = 2000
   v2.startActivationTime = 0

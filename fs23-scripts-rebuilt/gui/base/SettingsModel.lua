@@ -345,10 +345,10 @@ function SettingsModel:createControlDisplayValues()
   v2 = v2:getText("ui_auto")
   self.recordingVolumeTexts = {v2, "50%", "60%", "70%", "80%", "90%", "100%", "110%", "120%", "130%", "140%", "150%"}
   v2 = v2:getText("ui_off")
-  local discreteSetting = discreteSetting:getText("ui_voiceActivity")
+  local v3 = v3:getText("ui_voiceActivity")
   self.voiceModeTexts = {}
   if Platform.supportsPushToTalk then
-    discreteSetting = discreteSetting:getText("ui_pushToTalk")
+    v3 = v3:getText("ui_pushToTalk")
     table.insert(...)
   end
   v2 = v2:getText("ui_auto")
@@ -556,8 +556,8 @@ function SettingsModel:createControlDisplayValues()
   self.postProcessAntiAliasingTexts = {}
   self.postProcessAntiAliasingMapping = {}
   self.postProcessAntiAliasingMappingReverse = {}
-  discreteSetting = discreteSetting:getText("toolTip_ppaa")
-  self.postProcessAntiAliasingToolTip = discreteSetting
+  v3 = v3:getText("toolTip_ppaa")
+  self.postProcessAntiAliasingToolTip = v3
   -- TODO: structure LOP_FORNPREP (pc 1039, target 1117)
   if 0 ~= PostProcessAntiAliasing.OFF then
     v6 = getSupportsPostProcessAntiAliasing(0)
@@ -614,7 +614,7 @@ function SettingsModel:createControlDisplayValues()
   table.insert(...)
   -- TODO: structure LOP_FORNLOOP (pc 1276, target 1265)
   self.resolutionTexts = {}
-  discreteSetting = getNumOfScreenModes()
+  v3 = getNumOfScreenModes()
   -- TODO: structure LOP_FORNPREP (pc 1287, target 1342)
   v7, v8 = getScreenModeInfo(0)
   if v7 / v8 == 1.25 then
@@ -727,12 +727,12 @@ end
 function SettingsModel:getDeviceHasAxisDeadzone(axisIndex)
   if self.deviceSettings[self.currentDevice] ~= nil and self.deviceSettings[self.currentDevice].deadzones[axisIndex] == nil then
   end
-  return discreteSetting
+  return v3
 end
 function SettingsModel:getDeviceHasAxisSensitivity(axisIndex)
   if self.deviceSettings[self.currentDevice] ~= nil and self.deviceSettings[self.currentDevice].sensitivities[axisIndex] == nil then
   end
-  return discreteSetting
+  return v3
 end
 function SettingsModel:getNumDevices()
   return #self.deviceSettings
@@ -884,8 +884,8 @@ function SettingsModel:getIsDeviceMouse()
 end
 function SettingsModel:setConsoleResolution(value)
   local displayResolution = self:getValue(SettingsModel.SETTING.CONSOLE_RESOLUTION)
-  local discreteSetting = getNeoMode()
-  if discreteSetting then
+  local v3 = getNeoMode()
+  if v3 then
     -- if not v2 then goto L25 end
   end
   self:setValue(SettingsModel.SETTING.CONSOLE_RENDER_QUALITY, 1)
@@ -895,8 +895,8 @@ function SettingsModel:setConsoleResolution(value)
 end
 function SettingsModel:getConsoleIsRenderQualityDisabled()
   local displayResolution = self:getValue(SettingsModel.SETTING.CONSOLE_RESOLUTION)
-  local discreteSetting = getNeoMode()
-  if not not discreteSetting and displayResolution == 1 then
+  local v3 = getNeoMode()
+  if not not v3 and displayResolution == 1 then
   end
   return v2
 end
@@ -977,10 +977,10 @@ function SettingsModel.getPerformanceClassTexts(v0)
     end
     if v5 then
       local v5 = Utils.getPerformanceClassIndex(v1)
-      discreteSetting[v5] = discreteSetting[v5] .. " (Custom)"
+      v3[v5] = v3[v5] .. " (Custom)"
     end
   end
-  return discreteSetting, v1, v2
+  return v3, v1, v2
 end
 function SettingsModel:getHDRPeakBrightnessTexts()
   return self.hdrPeakBrightnessTexts
@@ -1179,13 +1179,13 @@ function SettingsModel:addPerformanceClassSetting()
     setPerformanceClass(v1)
     if g_currentMission ~= nil and g_currentMission.terrainRootNode ~= nil then
       local foliageViewCoeff = getFoliageViewDistanceCoeff()
-      local discreteSetting, v4 = getTerrainLodBlendDynamicDistances(g_currentMission.terrainRootNode)
-      setTerrainLodBlendDynamicDistances(g_currentMission.terrainRootNode, discreteSetting * foliageViewCoeff, v4 * foliageViewCoeff)
+      local v3, v4 = getTerrainLodBlendDynamicDistances(g_currentMission.terrainRootNode)
+      setTerrainLodBlendDynamicDistances(g_currentMission.terrainRootNode, v3 * foliageViewCoeff, v4 * foliageViewCoeff)
     end
     v4 = Utils.getPerformanceClassId()
-    discreteSetting:setValue(SettingsModel.SETTING.LIGHTS_PROFILE, GameSettings.PERFORMANCE_CLASS_PRESETS[v4][SettingsModel.SETTING.LIGHTS_PROFILE])
-    discreteSetting:setValue(SettingsModel.SETTING.MAX_MIRRORS, GameSettings.PERFORMANCE_CLASS_PRESETS[v4][SettingsModel.SETTING.MAX_MIRRORS])
-    discreteSetting:setValue(SettingsModel.SETTING.REAL_BEACON_LIGHTS, GameSettings.PERFORMANCE_CLASS_PRESETS[v4][SettingsModel.SETTING.REAL_BEACON_LIGHTS])
+    v3:setValue(SettingsModel.SETTING.LIGHTS_PROFILE, GameSettings.PERFORMANCE_CLASS_PRESETS[v4][SettingsModel.SETTING.LIGHTS_PROFILE])
+    v3:setValue(SettingsModel.SETTING.MAX_MIRRORS, GameSettings.PERFORMANCE_CLASS_PRESETS[v4][SettingsModel.SETTING.MAX_MIRRORS])
+    v3:setValue(SettingsModel.SETTING.REAL_BEACON_LIGHTS, GameSettings.PERFORMANCE_CLASS_PRESETS[v4][SettingsModel.SETTING.REAL_BEACON_LIGHTS])
   end)
 end
 function SettingsModel:addHDRPeakBrightnessSetting()
@@ -1497,7 +1497,7 @@ function SettingsModel:addBrightnessSetting()
     v1 = MathUtil.round((v1 - u0.minBrightness) / u0.brightnessStep + 1)
     return v1
   end, function(self)
-    local discreteSetting = MathUtil.clamp(u0.minBrightness + u0.brightnessStep * (self - 1), u0.minBrightness, u0.maxBrightness)
+    local v3 = MathUtil.clamp(u0.minBrightness + u0.brightnessStep * (self - 1), u0.minBrightness, u0.maxBrightness)
     setBrightness(...)
   end, true)
 end
@@ -1516,8 +1516,8 @@ function SettingsModel:addFovYSetting()
     local self = math.deg(...)
     local v5 = math.floor(self + 0.5)
     local v4 = math.max(v5, u0.minFovY)
-    local discreteSetting = math.min(v4, u0.maxFovY)
-    return u0.fovYToIndexMapping[discreteSetting]
+    local v3 = math.min(v4, u0.maxFovY)
+    return u0.fovYToIndexMapping[v3]
   end, function(self)
     local v4 = math.rad(u0.indexToFovYMapping[self])
     v1:setValue(...)
@@ -1552,7 +1552,7 @@ function SettingsModel:addResolutionScale3dSetting()
 end
 function SettingsModel:addCameraSensitivitySetting()
   self:addSetting(SettingsModel.SETTING.CAMERA_SENSITIVITY, function()
-    local discreteSetting = discreteSetting:getValue(SettingsModel.SETTING.CAMERA_SENSITIVITY)
+    local v3 = v3:getValue(SettingsModel.SETTING.CAMERA_SENSITIVITY)
     return Utils.getStateFromValues(...)
   end, function(self)
     v1:setValue(SettingsModel.SETTING.CAMERA_SENSITIVITY, u0.cameraSensitivityValues[self])
@@ -1560,7 +1560,7 @@ function SettingsModel:addCameraSensitivitySetting()
 end
 function SettingsModel:addVehicleArmSensitivitySetting()
   self:addSetting(SettingsModel.SETTING.VEHICLE_ARM_SENSITIVITY, function()
-    local discreteSetting = discreteSetting:getValue(SettingsModel.SETTING.VEHICLE_ARM_SENSITIVITY)
+    local v3 = v3:getValue(SettingsModel.SETTING.VEHICLE_ARM_SENSITIVITY)
     return Utils.getStateFromValues(...)
   end, function(self)
     v1:setValue(SettingsModel.SETTING.VEHICLE_ARM_SENSITIVITY, u0.vehicleArmSensitivityValues[self])
@@ -1568,7 +1568,7 @@ function SettingsModel:addVehicleArmSensitivitySetting()
 end
 function SettingsModel:addRealBeaconLightBrightnessSetting()
   self:addSetting(SettingsModel.SETTING.REAL_BEACON_LIGHT_BRIGHTNESS, function()
-    local discreteSetting = discreteSetting:getValue(SettingsModel.SETTING.REAL_BEACON_LIGHT_BRIGHTNESS)
+    local v3 = v3:getValue(SettingsModel.SETTING.REAL_BEACON_LIGHT_BRIGHTNESS)
     return Utils.getStateFromValues(...)
   end, function(self)
     v1:setValue(SettingsModel.SETTING.REAL_BEACON_LIGHT_BRIGHTNESS, u0.realBeaconLightBrightnessValues[self])
@@ -1710,7 +1710,7 @@ function SettingsModel:addVolumeGUISetting()
 end
 function SettingsModel:addSteeringBackSpeedSetting()
   self:addSetting(SettingsModel.SETTING.STEERING_BACK_SPEED, function()
-    local discreteSetting = discreteSetting:getValue(SettingsModel.SETTING.STEERING_BACK_SPEED)
+    local v3 = v3:getValue(SettingsModel.SETTING.STEERING_BACK_SPEED)
     return Utils.getStateFromValues(...)
   end, function(self)
     v1:setValue(SettingsModel.SETTING.STEERING_BACK_SPEED, u0.steeringBackSpeedValues[self])
@@ -1718,7 +1718,7 @@ function SettingsModel:addSteeringBackSpeedSetting()
 end
 function SettingsModel:addSteeringSensitivitySetting()
   self:addSetting(SettingsModel.SETTING.STEERING_SENSITIVITY, function()
-    local discreteSetting = discreteSetting:getValue(SettingsModel.SETTING.STEERING_SENSITIVITY)
+    local v3 = v3:getValue(SettingsModel.SETTING.STEERING_SENSITIVITY)
     return Utils.getStateFromValues(...)
   end, function(self)
     v1:setValue(SettingsModel.SETTING.STEERING_SENSITIVITY, u0.steeringSensitivityValues[self])

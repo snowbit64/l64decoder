@@ -1,41 +1,27 @@
-AreaType = {
-	OPEN_FIELD = 1,
-	CITY = 2,
-	HALL = 3,
-	FOREST = 4,
-	WATER = 5
-}
-local all = {}
-local allOrdered = {}
-local names = {}
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
 
-for k, v in pairs(AreaType) do
-	all[k] = v
-	names[v] = k
-
-	table.insert(allOrdered, v)
+AreaType = {OPEN_FIELD = 1, CITY = 2, HALL = 3, FOREST = 4, WATER = 5}
+for v6, v7 in pairs(AreaType) do
+  v0[v6] = v7
+  v2[v7] = v6
+  table.insert(v1, v7)
 end
-
-table.sort(allOrdered)
-
+table.sort(v1)
 function AreaType.getByName(name)
-	name = string.upper(name)
-
-	if ClassUtil.getIsValidIndexName(name) then
-		return AreaType[name]
-	end
-
-	return nil
+  local v1 = string.upper(name)
+  v1 = ClassUtil.getIsValidIndexName(v1)
+  if v1 then
+    return AreaType[v1]
+  end
+  return nil
 end
-
 function AreaType.getName(id)
-	return names[id]
+  return u0[id]
 end
-
 function AreaType.getAll()
-	return all
+  return u0
 end
-
 function AreaType.getAllOrdered()
-	return allOrdered
+  return u0
 end

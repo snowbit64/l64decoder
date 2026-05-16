@@ -435,8 +435,8 @@ function PowerTakeOffs:getOutputPowerTakeOffsByJointDescIndex(jointDescIndex)
       if not (secondAttacherVehicle ~= nil) then
         continue
       end
-      local v10 = secondAttacherVehicle:getImplementByObject(self)
-      return secondAttacherVehicle:getOutputPowerTakeOffsByJointDescIndex(v10.jointDescIndex)
+      local ownImplement = secondAttacherVehicle:getImplementByObject(self)
+      return secondAttacherVehicle:getOutputPowerTakeOffsByJointDescIndex(ownImplement.jointDescIndex)
     end
   end
   return v2

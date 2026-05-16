@@ -236,16 +236,16 @@ function AnimatedObject:onSharedAnimationFileLoaded(node, failedReason, args)
 end
 function AnimatedObject:applyAnimation()
   local characterSet = getAnimCharacterSet(self.animation.clipRootNode)
-  local v2 = getAnimClipIndex(characterSet, self.animation.clipName)
-  if v2 == -1 then
+  local clipIndex = getAnimClipIndex(characterSet, self.animation.clipName)
+  if clipIndex == -1 then
     if not self.animation.clipFilename then
     end
     v3(v4, v5, v6)
     return
   end
-  assignAnimTrackClip(characterSet, self.animation.clipTrack, v2)
+  assignAnimTrackClip(characterSet, self.animation.clipTrack, clipIndex)
   setAnimTrackLoopState(characterSet, self.animation.clipTrack, false)
-  local v4 = getAnimClipDuration(characterSet, v2)
+  local v4 = getAnimClipDuration(characterSet, clipIndex)
   self.animation.clipDuration = v4
   self.animation.clipCharacterSet = characterSet
   self:setAnimTime(self.animation.time, false)

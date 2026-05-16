@@ -396,8 +396,8 @@ function InputDisplayManager:makeHelpElement(action1, action2, text, isComboActi
     if isComboAction then
       self:addComboSymbols({}, {}, contextBindings, isContextGamepad)
     else
-      local v12 = InputDisplayManager.requireSymbolAccumulation(action1, action2, contextBindings)
-      self:addRegularSymbols({}, {}, v12, contextBindings, isContextGamepad, ignoreComboButtons)
+      local accumulateSymbols = InputDisplayManager.requireSymbolAccumulation(action1, action2, contextBindings)
+      self:addRegularSymbols({}, {}, accumulateSymbols, contextBindings, isContextGamepad, ignoreComboButtons)
     end
   end
   if #v11 < 1 and not isContextGamepad then
@@ -424,7 +424,7 @@ function InputDisplayManager:makeHelpElement(action1, action2, text, isComboActi
   if action2 ~= nil then
     -- if v2.name then goto L112 end
   end
-  v15 = InputHelpElement.new(action1.name, "", v11, v12, v10, "", text, not ignoreComboButtons, customAxisIcon, priority)
+  v15 = InputHelpElement.new(action1.name, "", v11, accumulateSymbols, v10, "", text, not ignoreComboButtons, customAxisIcon, priority)
   return v15
 end
 function InputDisplayManager:onActionEventsChanged(displayActionEvents)

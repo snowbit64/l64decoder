@@ -61,10 +61,10 @@ function Client:update(dt, isRunning)
       streamWriteUInt8(self.serverStreamId, numObjects)
       -- TODO: structure LOP_FORNPREP (pc 54, target 83)
       local object = table.remove(self.finishedAsyncObjects, 1)
-      local v8 = NetworkUtil.getObjectId(object)
-      if self.serverConnection.objectsInfo[v8] ~= nil then
-        self.serverConnection.objectsInfo[v8].sync = Connection.SYNC_LOADED
-        NetworkUtil.writeNodeObjectId(self.serverStreamId, v8)
+      local serverObjectId = NetworkUtil.getObjectId(object)
+      if self.serverConnection.objectsInfo[serverObjectId] ~= nil then
+        self.serverConnection.objectsInfo[serverObjectId].sync = Connection.SYNC_LOADED
+        NetworkUtil.writeNodeObjectId(self.serverStreamId, serverObjectId)
       end
       -- TODO: structure LOP_FORNLOOP (pc 82, target 55)
       netSendStream(self.serverStreamId, "high", "reliable_ordered", 1, true)
@@ -97,7 +97,7 @@ function Client:update(dt, isRunning)
         end
         streamWriteBool(self.serverStreamId, v10)
         streamWriteFloat32(self.serverStreamId, object)
-        streamWriteFloat32(self.serverStreamId, v8)
+        streamWriteFloat32(self.serverStreamId, serverObjectId)
         streamWriteFloat32(self.serverStreamId, v9)
         -- TODO: structure LOP_FORNPREP (pc 262, target 307)
         NetworkUtil.writeNodeObjectId(self.serverStreamId, numObjects[1].lastServerId)

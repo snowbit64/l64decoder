@@ -1,91 +1,74 @@
-ResetVehicleEvent = {
-	STATE_SUCCESS = 0,
-	STATE_FAILED = 1,
-	STATE_NO_PERMISSION = 2,
-	STATE_IN_USE = 3
-}
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
+ResetVehicleEvent = {STATE_SUCCESS = 0, STATE_FAILED = 1, STATE_NO_PERMISSION = 2, STATE_IN_USE = 3}
 local ResetVehicleEvent_mt = Class(ResetVehicleEvent, Event)
-
 InitStaticEventClass(ResetVehicleEvent, "ResetVehicleEvent", EventIds.EVENT_RESET_VEHICLE)
-
 function ResetVehicleEvent.emptyNew()
-	local self = Event.new(ResetVehicleEvent_mt)
-
-	return self
+  return Event.new(u0)
 end
-
 function ResetVehicleEvent.new(vehicle)
-	local self = ResetVehicleEvent.emptyNew()
-	self.vehicle = vehicle
-
-	return self
+  local v1 = ResetVehicleEvent.emptyNew()
+  v1.vehicle = vehicle
+  return v1
 end
-
 function ResetVehicleEvent.newServerToClient(state)
-	local self = ResetVehicleEvent.emptyNew()
-	self.state = state
-
-	return self
+  local v1 = ResetVehicleEvent.emptyNew()
+  v1.state = state
+  return v1
 end
-
 function ResetVehicleEvent:readStream(streamId, connection)
-	if not connection:getIsServer() then
-		self.vehicle = NetworkUtil.readNodeObject(streamId)
-	else
-		self.state = streamReadUIntN(streamId, 2)
-	end
-
-	self:run(connection)
+  local v3 = connection:getIsServer()
+  if not v3 then
+    v3 = NetworkUtil.readNodeObject(streamId)
+    self.vehicle = v3
+  else
+    v3 = streamReadUIntN(streamId, 2)
+    self.state = v3
+  end
+  self:run(connection)
 end
-
 function ResetVehicleEvent:writeStream(streamId, connection)
-	if connection:getIsServer() then
-		NetworkUtil.writeNodeObject(streamId, self.vehicle)
-	else
-		streamWriteUIntN(streamId, self.state, 2)
-	end
+  local v3 = connection:getIsServer()
+  if v3 then
+    NetworkUtil.writeNodeObject(streamId, self.vehicle)
+    return
+  end
+  streamWriteUIntN(streamId, self.state, 2)
 end
-
 function ResetVehicleEvent:run(connection)
-	if not connection:getIsServer() then
-		local state = ResetVehicleEvent.STATE_FAILED
-		local vehicle = self.vehicle
-
-		if vehicle ~= nil and vehicle.isVehicleSaved and vehicle:getCanBeReset() then
-			if g_currentMission:getHasPlayerPermission("resetVehicle", connection, vehicle:getOwnerFarmId()) then
-				if not vehicle:getIsInUse(connection) then
-					local xmlFile = Vehicle.getReloadXML(vehicle)
-					local key = "vehicles.vehicle(0)"
-
-					local function asyncCallbackFunction(_, newVehicle, vehicleLoadState, arguments)
-						if vehicleLoadState == VehicleLoadingUtil.VEHICLE_LOAD_OK then
-							g_messageCenter:publish(MessageType.VEHICLE_RESET, vehicle, newVehicle)
-							g_currentMission:removeVehicle(vehicle)
-
-							state = ResetVehicleEvent.STATE_SUCCESS
-						else
-							g_currentMission:removeVehicle(newVehicle)
-						end
-
-						xmlFile:delete()
-						connection:sendEvent(ResetVehicleEvent.newServerToClient(state))
-					end
-
-					VehicleLoadingUtil.loadVehicleFromSavegameXML(xmlFile, key, true, false, nil, , asyncCallbackFunction, nil, {})
-
-					return
-				else
-					state = ResetVehicleEvent.STATE_IN_USE
-				end
-			else
-				state = ResetVehicleEvent.STATE_NO_PERMISSION
-			end
-		end
-
-		connection:sendEvent(ResetVehicleEvent.newServerToClient(state))
-
-		return
-	end
-
-	g_messageCenter:publish(ResetVehicleEvent, self.state)
+  local v2 = connection:getIsServer()
+  if not v2 then
+    if self.vehicle ~= nil and self.vehicle.isVehicleSaved then
+      local v4 = self.vehicle:getCanBeReset()
+      if v4 then
+        local v8 = self.vehicle:getOwnerFarmId()
+        v4 = v4:getHasPlayerPermission(...)
+        if v4 then
+          v4 = self.vehicle:getIsInUse(connection)
+          if not v4 then
+            v4 = self.vehicle:getReloadXML()
+            VehicleLoadingUtil.loadVehicleFromSavegameXML(v4, "vehicles.vehicle(0)", true, false, nil, nil, function(self, connection, v2, v3)
+              if v2 == VehicleLoadingUtil.VEHICLE_LOAD_OK then
+                v4:publish(MessageType.VEHICLE_RESET, u0, connection)
+                v4:removeVehicle(u0)
+                u1 = ResetVehicleEvent.STATE_SUCCESS
+              else
+                v4:removeVehicle(connection)
+              end
+              v4:delete()
+              local v6 = ResetVehicleEvent.newServerToClient(u1)
+              v4:sendEvent(...)
+            end, nil, {})
+            return
+          end
+        else
+        end
+      end
+    end
+    local v6 = ResetVehicleEvent.newServerToClient(v2)
+    connection:sendEvent(...)
+    return
+  end
+  v2:publish(ResetVehicleEvent, self.state)
 end

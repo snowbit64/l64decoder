@@ -354,13 +354,13 @@ function AnimalSystem:getTypes()
 end
 function AnimalSystem:getClusterClassBySubTypeIndex(subTypeIndex)
   local subType = self:getSubTypeByIndex(subTypeIndex)
-  local xmlFile = self:getTypeByIndex(subType.typeIndex)
-  return xmlFile.clusterClass
+  local animalType = self:getTypeByIndex(subType.typeIndex)
+  return animalType.clusterClass
 end
 function AnimalSystem:createClusterFromSubTypeIndex(subTypeIndex)
   local subType = self:getSubTypeByIndex(subTypeIndex)
-  local xmlFile = self:getTypeByIndex(subType.typeIndex)
-  local subTypeKey = xmlFile.clusterClass.new()
-  subTypeKey.subTypeIndex = subTypeIndex
-  return subTypeKey
+  local animalType = self:getTypeByIndex(subType.typeIndex)
+  local cluster = animalType.clusterClass.new()
+  cluster.subTypeIndex = subTypeIndex
+  return cluster
 end

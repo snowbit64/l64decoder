@@ -72,12 +72,12 @@ function RidgeMarker:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.ridgeMarkers.ridgeMarker", "vehicle.ridgeMarker.marker")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.ridgeMarker.ridgeMarker", "vehicle.ridgeMarker.marker")
   local configurationId = Utils.getNoNil(self.configurations.ridgeMarker, 1)
-  local v4 = string.format("vehicle.ridgeMarker.ridgeMarkerConfigurations.ridgeMarkerConfiguration(%d)", configurationId - 1)
+  local configKey = string.format("vehicle.ridgeMarker.ridgeMarkerConfigurations.ridgeMarkerConfiguration(%d)", configurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.ridgeMarker.ridgeMarkerConfigurations.ridgeMarkerConfiguration", configurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(configKey)
   if not v5 then
   end
-  v5 = v5:getValue(v4 .. "#inputButton")
+  v5 = v5:getValue(configKey .. "#inputButton")
   if v5 ~= nil then
     v2.ridgeMarkerInputButton = InputAction[v5]
   end
@@ -86,7 +86,7 @@ function RidgeMarker:onLoad(savegame)
   v2.ridgeMarkers = {}
   v2.workAreaToRidgeMarker = {}
   while true do
-    v7 = string.format("%s.marker(%d)", v4, v6)
+    v7 = string.format("%s.marker(%d)", configKey, v6)
     v8 = v8:hasProperty(v7)
     if not v8 then
       break
@@ -103,16 +103,16 @@ function RidgeMarker:onLoad(savegame)
     end
   end
   v2.numRigdeMarkers = #v2.ridgeMarkers
-  v7 = v7:getValue(v4 .. "#foldMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#foldMinLimit", 0)
   v2.ridgeMarkerMinFoldTime = v7
-  v7 = v7:getValue(v4 .. "#foldMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#foldMaxLimit", 1)
   v2.ridgeMarkerMaxFoldTime = v7
-  v7 = v7:getValue(v4 .. "#foldDisableDirection")
+  v7 = v7:getValue(configKey .. "#foldDisableDirection")
   v2.foldDisableDirection = v7
-  v7 = v7:getValue(v4 .. "#onlyActiveWhenLowered", true)
+  v7 = v7:getValue(configKey .. "#onlyActiveWhenLowered", true)
   v2.onlyActiveWhenLowered = v7
   v2.ridgeMarkerState = 0
-  v7 = v7:getValue(v4 .. "#directionNode", nil, self.components, self.i3dMappings)
+  v7 = v7:getValue(configKey .. "#directionNode", nil, self.components, self.i3dMappings)
   v2.directionNode = v7
   if not self.isClient then
     SpecializationUtil.removeEventListener(self, "onUpdateTick", RidgeMarker)

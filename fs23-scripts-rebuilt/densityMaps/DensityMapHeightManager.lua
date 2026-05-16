@@ -279,13 +279,13 @@ function DensityMapHeightManager:initialize(isServer, tipCollisionMap, placement
   self.tipToGroundIsAllowed = true
   local v5 = getDensityMapSize(g_currentMission.terrainDetailHeightId)
   local deform = TerrainDeformation.new(g_currentMission.terrainRootNode)
-  local v7 = deform:getBlockedAreaMapSize()
+  local placementMapSize = deform:getBlockedAreaMapSize()
   deform:cancel()
   deform:delete()
   self.worldToDensityMap = v5 / g_currentMission.terrainSize
   self.densityToWorldMap = g_currentMission.terrainSize / v5
-  self.worldToPlacementMap = v7 / g_currentMission.terrainSize
-  self.placementToWorldMap = g_currentMission.terrainSize / v7
+  self.worldToPlacementMap = placementMapSize / g_currentMission.terrainSize
+  self.placementToWorldMap = g_currentMission.terrainSize / placementMapSize
   self.pendingCollisionRecalculateAreas = {}
   self.collisionRecalculateAreaSize = 16
   self.collisionRecalculateAreaWorldSize = self.collisionRecalculateAreaSize * self.densityToWorldMap
@@ -380,7 +380,7 @@ function DensityMapHeightManager:initialize(isServer, tipCollisionMap, placement
     end
     if not v20 and self.placementCollisionMapCreated then
       Logging.warning("No placement collision map defined. Creating empty placement collision map.")
-      loadBitVectorMapNew(self.placementCollisionMap, v7, v7, 1, false)
+      loadBitVectorMapNew(self.placementCollisionMap, placementMapSize, placementMapSize, 1, false)
     end
   end
   v20:constructDensityMapHeightTextureArrays(heightTypes)

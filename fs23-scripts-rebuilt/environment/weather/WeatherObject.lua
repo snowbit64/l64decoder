@@ -1,150 +1,113 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 WeatherObject = {}
 local WeatherObject_mt = Class(WeatherObject)
-
 function WeatherObject.new(weatherType, cloudUpdater, temperatureUpdater, windUpdater, customMt)
-	local self = setmetatable({}, customMt or WeatherObject_mt)
-	self.weatherType = weatherType
-	self.temperatureUpdater = temperatureUpdater
-	self.cloudUpdater = cloudUpdater
-	self.windUpdater = windUpdater
-	self.variations = {}
-	self.weightedVariations = {}
-
-	return self
+  if not customMt then
+  end
+  local v5 = v5(v6, v7)
+  v5.weatherType = weatherType
+  v5.temperatureUpdater = temperatureUpdater
+  v5.cloudUpdater = cloudUpdater
+  v5.windUpdater = windUpdater
+  v5.variations = {}
+  v5.weightedVariations = {}
+  return v5
 end
-
 function WeatherObject:load(xmlFile, key, cloudPresets)
-	self.weight = xmlFile:getInt(key .. "#weight", 1)
-	local maxVariations = 2^Weather.SEND_BITS_OBJECT_VARIATION_INDEX - 1
-
-	xmlFile:iterate(key .. ".variation", function (_, variationKey)
-		if maxVariations < #self.variations then
-			Logging.xmlWarning(xmlFile, "Weather object variation limit (%d) readed at '%s'", maxVariations, variationKey)
-
-			return false
-		end
-
-		local variation = {}
-
-		if self:loadVariation(xmlFile, variationKey, variation, cloudPresets) then
-			table.insert(self.variations, variation)
-
-			variation.index = #self.variations
-
-			for _ = 1, variation.weight do
-				table.insert(self.weightedVariations, variation.index)
-			end
-		end
-
-		return true
-	end)
-
-	return true
+  local v4 = xmlFile:getInt(key .. "#weight", 1)
+  self.weight = v4
+  xmlFile:iterate(key .. ".variation", function(self, xmlFile)
+    if u1 < #u0.variations then
+      Logging.xmlWarning(u2, "Weather object variation limit (%d) readed at '%s'", u1, xmlFile)
+      return false
+    end
+    local cloudPresets = cloudPresets:loadVariation(u2, xmlFile, {}, u3)
+    if cloudPresets then
+      table.insert(u0.variations, {})
+      -- TODO: structure LOP_FORNPREP (pc 46, target 58)
+      table.insert(u0.weightedVariations, {index = #u0.variations}.index)
+      -- TODO: structure LOP_FORNLOOP (pc 57, target 47)
+    end
+    return true
+  end)
+  return true
 end
-
-function WeatherObject:loadVariation(xmlFile, key, variation, cloudPresets)
-	variation.weight = xmlFile:getInt(key .. "#weight", 1)
-	variation.minHours = MathUtil.clamp(xmlFile:getInt(key .. "#minHours", 5), 1, 2^Weather.SEND_BITS_DURATION - 1)
-
-	if variation.minHours < Weather.MIN_WEATHER_DURATION then
-		Logging.xmlWarning(xmlFile, "MinHours needs to be greater than %.1f hours for variation '%s'!", Weather.MIN_WEATHER_DURATION, key)
-
-		variation.minHours = Weather.MIN_WEATHER_DURATION
-	end
-
-	variation.maxHours = MathUtil.clamp(xmlFile:getInt(key .. "#maxHours", 10), 3, 2^Weather.SEND_BITS_DURATION - 1)
-
-	if variation.maxHours < variation.minHours then
-		Logging.xmlWarning(xmlFile, "MaxHours needs to be greater than minHours! for variation '%s'", key)
-
-		variation.maxHours = variation.minHours
-	end
-
-	local minTemperature = xmlFile:getInt(key .. "#minTemperature", 15)
-	local maxTemperature = xmlFile:getInt(key .. "#maxTemperature", 25)
-	local maxSendTemp = 2^Weather.SEND_BITS_TEMPERATURE
-
-	if minTemperature > maxSendTemp then
-		minTemperature = maxSendTemp
-
-		Logging.xmlWarning(xmlFile, "Min temperature is too high. Maximum is %d for variation '%s'", maxSendTemp, key)
-	elseif maxSendTemp < maxTemperature then
-		maxTemperature = maxSendTemp
-
-		Logging.xmlWarning(xmlFile, "Max temperature is too high. Maximum is %d for variation '%s'", maxSendTemp, key)
-	end
-
-	if maxTemperature < minTemperature then
-		local minCopy = minTemperature
-		minTemperature = maxTemperature
-		maxTemperature = minCopy
-	end
-
-	variation.minTemperature = minTemperature
-	variation.maxTemperature = maxTemperature
-	local cloudKey = key .. ".clouds"
-	local presetId = xmlFile:getString(cloudKey .. "#presetId")
-
-	if presetId == nil then
-		Logging.xmlWarning(xmlFile, "Missing clouds presetId for '%s'", cloudKey)
-
-		return false
-	end
-
-	presetId = string.upper(presetId)
-
-	if cloudPresets == nil then
-		printCallstack()
-	end
-
-	if cloudPresets[presetId] == nil then
-		Logging.xmlWarning(xmlFile, "Clouds presetId '%s' is not defined for '%s'", presetId, cloudKey)
-
-		return false
-	end
-
-	variation.clouds = table.copy(cloudPresets[presetId], math.huge)
-	local windObject = WindObject.new()
-
-	if windObject:load(xmlFile, key .. ".wind") then
-		variation.wind = windObject
-	else
-		windObject:delete()
-	end
-
-	return true
+function WeatherObject.loadVariation(v0, v1, v2, v3, v4)
+  local v5 = v1:getInt(v2 .. "#weight", 1)
+  v3.weight = v5
+  local v6 = v1:getInt(v2 .. "#minHours", 5)
+  v5 = MathUtil.clamp(v6, 1, 2 ^ Weather.SEND_BITS_DURATION - 1)
+  v3.minHours = v5
+  if v3.minHours < Weather.MIN_WEATHER_DURATION then
+    Logging.xmlWarning(v1, "MinHours needs to be greater than %.1f hours for variation '%s'!", Weather.MIN_WEATHER_DURATION, v2)
+    v3.minHours = Weather.MIN_WEATHER_DURATION
+  end
+  v6 = v1:getInt(v2 .. "#maxHours", 10)
+  v5 = MathUtil.clamp(v6, 3, 2 ^ Weather.SEND_BITS_DURATION - 1)
+  v3.maxHours = v5
+  if v3.maxHours < v3.minHours then
+    Logging.xmlWarning(v1, "MaxHours needs to be greater than minHours! for variation '%s'", v2)
+    v3.maxHours = v3.minHours
+  end
+  v5 = v1:getInt(v2 .. "#minTemperature", 15)
+  v6 = v1:getInt(v2 .. "#maxTemperature", 25)
+  if 2 ^ Weather.SEND_BITS_TEMPERATURE < v5 then
+    Logging.xmlWarning(v1, "Min temperature is too high. Maximum is %d for variation '%s'", 2 ^ Weather.SEND_BITS_TEMPERATURE, v2)
+  elseif 2 ^ Weather.SEND_BITS_TEMPERATURE < v6 then
+    Logging.xmlWarning(v1, "Max temperature is too high. Maximum is %d for variation '%s'", 2 ^ Weather.SEND_BITS_TEMPERATURE, v2)
+  end
+  if v6 < v5 then
+  end
+  v3.minTemperature = v5
+  v3.maxTemperature = v6
+  local v9 = v1:getString(v2 .. ".clouds" .. "#presetId")
+  if v9 == nil then
+    Logging.xmlWarning(v1, "Missing clouds presetId for '%s'", v2 .. ".clouds")
+    return false
+  end
+  local v10 = string.upper(v9)
+  if v4 == nil then
+    printCallstack()
+  end
+  if v4[v9] == nil then
+    Logging.xmlWarning(v1, "Clouds presetId '%s' is not defined for '%s'", v9, v8)
+    return false
+  end
+  v10 = table.copy(v4[v9], math.huge)
+  v3.clouds = v10
+  v10 = WindObject.new()
+  local v11 = v10:load(v1, v2 .. ".wind")
+  if v11 then
+    v3.wind = v10
+  else
+    v10:delete()
+  end
+  return true
 end
-
 function WeatherObject:getRandomVariationIndex()
-	return self.weightedVariations[math.random(1, #self.weightedVariations)]
+  local v3 = math.random(1, #self.weightedVariations)
+  return self.weightedVariations[v3]
 end
-
 function WeatherObject:getVariationByIndex(index)
-	if index == nil then
-		return nil
-	end
-
-	return self.variations[index]
+  if index == nil then
+    return nil
+  end
+  return self.variations[index]
 end
-
-function WeatherObject:delete()
+function WeatherObject.delete(v0)
 end
-
-function WeatherObject:update(dt)
+function WeatherObject.update(v0, v1)
 end
-
 function WeatherObject:activate(variationIndex, duration)
-	local variation = self.variations[variationIndex]
-	local clouds = self.variations[variationIndex].clouds
-	local wind = self.variations[variationIndex].wind
-
-	self.cloudUpdater:setTargetClouds(clouds, duration)
-	self.temperatureUpdater:setTargetValues(variation.minTemperature, variation.maxTemperature, duration == 0)
-
-	if wind ~= nil then
-		self.windUpdater:setTargetValues(wind.windDirectionX, wind.windDirectionZ, wind.windVelocity, wind.cirrusSpeedFactor, duration)
-	end
+  v6:setTargetClouds(self.variations[variationIndex].clouds, duration)
+  if duration ~= 0 then
+  end
+  v6:setTargetValues(v8, v9, true)
+  if v5 ~= nil then
+    v6:setTargetValues(v5.windDirectionX, v5.windDirectionZ, v5.windVelocity, v5.cirrusSpeedFactor, duration)
+  end
 end
-
-function WeatherObject:deactivate(duration)
+function WeatherObject.deactivate(v0, v1)
 end

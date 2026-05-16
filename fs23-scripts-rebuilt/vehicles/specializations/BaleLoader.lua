@@ -1219,8 +1219,8 @@ function BaleLoader:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSel
         if v8 then
           v8 = self:getLoadedBales()
           for v13, v14 in ipairs(v8) do
-            local jointIndex = v6:getIsBaleSupportedByUnloadTrigger(v14)
-            if not jointIndex then
+            local v15 = v6:getIsBaleSupportedByUnloadTrigger(v14)
+            if not v15 then
               continue
             end
             break
@@ -1285,8 +1285,8 @@ function BaleLoader:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSel
     if v5.dynamicMount.enabled then
       for v10, v11 in ipairs(v5.dynamicMount.baleJointsToUpdate) do
         if v11.quaternion == nil then
-          v12, v13, v14, jointIndex = getQuaternion(v11.node)
-          v11.quaternion = {v12, v13, v14, jointIndex}
+          v12, v13, v14, v15 = getQuaternion(v11.node)
+          v11.quaternion = {v12, v13, v14, v15}
         end
         if v11.time < v5.dynamicMount.jointInterpolationTimeRot then
           v11.time = v11.time + dt
@@ -1299,7 +1299,7 @@ function BaleLoader:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSel
               v16, v17, v18, v19 = MathUtil.slerpQuaternionShortestPath(v11.quaternion[1], v11.quaternion[2], v11.quaternion[3], v11.quaternion[4], 0, 0, 0, 1, v11.time / v5.dynamicMount.jointInterpolationTimeRot)
             end
           end
-          setQuaternion(v11.node, v12, v13, v14, jointIndex)
+          setQuaternion(v11.node, v12, v13, v14, v15)
         end
         v12, v13, v14 = getTranslation(v11.node)
         v17 = math.abs(v12)
@@ -1311,13 +1311,13 @@ function BaleLoader:onUpdateTick(dt, isActiveForInput, isActiveForInputIgnoreSel
             -- if math.max then goto L641 end
           end
           local v24 = MathUtil.sign(v12)
-          v21 = math.min(v12 - v24 * jointIndex, 0)
+          v21 = math.min(v12 - v24 * v15, 0)
           local v22 = MathUtil.sign(v13)
           if 0 < v22 then
             -- if math.max then goto L663 end
           end
           local v25 = MathUtil.sign(v13)
-          v22 = math.min(v13 - v25 * jointIndex, 0)
+          v22 = math.min(v13 - v25 * v15, 0)
           v21 = v16(v14)
           v17(...)
         else
@@ -1448,14 +1448,14 @@ function BaleLoader:getBaleInRange(refNode, balesInTrigger)
       end
     end
     if v11 ~= nil then
-      jointIndex = entityExists(v11.nodeId)
+      v15 = entityExists(v11.nodeId)
       -- if v15 then goto L87 end
     end
     if not false then
       continue
     end
-    jointIndex = calcDistanceFrom(refNode, v11.nodeId)
-    if not (jointIndex < isSelected) then
+    v15 = calcDistanceFrom(refNode, v11.nodeId)
+    if not (v15 < isSelected) then
       continue
     end
     v16 = self:getBaleTypeByBale(v11)
@@ -1727,33 +1727,33 @@ function BaleLoader:createBaleToBaleJoints(baleLines)
         end
         -- TODO: structure LOP_FORNLOOP (pc 69, target 29)
       end
-      for v14, jointIndex in ipairs(isActiveForInput.interConnectedRowStarts) do
-        if not (jointIndex[1] == v8) then
+      for v14, v15 in ipairs(isActiveForInput.interConnectedRowStarts) do
+        if not (v15[1] == v8) then
           continue
         end
-        if not (baleLines[jointIndex[2]] ~= nil) then
+        if not (baleLines[v15[2]] ~= nil) then
           continue
         end
         if v10 then
-          self:createBaleToBaleJoint(v9[1], baleLines[jointIndex[2]][1], v9[1].diameter + isActiveForInput.diameterOffset, isActiveForInput.heightOffset, 0, isSelected, isSelected, isSelected, 1)
+          self:createBaleToBaleJoint(v9[1], baleLines[v15[2]][1], v9[1].diameter + isActiveForInput.diameterOffset, isActiveForInput.heightOffset, 0, isSelected, isSelected, isSelected, 1)
         else
-          self:createBaleToBaleJoint(v9[1], baleLines[jointIndex[2]][1], 0, v9[1].height + 0.05, 0, isActiveForInputIgnoreSelection, 0, 0, 1)
+          self:createBaleToBaleJoint(v9[1], baleLines[v15[2]][1], 0, v9[1].height + 0.05, 0, isActiveForInputIgnoreSelection, 0, 0, 1)
         end
       end
-      for v14, jointIndex in ipairs(isActiveForInput.interConnectedRowEnds) do
-        if not (jointIndex[1] == v8) then
+      for v14, v15 in ipairs(isActiveForInput.interConnectedRowEnds) do
+        if not (v15[1] == v8) then
           continue
         end
-        if not (baleLines[jointIndex[2]] ~= nil) then
+        if not (baleLines[v15[2]] ~= nil) then
           continue
         end
-        if not (#v9 == #baleLines[jointIndex[2]]) then
+        if not (#v9 == #baleLines[v15[2]]) then
           continue
         end
         if v10 then
-          self:createBaleToBaleJoint(v9[#v9], baleLines[jointIndex[2]][#baleLines[jointIndex[2]]], v9[#v9].diameter + isActiveForInput.diameterOffset, isActiveForInput.heightOffset, 0, isSelected, isSelected, isSelected, #v9)
+          self:createBaleToBaleJoint(v9[#v9], baleLines[v15[2]][#baleLines[v15[2]]], v9[#v9].diameter + isActiveForInput.diameterOffset, isActiveForInput.heightOffset, 0, isSelected, isSelected, isSelected, #v9)
         else
-          self:createBaleToBaleJoint(v9[#v9], baleLines[jointIndex[2]][#baleLines[jointIndex[2]]], 0, v9[#v9].height + 0.05, 0, isActiveForInputIgnoreSelection, 0, 0, #v9)
+          self:createBaleToBaleJoint(v9[#v9], baleLines[v15[2]][#baleLines[v15[2]]], 0, v9[#v9].height + 0.05, 0, isActiveForInputIgnoreSelection, 0, 0, #v9)
         end
       end
     end
@@ -1822,8 +1822,8 @@ function BaleLoader:doStateChange(id, nearestBaleServerId)
     if self.isServer and v5 then
       v9 = PackedBale.new(self.isServer, self.isClient)
       v10, v11, v12 = getWorldTranslation(isActiveForInputIgnoreSelection.balePacker.node)
-      v13, v14, jointIndex = getWorldRotation(isActiveForInputIgnoreSelection.balePacker.node)
-      v16 = v9:loadFromConfigXML(isActiveForInputIgnoreSelection.balePacker.filename, v10, v11, v12, v13, v14, jointIndex)
+      v13, v14, v15 = getWorldRotation(isActiveForInputIgnoreSelection.balePacker.node)
+      v16 = v9:loadFromConfigXML(isActiveForInputIgnoreSelection.balePacker.filename, v10, v11, v12, v13, v14, v15)
       if v16 then
         v9:setFillType(v7)
         v9:setFillLevel(v8)
@@ -1841,8 +1841,8 @@ function BaleLoader:doStateChange(id, nearestBaleServerId)
       v13 = self:getFillUnitCapacity(isActiveForInputIgnoreSelection.fillUnitIndex)
     end
     v12 = self:getOwnerFarmId()
-    jointIndex = self:getFillUnitFirstSupportedFillType(isActiveForInputIgnoreSelection.fillUnitIndex)
-    self:addFillUnitFillLevel(v12, isActiveForInputIgnoreSelection.fillUnitIndex, -math.huge, jointIndex, ToolType.UNDEFINED, nil)
+    v15 = self:getFillUnitFirstSupportedFillType(isActiveForInputIgnoreSelection.fillUnitIndex)
+    self:addFillUnitFillLevel(v12, isActiveForInputIgnoreSelection.fillUnitIndex, -math.huge, v15, ToolType.UNDEFINED, nil)
     if self.isServer and isActiveForInputIgnoreSelection.unloadingMover.trigger ~= nil then
       isActiveForInputIgnoreSelection.unloadingMover.isActive = true
       isActiveForInputIgnoreSelection.unloadingMover.frameDelay = 3
@@ -2030,7 +2030,7 @@ function BaleLoader:doStateChange(id, nearestBaleServerId)
         else
           self:mountBale(v16, self, isSelected.node, v9, v10, v11, v12, v13, v14)
         end
-        isActiveForInputIgnoreSelection.balesToMount[jointIndex] = nil
+        isActiveForInputIgnoreSelection.balesToMount[v15] = nil
       else
         isActiveForInputIgnoreSelection.balesToMount[isActiveForInputIgnoreSelection.startBalePlace.bales[1]] = {serverId = isActiveForInputIgnoreSelection.startBalePlace.bales[1], linkNode = isActiveForInputIgnoreSelection.balePlaces[isActiveForInputIgnoreSelection.startBalePlace.current].node, trans = {v9, v10, v11}, rot = {v12, v13, v14}}
       end

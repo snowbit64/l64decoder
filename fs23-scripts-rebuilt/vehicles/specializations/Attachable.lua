@@ -1370,9 +1370,9 @@ end
 function Attachable:getLoweringActionEventState()
   local attacherVehicle = self:getAttacherVehicle()
   if attacherVehicle ~= nil then
-    local inputAttacherJoint = attacherVehicle:getAttacherJointDescFromObject(self)
+    local jointDesc = attacherVehicle:getAttacherJointDescFromObject(self)
     local inputJointDesc = self:getActiveInputAttacherJoint()
-    if inputAttacherJoint.allowsLowering then
+    if jointDesc.allowsLowering then
     end
   end
   local v5 = self:getIsLowered()
@@ -1473,8 +1473,8 @@ end
 function Attachable:getCanToggleTurnedOn(superFunc)
   local attacherVehicle = self:getAttacherVehicle()
   if attacherVehicle ~= nil then
-    local inputAttacherJoint = attacherVehicle:getAttacherJointDescFromObject(self)
-    if inputAttacherJoint ~= nil and not inputAttacherJoint.canTurnOnImplement then
+    local jointDesc = attacherVehicle:getAttacherJointDescFromObject(self)
+    if jointDesc ~= nil and not jointDesc.canTurnOnImplement then
       return false
     end
   end
@@ -1548,17 +1548,17 @@ end
 function Attachable:getIsLowered(superFunc, defaultIsLowered)
   local attacherVehicle = self:getAttacherVehicle()
   if attacherVehicle ~= nil then
-    local index = attacherVehicle:getAttacherJointDescFromObject(self)
-    if index ~= nil then
-      if not index.allowsLowering then
+    local jointDesc = attacherVehicle:getAttacherJointDescFromObject(self)
+    if jointDesc ~= nil then
+      if not jointDesc.allowsLowering then
         -- if not v4.isDefaultLowered then goto L20 end
       end
-      return index.moveDown
+      return jointDesc.moveDown
       return defaultIsLowered
     end
   end
-  index = superFunc(self, defaultIsLowered)
-  return index
+  jointDesc = superFunc(self, defaultIsLowered)
+  return jointDesc
 end
 function Attachable:mountDynamic(superFunc, object, objectActorId, jointNode, mountType, forceAcceleration)
   if self.spec_attachable.attacherVehicle ~= nil then

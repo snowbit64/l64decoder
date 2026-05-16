@@ -1440,9 +1440,9 @@ end
 function Combine:onPostDetachImplement(implementIndex)
   local object = self:getObjectFromImplementIndex(implementIndex)
   if object ~= nil then
-    local v3 = object:getActiveInputAttacherJoint()
-    if v3 ~= nil then
-      if v3.jointType ~= AttacherJoints.JOINTTYPE_CUTTER then
+    local attacherJoint = object:getActiveInputAttacherJoint()
+    if attacherJoint ~= nil then
+      if attacherJoint.jointType ~= AttacherJoints.JOINTTYPE_CUTTER then
         -- if v3.jointType ~= AttacherJoints.JOINTTYPE_CUTTERHARVESTER then goto L27 end
       end
       self:removeCutterFromCombine(object)

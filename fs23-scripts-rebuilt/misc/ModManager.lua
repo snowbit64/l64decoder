@@ -1,198 +1,125 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 ModManager = {}
 local ModManager_mt = Class(ModManager, AbstractManager)
-
 function ModManager.new(customMt)
-	local self = AbstractManager.new(customMt or ModManager_mt)
-
-	return self
+  if not customMt then
+  end
+  return v1(v2)
 end
-
 function ModManager:initDataStructures()
-	self.hashToMod = {}
-	self.nameToMod = {}
-	self.validMods = {}
-	self.multiplayerMods = {}
-	self.mods = {}
-	self.numMods = 0
+  self.hashToMod = {}
+  self.nameToMod = {}
+  self.validMods = {}
+  self.multiplayerMods = {}
+  self.mods = {}
+  self.numMods = 0
 end
-
 function ModManager:addMod(title, description, version, modDescVersion, author, iconFilename, modName, modDir, modFile, isMultiplayerSupported, fileHash, absBaseFilename, isDirectory, isDLC, hasScripts, dependencies, multiplayerOnly, isSelectable, uniqueType, isInternalScriptMod)
-	if fileHash ~= nil and self.hashToMod[fileHash] ~= nil then
-		print("Error: Adding mod with same file hash twice. Title is " .. title .. " filehash: " .. fileHash)
-
-		return nil
-	end
-
-	self.numMods = self.numMods + 1
-	local mod = {
-		id = self.numMods,
-		title = title,
-		description = description,
-		version = version,
-		modDescVersion = modDescVersion,
-		author = author,
-		iconFilename = iconFilename,
-		isDLC = isDLC,
-		fileHash = fileHash,
-		modName = modName,
-		modDir = modDir,
-		modFile = modFile,
-		absBaseFilename = absBaseFilename,
-		isDirectory = isDirectory,
-		isMultiplayerSupported = isMultiplayerSupported,
-		isSelectable = isSelectable,
-		hasScripts = hasScripts,
-		isInternalScriptMod = isInternalScriptMod,
-		dependencies = dependencies,
-		multiplayerOnly = multiplayerOnly,
-		uniqueType = uniqueType
-	}
-
-	table.insert(self.mods, mod)
-
-	self.nameToMod[modName] = mod
-
-	if fileHash ~= nil then
-		table.insert(self.validMods, mod)
-
-		self.hashToMod[fileHash] = mod
-
-		if isMultiplayerSupported then
-			table.insert(self.multiplayerMods, mod)
-		end
-	end
-
-	return mod
+  if fileHash ~= nil and self.hashToMod[fileHash] ~= nil then
+    print("Error: Adding mod with same file hash twice. Title is " .. title .. " filehash: " .. fileHash)
+    return nil
+  end
+  self.numMods = self.numMods + 1
+  table.insert(self.mods, {id = self.numMods, title = title, description = description, version = version, modDescVersion = modDescVersion, author = author, iconFilename = iconFilename, isDLC = isDLC, fileHash = fileHash, modName = modName, modDir = modDir, modFile = modFile, absBaseFilename = absBaseFilename, isDirectory = isDirectory, isMultiplayerSupported = isMultiplayerSupported, isSelectable = isSelectable, hasScripts = hasScripts, isInternalScriptMod = isInternalScriptMod, dependencies = dependencies, multiplayerOnly = multiplayerOnly, uniqueType = uniqueType})
+  self.nameToMod[modName] = {id = self.numMods, title = title, description = description, version = version, modDescVersion = modDescVersion, author = author, iconFilename = iconFilename, isDLC = isDLC, fileHash = fileHash, modName = modName, modDir = modDir, modFile = modFile, absBaseFilename = absBaseFilename, isDirectory = isDirectory, isMultiplayerSupported = isMultiplayerSupported, isSelectable = isSelectable, hasScripts = hasScripts, isInternalScriptMod = isInternalScriptMod, dependencies = dependencies, multiplayerOnly = multiplayerOnly, uniqueType = uniqueType}
+  if fileHash ~= nil then
+    table.insert(self.validMods, {id = self.numMods, title = title, description = description, version = version, modDescVersion = modDescVersion, author = author, iconFilename = iconFilename, isDLC = isDLC, fileHash = fileHash, modName = modName, modDir = modDir, modFile = modFile, absBaseFilename = absBaseFilename, isDirectory = isDirectory, isMultiplayerSupported = isMultiplayerSupported, isSelectable = isSelectable, hasScripts = hasScripts, isInternalScriptMod = isInternalScriptMod, dependencies = dependencies, multiplayerOnly = multiplayerOnly, uniqueType = uniqueType})
+    self.hashToMod[fileHash] = {id = self.numMods, title = title, description = description, version = version, modDescVersion = modDescVersion, author = author, iconFilename = iconFilename, isDLC = isDLC, fileHash = fileHash, modName = modName, modDir = modDir, modFile = modFile, absBaseFilename = absBaseFilename, isDirectory = isDirectory, isMultiplayerSupported = isMultiplayerSupported, isSelectable = isSelectable, hasScripts = hasScripts, isInternalScriptMod = isInternalScriptMod, dependencies = dependencies, multiplayerOnly = multiplayerOnly, uniqueType = uniqueType}
+    if isMultiplayerSupported then
+      table.insert(self.multiplayerMods, {id = self.numMods, title = title, description = description, version = version, modDescVersion = modDescVersion, author = author, iconFilename = iconFilename, isDLC = isDLC, fileHash = fileHash, modName = modName, modDir = modDir, modFile = modFile, absBaseFilename = absBaseFilename, isDirectory = isDirectory, isMultiplayerSupported = isMultiplayerSupported, isSelectable = isSelectable, hasScripts = hasScripts, isInternalScriptMod = isInternalScriptMod, dependencies = dependencies, multiplayerOnly = multiplayerOnly, uniqueType = uniqueType})
+    end
+  end
+  return v21
 end
-
 function ModManager:removeMod(mod)
-	if mod ~= nil then
-		self.nameToMod[mod.modName] = nil
-
-		if mod.fileHash ~= nil then
-			self.hashToMod[mod.fileHash] = nil
-		end
-
-		for index, modItem in ipairs(self.mods) do
-			if modItem == mod then
-				table.remove(self.mods, index)
-
-				break
-			end
-		end
-
-		for index, modItem in ipairs(self.validMods) do
-			if modItem == mod then
-				table.remove(self.validMods, index)
-
-				break
-			end
-		end
-
-		for index, modItem in ipairs(self.multiplayerMods) do
-			if modItem == mod then
-				table.remove(self.multiplayerMods, index)
-
-				break
-			end
-		end
-
-		return true
-	end
-
-	return false
+  if mod ~= nil then
+    self.nameToMod[mod.modName] = nil
+    if mod.fileHash ~= nil then
+      self.hashToMod[mod.fileHash] = nil
+    end
+    for v5, v6 in ipairs(self.mods) do
+      if not (v6 == mod) then
+        continue
+      end
+      table.remove(self.mods, v5)
+      break
+    end
+    for v5, v6 in ipairs(self.validMods) do
+      if not (v6 == mod) then
+        continue
+      end
+      table.remove(self.validMods, v5)
+      break
+    end
+    for v5, v6 in ipairs(self.multiplayerMods) do
+      if not (v6 == mod) then
+        continue
+      end
+      table.remove(self.multiplayerMods, v5)
+      break
+    end
+    return true
+  end
+  return false
 end
-
 function ModManager:getModByFileHash(fileHash)
-	return self.hashToMod[fileHash]
+  return self.hashToMod[fileHash]
 end
-
 function ModManager:getModByName(modName)
-	return self.nameToMod[modName]
+  return self.nameToMod[modName]
 end
-
 function ModManager:getModByIndex(index)
-	return self.mods[index]
+  return self.mods[index]
 end
-
 function ModManager:getMods()
-	return self.mods
+  return self.mods
 end
-
 function ModManager:getMultiplayerMods()
-	return self.multiplayerMods
+  return self.multiplayerMods
 end
-
 function ModManager:getActiveMods()
-	local mods = {}
-
-	for _, mod in ipairs(self.mods) do
-		if g_modIsLoaded[mod.modName] then
-			table.insert(mods, mod)
-		end
-	end
-
-	return mods
+  for v5, v6 in ipairs(self.mods) do
+    if not g_modIsLoaded[v6.modName] then
+      continue
+    end
+    table.insert(v1, v6)
+  end
+  return v1
 end
-
 function ModManager:getNumOfMods()
-	return #self.mods
+  return #self.mods
 end
-
-function ModManager:getHasSelectableMod()
-	for _, modItem in ipairs(self.mods) do
-		if modItem.isSelectable then
-			return true
-		end
-	end
-
-	return false
-end
-
 function ModManager:getNumOfValidMods()
-	return #self.validMods
+  return #self.validMods
 end
-
-function ModManager:getHasSelectableValidMod()
-	for _, modItem in ipairs(self.validMods) do
-		if modItem.isSelectable then
-			return true
-		end
-	end
-
-	return false
-end
-
 function ModManager:getAreAllModsAvailable(modHashes)
-	for _, modHash in pairs(modHashes) do
-		if not self:getIsModAvailable(modHash) then
-			return false
-		end
-	end
-
-	return true
+  for v5, v6 in pairs(modHashes) do
+    local v7 = self:getIsModAvailable(v6)
+    if not not v7 then
+      continue
+    end
+    return false
+  end
+  return true
 end
-
 function ModManager:getIsModAvailable(modHash)
-	local modItem = self.hashToMod[modHash]
-
-	if modItem == nil or not modItem.isMultiplayerSupported then
-		return false
-	end
-
-	return true
+  if self.hashToMod[modHash] ~= nil then
+    -- if v0.hashToMod[v1].isMultiplayerSupported then goto L10 end
+  end
+  return false
+  return true
 end
-
-function ModManager:isModMap(modName)
-	for mapId, _ in pairs(g_mapManager.idToMap) do
-		local mapModName = g_mapManager:getModNameFromMapId(mapId)
-
-		if mapModName == modName then
-			return true
-		end
-	end
-
-	return false
+function ModManager.isModMap(v0, v1)
+  for v5, v6 in pairs(g_mapManager.idToMap) do
+    local v7 = v7:getModNameFromMapId(v5)
+    if not (v7 == v1) then
+      continue
+    end
+    return true
+  end
+  return false
 end
-
-g_modManager = ModManager.new()
+local v1 = ModManager.new()
+g_modManager = v1

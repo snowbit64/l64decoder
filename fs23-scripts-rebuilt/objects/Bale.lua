@@ -906,7 +906,7 @@ end
 function Bale.setBaleMeshVisibilityCut(baleMesh, node, axis, direction, recursively)
   local v5 = getHasShaderParameter(baleMesh, "visibilityXZ")
   if v5 then
-    local v5, v6, v7, i3dFilename = getShaderParameter(baleMesh, "visibilityXZ")
+    local v5, v6, v7, v8 = getShaderParameter(baleMesh, "visibilityXZ")
     local v9, v10, v11 = localToLocal(node, baleMesh, 0, 0, 0)
     if axis == 1 then
       if 0 < direction then
@@ -915,10 +915,10 @@ function Bale.setBaleMeshVisibilityCut(baleMesh, node, axis, direction, recursiv
     elseif 0 < direction then
     else
     end
-    setShaderParameter(baleMesh, "visibilityXZ", v5, v6, v7, i3dFilename, false)
+    setShaderParameter(baleMesh, "visibilityXZ", v5, v6, v7, v8, false)
   end
   if recursively then
-    i3dFilename = getNumOfChildren(baleMesh)
+    v8 = getNumOfChildren(baleMesh)
     -- TODO: structure LOP_FORNPREP (pc 52, target 68)
     v9 = getChildAt(baleMesh, 1 - 1)
     Bale.setBaleMeshVisibilityCut(v9, node, axis, direction, recursively)
@@ -932,7 +932,7 @@ function Bale:doDensityMapItemAreaUpdate(func, target, ...)
     return
   end
   direction, recursively, v5 = localToWorld(self.nodeId, self.width * 0.4, self.height * 0.4, self.length * 0.4)
-  local v6, v7, i3dFilename = localToWorld(self.nodeId, -self.width * 0.4, -self.height * 0.4, self.length * 0.4)
+  local v6, v7, v8 = localToWorld(self.nodeId, -self.width * 0.4, -self.height * 0.4, self.length * 0.4)
   local v9, v10, v11 = localToWorld(self.nodeId, self.width * 0.4, self.height * 0.4, -self.length * 0.4)
   func(...)
 end
@@ -940,18 +940,18 @@ function Bale:showInfo(box)
   local fillType = self:getFillType()
   local fillLevel = self:getFillLevel()
   local recursively = recursively:getFillTypeByIndex(fillType)
-  local i3dFilename = i3dFilename:formatVolume(fillLevel, 0)
+  local v8 = v8:formatVolume(fillLevel, 0)
   box:addLine(...)
   local v5 = self:getIsFermenting()
   if v5 then
     local v7 = v7:getText("info_fermenting")
     local v11 = self:getFermentingPercentage()
-    i3dFilename = string.format("%d%%", v11 * 100)
+    v8 = string.format("%d%%", v11 * 100)
     box:addLine(...)
   end
   v7 = v7:getText("infohud_mass")
   local v10 = self:getMass()
-  i3dFilename = i3dFilename:formatMass(...)
+  v8 = v8:formatMass(...)
   box:addLine(...)
 end
 function Bale.createDummyBale(xmlFilename, fillTypeIndex, wrappingState, wrappingColor)
@@ -998,12 +998,12 @@ function Bale.loadFillTypesFromXML(fillTypes, xmlFile, baseDirectory)
       end
       v7 = v7:getValue(xmlFile .. ".specular#filename")
       if v7 ~= nil then
-        local i3dFilename = Utils.getFilename(v7, u1)
-        recursively.specularFilename = i3dFilename
+        local v8 = Utils.getFilename(v7, u1)
+        recursively.specularFilename = v8
       end
-      i3dFilename = i3dFilename:getValue(xmlFile .. ".alpha#filename")
-      if i3dFilename ~= nil then
-        local v9 = Utils.getFilename(i3dFilename, u1)
+      v8 = v8:getValue(xmlFile .. ".alpha#filename")
+      if v8 ~= nil then
+        local v9 = Utils.getFilename(v8, u1)
         recursively.alphaFilename = v9
       end
       v9 = v9:getValue(xmlFile .. ".fermenting#outputFillType")
@@ -1040,7 +1040,7 @@ function Bale.setFillTypeTexturesForNode(nodeId, fillTypeInfo)
       local recursively = getMaterialCustomShaderFilename(direction)
       local v5 = recursively:contains("silageBaleShader")
       if v5 then
-        local v5, v6, v7, i3dFilename = getShaderParameter(nodeId, "wrappingState")
+        local v5, v6, v7, v8 = getShaderParameter(nodeId, "wrappingState")
         local v9, v10, v11, v12 = getShaderParameter(nodeId, "colorScale")
         if fillTypeInfo.diffuseFilename ~= nil then
           local v13 = setMaterialDiffuseMapFromFile(direction, fillTypeInfo.diffuseFilename, true, true, false)

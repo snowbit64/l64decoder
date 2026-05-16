@@ -167,10 +167,10 @@ function IngameMapLayoutCircle:getHeight()
 end
 function IngameMapLayoutCircle:rotateWithMap(x, y, rot, lockToBorder)
   local angle = self:getMapRotation()
-  local v6 = math.sin(angle)
-  local v7 = math.cos(angle)
+  local s = math.sin(angle)
+  local c = math.cos(angle)
   if lockToBorder then
-    local v12 = math.sqrt(((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * v7 - (y - self.mapPosY + self.mapSizeY / 2) * v6) * ((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * v7 - (y - self.mapPosY + self.mapSizeY / 2) * v6) + ((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * v6 + (y - self.mapPosY + self.mapSizeY / 2) * v7) * ((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * v6 + (y - self.mapPosY + self.mapSizeY / 2) * v7))
+    local v12 = math.sqrt(((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * c - (y - self.mapPosY + self.mapSizeY / 2) * s) * ((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * c - (y - self.mapPosY + self.mapSizeY / 2) * s) + ((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * s + (y - self.mapPosY + self.mapSizeY / 2) * c) * ((x - self.mapPosX + self.mapSizeX / 2) * g_screenAspectRatio * s + (y - self.mapPosY + self.mapSizeY / 2) * c))
     local v14 = math.min(self.mapSizeY / 2 / v12, 1)
   end
   return v10 / g_screenAspectRatio + v8, v11 * 1 + v9, rot + angle

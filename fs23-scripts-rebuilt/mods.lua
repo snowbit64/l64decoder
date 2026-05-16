@@ -109,19 +109,19 @@ end
 function loadInternalMods()
   haveModsChanged()
   for v3, v4 in pairs(u0) do
-    local missionVehiclesFilename = fileExists(g_internalModsDirectory .. v4.name .. ".gar")
-    if missionVehiclesFilename then
-      missionVehiclesFilename = getFileMD5(g_internalModsDirectory .. v4.name .. ".gar", v4.name)
+    local v10 = fileExists(g_internalModsDirectory .. v4.name .. ".gar")
+    if v10 then
+      v10 = getFileMD5(g_internalModsDirectory .. v4.name .. ".gar", v4.name)
     elseif g_isDevelopmentVersion then
-      missionVehiclesFilename = fileExists(g_internalModsDirectory .. v4.name .. "/" .. "modDesc.xml")
-      if missionVehiclesFilename then
-        missionVehiclesFilename = getFileMD5(g_internalModsDirectory .. v4.name .. "/" .. "modDesc.xml", v4.name)
+      v10 = fileExists(g_internalModsDirectory .. v4.name .. "/" .. "modDesc.xml")
+      if v10 then
+        v10 = getFileMD5(g_internalModsDirectory .. v4.name .. "/" .. "modDesc.xml", v4.name)
       end
     end
-    if not (fillTypesFilename ~= nil) then
+    if not (v8 ~= nil) then
       continue
     end
-    loadModDesc(v5, v6, v7, fillTypesFilename, g_internalModsDirectory .. v5, true, false, true)
+    loadModDesc(v5, v6, v7, v8, g_internalModsDirectory .. v5, true, false, true)
   end
 end
 function postInitMods()
@@ -133,8 +133,8 @@ function postInitMods()
   end
 end
 function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isDirectory, addDLCPrefix, isInternalMod)
-  local fillTypesFilename = u0(modName)
-  if not fillTypesFilename then
+  local v8 = u0(modName)
+  if not v8 then
     print("Error: Invalid mod name '" .. modName .. "'! Characters allowed: (_, A-Z, a-z, 0-9). The first character must not be a digit")
     return
   end
@@ -144,13 +144,13 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
     return
   end
   g_modNameToDirectory[modName] = modDir
-  local missionVehiclesFilename = string.endsWith(modFile, "dlcDesc.xml")
-  if missionVehiclesFilename then
-    missionVehiclesFilename = fileExists(modFile)
-    if not missionVehiclesFilename then
+  local v10 = string.endsWith(modFile, "dlcDesc.xml")
+  if v10 then
+    v10 = fileExists(modFile)
+    if not v10 then
       if GS_IS_EPIC_VERSION then
         local v15 = getAppBasePath()
-        missionVehiclesFilename = string.startsWith(modDir, v15 .. "pdlc/")
+        v10 = string.startsWith(modDir, v15 .. "pdlc/")
         -- if not v10 then goto L64 end
         print("Info: No license for dlc " .. modName .. ".")
       else
@@ -160,43 +160,43 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
     end
   end
   setModInstalled(absBaseFilename, addDLCPrefix)
-  missionVehiclesFilename = XMLFile.load("ModFile", modFile)
-  if missionVehiclesFilename == nil then
+  v10 = XMLFile.load("ModFile", modFile)
+  if v10 == nil then
     return
   end
-  local v11 = missionVehiclesFilename:getString("modDesc.version")
+  local v11 = v10:getString("modDesc.version")
   if v11 ~= nil and v11 ~= "" then
   end
   if isInternalMod then
     local v13 = u1(modName)
     if v11 ~= v13.version then
       print("Error: Outdated mod version in mod " .. modName)
-      missionVehiclesFilename:delete()
+      v10:delete()
       return
     end
   end
   if modFileHash ~= nil then
   end
-  if densityMapHeightTypesFilename then
+  if v9 then
     print("Available dlc: " .. v13 .. v12 .. " " .. modName)
   else
     print("Available mod: " .. v13 .. v12 .. " " .. modName)
   end
-  local v14 = missionVehiclesFilename:getInt("modDesc#descVersion")
+  local v14 = v10:getInt("modDesc#descVersion")
   if v14 == nil then
     print("Error: Missing descVersion attribute in mod " .. modName)
-    missionVehiclesFilename:delete()
+    v10:delete()
     return
   end
   if v14 >= g_minModDescVersion then
     -- if g_maxModDescVersion >= v14 then goto L182 end
   end
   print("Error: Unsupported mod description version in mod " .. modName)
-  missionVehiclesFilename:delete()
+  v10:delete()
   return
   if _G[modName] ~= nil and not u2 then
     print("Error: Invalid mod name '" .. modName .. "'")
-    missionVehiclesFilename:delete()
+    v10:delete()
     return
   end
   if u3[modName] ~= nil then
@@ -219,19 +219,19 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
     end
     if v17 then
       print("Error: Mod '" .. modName .. "' in version '" .. v11 .. "' and lower is not supported anymore. Please update the mod!")
-      missionVehiclesFilename:delete()
+      v10:delete()
       return
     end
   end
-  if densityMapHeightTypesFilename then
-    v16 = missionVehiclesFilename:getString("modDesc.multiplayer#requiredModName")
-    if v16 ~= nil and v16 ~= fillTypesFilename then
-      print("Error: Do not rename dlcs. Name: '" .. fillTypesFilename .. "'. Expect: '" .. v16 .. "'")
-      missionVehiclesFilename:delete()
+  if v9 then
+    v16 = v10:getString("modDesc.multiplayer#requiredModName")
+    if v16 ~= nil and v16 ~= v8 then
+      print("Error: Do not rename dlcs. Name: '" .. v8 .. "'. Expect: '" .. v16 .. "'")
+      v10:delete()
       return
     end
   end
-  v16 = missionVehiclesFilename:getBool("modDesc.isSelectable", true)
+  v16 = v10:getBool("modDesc.isSelectable", true)
   if GS_IS_CONSOLE_VERSION then
     v18 = Utils.getNoNil(_G[modName], {})
   end
@@ -239,7 +239,7 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
   _G[modName] = v17
   g_globalsNameCheckDisabled = false
   setmetatable(v17, {__index = _G})
-  if not densityMapHeightTypesFilename and not isInternalMod then
+  if not v9 and not isInternalMod then
     v17._G = v17
   end
   v17.getfenv = function(modName)
@@ -473,7 +473,7 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
   v17.isAbsolutPath = isAbsolutPath
   v17.g_isDevelopmentVersion = g_isDevelopmentVersion
   v17.GS_IS_CONSOLE_VERSION = GS_IS_CONSOLE_VERSION
-  if not densityMapHeightTypesFilename and not isInternalMod then
+  if not v9 and not isInternalMod then
     v17.ClassUtil = {}
     function v17.ClassUtil.getClassModName(modName, modDir)
       local modFile = _G.ClassUtil.getClassModName(modDir)
@@ -484,7 +484,7 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
     end
   end
   v17.g_onCreateUtil = {onCreateFunctions = {}}
-  missionVehiclesFilename:iterate("modDesc.l10n.text", function(modName, modDir)
+  v10:iterate("modDesc.l10n.text", function(modName, modDir)
     local modFile = modFile:getString(modDir .. "#name")
     local modFileHash = modFileHash:getString(modDir .. "." .. g_languageShort)
     if modFileHash == nil then
@@ -505,7 +505,7 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
     end
     absBaseFilename:setText(modFile, modFileHash)
   end)
-  local v26 = missionVehiclesFilename:getString("modDesc.l10n#filenamePrefix")
+  local v26 = v10:getString("modDesc.l10n#filenamePrefix")
   if v26 ~= nil then
     local v27 = Utils.getFilename(v26, modDir)
     for v34, v35 in ipairs({g_languageShort, "en", "de"}) do
@@ -558,43 +558,43 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
       print("Warning: No l10n file found for '" .. v26 .. "' in mod '" .. modName .. "'")
     end
   end
-  v27 = missionVehiclesFilename:getI18NValue("modDesc.title", "", modName, true)
-  local v28 = missionVehiclesFilename:getI18NValue("modDesc.description", "", modName, true)
-  local v29 = missionVehiclesFilename:getI18NValue("modDesc.iconFilename", "", modName, true)
+  v27 = v10:getI18NValue("modDesc.title", "", modName, true)
+  local v28 = v10:getI18NValue("modDesc.description", "", modName, true)
+  local v29 = v10:getI18NValue("modDesc.iconFilename", "", modName, true)
   if v27 == "" then
     print("Error: Missing title in mod " .. modName)
-    missionVehiclesFilename:delete()
+    v10:delete()
     return
   end
   if v28 == "" then
     print("Error: Missing description in mod " .. modName)
-    missionVehiclesFilename:delete()
+    v10:delete()
     return
   end
-  local v30 = missionVehiclesFilename:getBool("modDesc.multiplayer#supported", false)
-  v31 = missionVehiclesFilename:getBool("modDesc.multiplayer#only", false)
+  local v30 = v10:getBool("modDesc.multiplayer#supported", false)
+  v31 = v10:getBool("modDesc.multiplayer#only", false)
   if modFileHash == nil and v30 then
     print("Warning: Only zip mods are supported in multiplayer. You need to zip the mod " .. modName .. " to use it in multiplayer.")
   end
   if not v30 and v31 then
     print("Error: Both multiplayer and singleplayer are unsupported in mod " .. modName)
-    missionVehiclesFilename:delete()
+    v10:delete()
     return
   end
   if v30 and v29 == "" then
     print("Error: Missing icon filename in mod " .. modName)
-    missionVehiclesFilename:delete()
+    v10:delete()
     return
   end
-  missionVehiclesFilename:iterate("modDesc.maps.map", function(modName, modDir)
+  v10:iterate("modDesc.maps.map", function(modName, modDir)
     modFile:loadMapFromXML(u0, modDir, u1, u2, u3, u4, true, u5)
   end)
-  missionVehiclesFilename:iterate("modDesc.scenarios.scenario", function(modName, modDir)
+  v10:iterate("modDesc.scenarios.scenario", function(modName, modDir)
     modFile:loadScenarioFromXML(u0, modDir, u1, u2, u3)
   end)
-  v32 = missionVehiclesFilename:getI18NValue("modDesc.author", "", modName, true)
-  if densityMapHeightTypesFilename then
-    v33 = missionVehiclesFilename:getString("modDesc.productId")
+  v32 = v10:getI18NValue("modDesc.author", "", modName, true)
+  if v9 then
+    v33 = v10:getString("modDesc.productId")
     if v33 ~= nil then
       -- cmp-jump LOP_JUMPXEQKNIL R11 aux=0x80000000 -> L967
     end
@@ -602,13 +602,13 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
     -- goto L972  (LOP_JUMP +5)
     addNotificationFilter(v33, v11)
   end
-  v33 = missionVehiclesFilename:hasProperty("modDesc.extraSourceFiles.sourceFile(0)")
+  v33 = v10:hasProperty("modDesc.extraSourceFiles.sourceFile(0)")
   if not v33 then
-    v33 = missionVehiclesFilename:hasProperty("modDesc.specializations.specialization(0)")
+    v33 = v10:hasProperty("modDesc.specializations.specialization(0)")
   end
-  v35 = missionVehiclesFilename:hasProperty("modDesc.dependencies.dependency(0)")
+  v35 = v10:hasProperty("modDesc.dependencies.dependency(0)")
   if v35 then
-    missionVehiclesFilename:iterate("modDesc.dependencies.dependency", function(modName, modDir)
+    v10:iterate("modDesc.dependencies.dependency", function(modName, modDir)
       local modFile = modFile:getString(modDir)
       if modFile ~= nil then
         local modFileHash = modFile:len()
@@ -618,8 +618,8 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
       end
     end)
   end
-  v35 = missionVehiclesFilename:getString("modDesc.uniqueType")
-  missionVehiclesFilename:iterate("modDesc.extraContent.key", function(modName, modDir)
+  v35 = v10:getString("modDesc.uniqueType")
+  v10:iterate("modDesc.extraContent.key", function(modName, modDir)
     local modFile = modFile:getString(modDir)
     if modFile ~= nil then
       local modFileHash, absBaseFilename = modFileHash:unlockItem(modFile, true)
@@ -632,7 +632,7 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
   if isInternalMod then
     g_currentModDirectory = modDir
     g_currentModName = modName
-    missionVehiclesFilename:iterate("modDesc.preLoadSourceFiles.sourceFile", function(modName, modDir)
+    v10:iterate("modDesc.preLoadSourceFiles.sourceFile", function(modName, modDir)
       local modFile = modFile:getString(modDir .. "#filename")
       if modFile ~= nil then
         u1.source(u2 .. modFile, u3)
@@ -642,7 +642,7 @@ function loadModDesc(modName, modDir, modFile, modFileHash, absBaseFilename, isD
   v36 = Utils.getFilename(v29, modDir)
   local v57 = u5(modName)
   v36:addMod(...)
-  missionVehiclesFilename:delete()
+  v10:delete()
 end
 function resetModOnCreateFunctions()
   modOnCreate = {}
@@ -901,8 +901,8 @@ function loadDlcsDirectories()
   local v4 = getDlcPath(0)
   if v4 ~= nil then
     table.insert(g_dlcsDirectories, {path = v4, isLoaded = true})
-    local fillTypesFilename = getAppBasePath()
-    if v4 == fillTypesFilename .. "pdlc/" then
+    local v8 = getAppBasePath()
+    if v4 == v8 .. "pdlc/" then
       table.insert(g_dlcsDirectories, {path = "pdlc/", isLoaded = false})
     end
   end

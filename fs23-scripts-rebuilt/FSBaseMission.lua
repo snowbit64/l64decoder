@@ -2733,8 +2733,8 @@ function FSBaseMission.teleportVehicle(v0, vehicle, playerStyle, farmId, userId)
     local v10, v11, v12 = worldRotationToLocal(u0.rootNode, userId, timeScale, connectedToDedicatedServer)
     table.insert(u1, {vehicle = self, offset = {clientUserId, playerName, knownPlayer}, rotationOffset = {v10, v11, v12}})
     if self.getAttachedImplements ~= nil then
-      local xmlString = self:getAttachedImplements()
-      for v18, v19 in ipairs(xmlString) do
+      local v14 = self:getAttachedImplements()
+      for v18, v19 in ipairs(v14) do
         local v20 = v20:getIsAdditionalAttachment()
         if not not v20 then
           continue
@@ -2747,14 +2747,14 @@ function FSBaseMission.teleportVehicle(v0, vehicle, playerStyle, farmId, userId)
     end
   end(vehicle)
   for v12, v13 in ipairs({}) do
-    local xmlString = v13:getAttacherVehicle()
-    if not (xmlString ~= nil) then
+    local v14 = v13:getAttacherVehicle()
+    if not (v14 ~= nil) then
       continue
     end
-    xmlString:detachImplementByObject(v13)
+    v14:detachImplementByObject(v13)
   end
   for v12, v13 in pairs(connectedToDedicatedServer) do
-    xmlString:removeFromPhysics()
+    v14:removeFromPhysics()
   end
   for v12, v13 in pairs(connectedToDedicatedServer) do
     if 1 < v12 then
@@ -2763,14 +2763,14 @@ function FSBaseMission.teleportVehicle(v0, vehicle, playerStyle, farmId, userId)
       v22 = unpack(v13.rotationOffset)
       v20, v21, v22 = localRotationToWorld(...)
     end
-    v20 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, xmlString, 300, v15)
-    v21:setAbsolutePosition(xmlString, v20 + 0.5, v15, v17, v18, v19)
+    v20 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, v14, 300, v15)
+    v21:setAbsolutePosition(v14, v20 + 0.5, v15, v17, v18, v19)
   end
   for v12, v13 in pairs(connectedToDedicatedServer) do
-    xmlString:addToPhysics()
+    v14:addToPhysics()
   end
   for v12, v13 in pairs(timeScale) do
-    xmlString:attachImplement(v13.object, v13.inputAttacherJointDescIndex, v13.jointDescIndex, true)
+    v14:attachImplement(v13.object, v13.inputAttacherJointDescIndex, v13.jointDescIndex, true)
   end
 end
 function FSBaseMission:consoleCommandCheatMoney(amount)
@@ -2805,7 +2805,7 @@ function FSBaseMission.consoleCommandExportStoreItems(v0)
       local v11 = v11:getBrandByIndex(v10.brandIndex)
       if v10.brush ~= nil then
       end
-      local v15 = string.format("%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;", v10.xmlFilename, v10.categoryName, v11.name, v11.title, v10.name, v10.price, v10.lifetime, v10.dailyUpkeep, v10.showInStore, v12, v13, xmlString)
+      local v15 = string.format("%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s;", v10.xmlFilename, v10.categoryName, v11.name, v11.title, v10.name, v10.price, v10.lifetime, v10.dailyUpkeep, v10.showInStore, v12, v13, v14)
       StoreItemUtil.loadSpecsFromXML(v10)
       for v19, v20 in pairs(playerStyle) do
         if v20.species == v10.species then
@@ -2919,19 +2919,19 @@ function FSBaseMission:consoleCommandReloadVehicle(resetVehicle, radius)
       end(self.controlledVehicle, {})
     end
     if radius ~= 0 then
-      for v13, xmlString in pairs(self.vehicles) do
-        if not (xmlString ~= self.controlledVehicle) then
+      for v13, v14 in pairs(self.vehicles) do
+        if not (v14 ~= self.controlledVehicle) then
           continue
         end
-        local v15, v16, v17 = getWorldTranslation(xmlString.rootNode)
+        local v15, v16, v17 = getWorldTranslation(v14.rootNode)
         local v18 = MathUtil.vector3Length(v15 - farmId, v16 - userId, v17 - timeScale)
         if not (v18 < radius) then
           continue
         end
-        if not (clientUserId[xmlString.rootVehicle] == nil) then
+        if not (clientUserId[v14.rootVehicle] == nil) then
           continue
         end
-        knownPlayer(xmlString.rootVehicle, connectedToDedicatedServer)
+        knownPlayer(v14.rootVehicle, connectedToDedicatedServer)
       end
     end
     if #connectedToDedicatedServer == 0 then
@@ -2988,7 +2988,7 @@ function FSBaseMission:consoleCommandLoadTree(length, treeType, growthState, del
   if v12 == nil then
     return "Invalid tree type. " .. v11
   end
-  local xmlString = tonumber(growthState)
+  local v14 = tonumber(growthState)
   v15 = table.getn(v12.treeFilenames)
   v13 = Utils.getNoNil(...)
   v13 = v13:lower()
@@ -3133,12 +3133,12 @@ function FSBaseMission:consoleCommandLoadAllVehicles(loadConfigs, modsOnly, pall
         continue
       end
       if v10.configurations ~= nil then
-        for xmlString, v15 in pairs(v10.configurations) do
+        for v14, v15 in pairs(v10.configurations) do
           if not (1 < #v15) then
             continue
           end
           -- TODO: structure LOP_FORNPREP (pc 117, target 129)
-          if v10.configurationSets[1].configurations[xmlString] ~= nil then
+          if v10.configurationSets[1].configurations[v14] ~= nil then
           else
             -- TODO: structure LOP_FORNLOOP (pc 128, target 118)
           end
@@ -3146,7 +3146,7 @@ function FSBaseMission:consoleCommandLoadAllVehicles(loadConfigs, modsOnly, pall
             continue
           end
           for v20, v21 in ipairs(v15) do
-            {}[xmlString] = v20
+            {}[v14] = v20
             table.insert(self.debugVehiclesToBeLoaded, {storeItem = v10, configurations = {}})
           end
         end
@@ -3432,10 +3432,10 @@ function FSBaseMission:consoleCommandAddPallet(palletFillTypeName, amount, world
   end
   playerName, knownPlayer, v10, v11, v12, v13 = DebugUtil.getVehicleOrPlayerPosAndDir()
   if worldX ~= nil then
-    xmlString = tonumber(worldX)
+    v14 = tonumber(worldX)
   end
   if worldZ ~= nil then
-    xmlString = tonumber(worldZ)
+    v14 = tonumber(worldZ)
   end
   if Platform.gameplay.hasDynamicPallets then
   end
@@ -3586,7 +3586,7 @@ function FSBaseMission:updateGameStatsXML()
       setXMLInt(zPos, "Server" .. ".Slots#capacity", self.missionDynamicInfo.capacity or 0)
       setXMLInt(zPos, "Server" .. ".Slots#numUsed", playerName)
       local v12 = v12:getUsers()
-      for xmlString, v15 in ipairs(...) do
+      for v14, v15 in ipairs(...) do
         local v17 = v15:getConnection()
         if v17 ~= nil then
         end
@@ -3612,17 +3612,17 @@ function FSBaseMission:updateGameStatsXML()
         setXMLString(...)
       end
       -- TODO: structure LOP_FORNPREP (pc 282, target 298)
-      xmlString = string.format("%s.Slots.Player(%d)", "Server", playerName + 1)
-      setXMLBool(zPos, xmlString .. "#isUsed", false)
+      v14 = string.format("%s.Slots.Player(%d)", "Server", playerName + 1)
+      setXMLBool(zPos, v14 .. "#isUsed", false)
       -- TODO: structure LOP_FORNLOOP (pc 297, target 283)
-      for xmlString, v15 in pairs(self.vehicles) do
+      for v14, v15 in pairs(self.vehicles) do
         local v16 = string.format("%s.Vehicles.Vehicle(%d)", "Server", v10)
         v17 = v15:saveStatsToXMLFile(zPos, v16)
         if not v17 then
           continue
         end
       end
-      for xmlString, v15 in pairs(self.missionDynamicInfo.mods) do
+      for v14, v15 in pairs(self.missionDynamicInfo.mods) do
         v16 = string.format("%s.Mods.Mod(%d)", "Server", v10)
         v20 = HTMLUtil.encodeToHTML(v15.modName)
         setXMLString(...)
@@ -3638,7 +3638,7 @@ function FSBaseMission:updateGameStatsXML()
         end
       end
       v12 = v12:getFarmlands()
-      for xmlString, v15 in pairs(...) do
+      for v14, v15 in pairs(...) do
         v16 = string.format("%s.Farmlands.Farmland(%d)", "Server", v10)
         v20 = tostring(v15.name)
         setXMLString(...)
@@ -3651,7 +3651,7 @@ function FSBaseMission:updateGameStatsXML()
         setXMLFloat(zPos, v16 .. "#z", v15.zWorldPos)
       end
       v12 = v12:getFields()
-      for xmlString, v15 in pairs(...) do
+      for v14, v15 in pairs(...) do
         v16 = string.format("%s.Fields.Field(%d)", "Server", v10)
         v20 = tostring(v15.fieldId)
         setXMLString(...)

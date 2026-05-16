@@ -22,8 +22,8 @@ function AchievementManager:initDataStructures()
 end
 function AchievementManager:load()
   local xmlFile = loadXMLFile("achievementsXML", "dataS/achievements.xml")
-  local v3 = saveXMLFileToMemory(xmlFile)
-  initAchievements(v3)
+  local xmlFileContent = saveXMLFileToMemory(xmlFile)
+  initAchievements(xmlFileContent)
   self.numberOfAchievements = 0
   while true do
     v5 = string.format("achievements.achievement(%d)", v4)
@@ -189,7 +189,7 @@ function AchievementManager:updatePlates()
   if self.achievementPlates ~= nil then
     local achievementsParentId = getChild(self.achievementPlates, "achievements")
     if achievementsParentId ~= 0 then
-      local v2 = getNumOfChildren(achievementsParentId)
+      local numChildren = getNumOfChildren(achievementsParentId)
       -- TODO: structure LOP_FORNPREP (pc 19, target 55)
       local v6 = getChildAt(achievementsParentId, 0)
       local v7 = getUserAttribute(v6, "id")

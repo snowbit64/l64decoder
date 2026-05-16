@@ -230,29 +230,29 @@ function Foldable:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.foldingParts", "vehicle.foldable.foldingConfigurations.foldingConfiguration.foldingParts")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.foldable.foldingParts", "vehicle.foldable.foldingConfigurations.foldingConfiguration.foldingParts")
   local foldingConfigurationId = Utils.getNoNil(self.configurations.folding, 1)
-  local v4 = string.format("vehicle.foldable.foldingConfigurations.foldingConfiguration(%d).foldingParts", foldingConfigurationId - 1)
+  local configKey = string.format("vehicle.foldable.foldingConfigurations.foldingConfiguration(%d).foldingParts", foldingConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.foldable.foldingConfigurations.foldingConfiguration", foldingConfigurationId, self.components, self)
-  local v5 = v5:getValue(v4 .. "#objectText", self.typeDesc, self.customEnvironment, false)
+  local v5 = v5:getValue(configKey .. "#objectText", self.typeDesc, self.customEnvironment, false)
   self.spec_foldable.objectText = v5
-  local v6 = v6:getValue(v4 .. "#posDirectionText", "action_foldOBJECT", self.customEnvironment, false)
+  local v6 = v6:getValue(configKey .. "#posDirectionText", "action_foldOBJECT", self.customEnvironment, false)
   v5 = string.format(v6, self.spec_foldable.objectText)
   self.spec_foldable.posDirectionText = v5
-  v6 = v6:getValue(v4 .. "#negDirectionText", "action_unfoldOBJECT", self.customEnvironment, false)
+  v6 = v6:getValue(configKey .. "#negDirectionText", "action_unfoldOBJECT", self.customEnvironment, false)
   v5 = string.format(v6, self.spec_foldable.objectText)
   self.spec_foldable.negDirectionText = v5
-  v6 = v6:getValue(v4 .. "#middlePosDirectionText", "action_liftOBJECT", self.customEnvironment, false)
+  v6 = v6:getValue(configKey .. "#middlePosDirectionText", "action_liftOBJECT", self.customEnvironment, false)
   v5 = string.format(v6, self.spec_foldable.objectText)
   self.spec_foldable.middlePosDirectionText = v5
-  v6 = v6:getValue(v4 .. "#middleNegDirectionText", "action_lowerOBJECT", self.customEnvironment, false)
+  v6 = v6:getValue(configKey .. "#middleNegDirectionText", "action_lowerOBJECT", self.customEnvironment, false)
   v5 = string.format(v6, self.spec_foldable.objectText)
   self.spec_foldable.middleNegDirectionText = v5
-  v5 = v5:getValue(v4 .. "#startAnimTime")
+  v5 = v5:getValue(configKey .. "#startAnimTime")
   self.spec_foldable.startAnimTime = v5
   self.spec_foldable.foldMoveDirection = 0
   self.spec_foldable.moveToMiddle = false
   if self.spec_foldable.startAnimTime == nil then
     self.spec_foldable.startAnimTime = 0
-    v5 = v5:getValue(v4 .. "#startMoveDirection", 0)
+    v5 = v5:getValue(configKey .. "#startMoveDirection", 0)
     if 0.1 < v5 then
       self.spec_foldable.startAnimTime = 1
     end
@@ -261,91 +261,91 @@ function Foldable:onLoad(savegame)
   if 0.5 < v2.startAnimTime then
     v2.turnOnFoldDirection = -1
   end
-  v6 = v6:getValue(v4 .. "#turnOnFoldDirection", v2.turnOnFoldDirection)
+  v6 = v6:getValue(configKey .. "#turnOnFoldDirection", v2.turnOnFoldDirection)
   v5 = MathUtil.sign(...)
   v2.turnOnFoldDirection = v5
   if v2.turnOnFoldDirection == 0 then
     Logging.xmlWarning(self.xmlFile, "Foldable 'turnOnFoldDirection' not allowed to be 0! Only -1 and 1 are allowed")
     v2.turnOnFoldDirection = -1
   end
-  v5 = v5:getValue(v4 .. "#allowUnfoldingByAI", true)
+  v5 = v5:getValue(configKey .. "#allowUnfoldingByAI", true)
   v2.allowUnfoldingByAI = v5
-  v5 = v5:getValue(v4 .. "#foldInputButton")
+  v5 = v5:getValue(configKey .. "#foldInputButton")
   if v5 ~= nil then
     v2.foldInputButton = InputAction[v5]
   end
   v6 = Utils.getNoNil(v2.foldInputButton, InputAction.IMPLEMENT_EXTRA2)
   v2.foldInputButton = v6
-  v6 = v6:getValue(v4 .. "#foldMiddleInputButton")
+  v6 = v6:getValue(configKey .. "#foldMiddleInputButton")
   if v6 ~= nil then
     v2.foldMiddleInputButton = InputAction[v6]
   end
   local v7 = Utils.getNoNil(v2.foldMiddleInputButton, InputAction.LOWER_IMPLEMENT)
   v2.foldMiddleInputButton = v7
-  v7 = v7:getValue(v4 .. "#foldMiddleAnimTime")
+  v7 = v7:getValue(configKey .. "#foldMiddleAnimTime")
   v2.foldMiddleAnimTime = v7
-  v7 = v7:getValue(v4 .. "#foldMiddleDirection", 1)
+  v7 = v7:getValue(configKey .. "#foldMiddleDirection", 1)
   v2.foldMiddleDirection = v7
-  v7 = v7:getValue(v4 .. "#foldMiddleAIRaiseDirection", v2.foldMiddleDirection)
+  v7 = v7:getValue(configKey .. "#foldMiddleAIRaiseDirection", v2.foldMiddleDirection)
   v2.foldMiddleAIRaiseDirection = v7
-  v7 = v7:getValue(v4 .. "#turnOnFoldMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#turnOnFoldMaxLimit", 1)
   v2.turnOnFoldMaxLimit = v7
-  v7 = v7:getValue(v4 .. "#turnOnFoldMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#turnOnFoldMinLimit", 0)
   v2.turnOnFoldMinLimit = v7
-  v7 = v7:getValue(v4 .. "#toggleCoverMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#toggleCoverMaxLimit", 1)
   v2.toggleCoverMaxLimit = v7
-  v7 = v7:getValue(v4 .. "#toggleCoverMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#toggleCoverMinLimit", 0)
   v2.toggleCoverMinLimit = v7
-  v7 = v7:getValue(v4 .. "#detachingMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#detachingMaxLimit", 1)
   v2.detachingMaxLimit = v7
-  v7 = v7:getValue(v4 .. "#detachingMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#detachingMinLimit", 0)
   v2.detachingMinLimit = v7
-  v7 = v7:getValue(v4 .. "#attachingMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#attachingMaxLimit", 1)
   v2.attachingMaxLimit = v7
-  v7 = v7:getValue(v4 .. "#attachingMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#attachingMinLimit", 0)
   v2.attachingMinLimit = v7
-  v7 = v7:getValue(v4 .. "#allowDetachingWhileFolding", false)
+  v7 = v7:getValue(configKey .. "#allowDetachingWhileFolding", false)
   v2.allowDetachingWhileFolding = v7
-  v7 = v7:getValue(v4 .. "#loweringMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#loweringMaxLimit", 1)
   v2.loweringMaxLimit = v7
-  v7 = v7:getValue(v4 .. "#loweringMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#loweringMinLimit", 0)
   v2.loweringMinLimit = v7
-  v7 = v7:getValue(v4 .. "#loadMovingToolStatesMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#loadMovingToolStatesMaxLimit", 1)
   v2.loadMovingToolStatesMaxLimit = v7
-  v7 = v7:getValue(v4 .. "#loadMovingToolStatesMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#loadMovingToolStatesMinLimit", 0)
   v2.loadMovingToolStatesMinLimit = v7
-  v7 = v7:getValue(v4 .. "#dynamicMountMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#dynamicMountMinLimit", 0)
   v2.dynamicMountMinLimit = v7
-  v7 = v7:getValue(v4 .. "#dynamicMountMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#dynamicMountMaxLimit", 1)
   v2.dynamicMountMaxLimit = v7
-  v7 = v7:getValue(v4 .. "#crabSteeringMinLimit", 0)
+  v7 = v7:getValue(configKey .. "#crabSteeringMinLimit", 0)
   v2.crabSteeringMinLimit = v7
-  v7 = v7:getValue(v4 .. "#crabSteeringMaxLimit", 1)
+  v7 = v7:getValue(configKey .. "#crabSteeringMaxLimit", 1)
   v2.crabSteeringMaxLimit = v7
-  local v8 = v8:getValue(v4 .. "#unfoldWarning", "warning_firstUnfoldTheTool", self.customEnvironment, false)
+  local v8 = v8:getValue(configKey .. "#unfoldWarning", "warning_firstUnfoldTheTool", self.customEnvironment, false)
   v7 = string.format(v8, v2.objectText)
   v2.unfoldWarning = v7
-  v8 = v8:getValue(v4 .. "#detachWarning", "warning_doNotDetachWhileFolding", self.customEnvironment, false)
+  v8 = v8:getValue(configKey .. "#detachWarning", "warning_doNotDetachWhileFolding", self.customEnvironment, false)
   v7 = string.format(v8, v2.objectText)
   v2.detachWarning = v7
-  v7 = v7:getValue(v4 .. "#useParentFoldingState", false)
+  v7 = v7:getValue(configKey .. "#useParentFoldingState", false)
   v2.useParentFoldingState = v7
   v2.subFoldingStateVehicles = {}
-  v7 = v7:getValue(v4 .. "#ignoreFoldMiddleWhileFolded", false)
+  v7 = v7:getValue(configKey .. "#ignoreFoldMiddleWhileFolded", false)
   v2.ignoreFoldMiddleWhileFolded = v7
-  v7 = v7:getValue(v4 .. "#lowerWhileDetach", false)
+  v7 = v7:getValue(configKey .. "#lowerWhileDetach", false)
   v2.lowerWhileDetach = v7
-  v7 = v7:getValue(v4 .. "#keepFoldingWhileDetached", Platform.gameplay.keepFoldingWhileDetached)
+  v7 = v7:getValue(configKey .. "#keepFoldingWhileDetached", Platform.gameplay.keepFoldingWhileDetached)
   v2.keepFoldingWhileDetached = v7
-  v7 = v7:getValue(v4 .. "#releaseBrakesWhileFolding", false)
+  v7 = v7:getValue(configKey .. "#releaseBrakesWhileFolding", false)
   v2.releaseBrakesWhileFolding = v7
-  v7 = v7:getValue(v4 .. "#requiresPower", true)
+  v7 = v7:getValue(configKey .. "#requiresPower", true)
   v2.requiresPower = v7
   v2.foldAnimTime = 0
   v2.maxFoldAnimDuration = 0.0001
   v2.foldingParts = {}
   while true do
-    v8 = string.format(v4 .. ".foldingPart(%d)", v7)
+    v8 = string.format(configKey .. ".foldingPart(%d)", v7)
     v9 = v9:hasProperty(v8)
     if not v9 then
       break

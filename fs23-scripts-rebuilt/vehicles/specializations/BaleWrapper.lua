@@ -235,8 +235,8 @@ function BaleWrapper:loadWrapperFromXML(wrapper, xmlFile, baseKey, wrapperName)
   if wrapper ~= self.spec_baleWrapper.roundBaleWrapper then
   end
   local wrappingAnimationConfig = Utils.getNoNil(self.configurations.wrappingAnimation, 1)
-  local v8 = string.format("vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(%d)", wrappingAnimationConfig - 1)
-  self:loadWrapperAnimationsFromXML(wrapper, xmlFile, baseKey, v8, "." .. wrapperName .. ".animations")
+  local configKey = string.format("vehicle.baleWrapper.wrappingAnimationConfigurations.wrappingAnimationConfiguration(%d)", wrappingAnimationConfig - 1)
+  self:loadWrapperAnimationsFromXML(wrapper, xmlFile, baseKey, configKey, "." .. wrapperName .. ".animations")
   wrapper.defaultAnimations = wrapper.animations
   local v9 = xmlFile:getValue(baseKey .. "." .. wrapperName .. "#baleNode", nil, self.components, self.i3dMappings)
   wrapper.baleNode = v9
@@ -278,8 +278,8 @@ function BaleWrapper:loadWrapperFromXML(wrapper, xmlFile, baseKey, wrapperName)
       baseKey = Utils.getFilename(xmlFile.wrapNormal, u0.baseDirectory)
       xmlFile.wrapNormal = baseKey
     end
-    local v8 = string.format("%s.%s.baleTypes.baleType(%d)", u2, u3, self - 1)
-    baseKey:loadWrapperAnimationsFromXML(xmlFile, u1, wrapper, v8, ".animations", u4.animations)
+    local configKey = string.format("%s.%s.baleTypes.baleType(%d)", u2, u3, self - 1)
+    baseKey:loadWrapperAnimationsFromXML(xmlFile, u1, wrapper, configKey, ".animations", u4.animations)
     baseKey:loadWrapperFoilAnimationFromXML(xmlFile, u1, wrapper)
     xmlFile.changeObjects = {}
     ObjectChangeUtil.loadObjectChangeFromXML(u0.xmlFile, wrapper, xmlFile.changeObjects, u0.components, u0)

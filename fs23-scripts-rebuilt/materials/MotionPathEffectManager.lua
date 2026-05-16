@@ -390,8 +390,8 @@ end
 function MotionPathEffectManager:setEffectCustomMapOnNode(node, name, textureEntityId)
   local material = getMaterial(node, 0)
   if textureEntityId ~= nil then
-    local v5 = setMaterialCustomMap(material, name, textureEntityId, false)
-    if v5 ~= material then
+    local newMaterial = setMaterialCustomMap(material, name, textureEntityId, false)
+    if newMaterial ~= material then
       -- TODO: structure LOP_FORNPREP (pc 23, target 50)
       local v9, v10, v11, v12 = getShaderParameter(node, MotionPathEffectManager.MOTION_PATH_SHADER_PARAMS[1])
       self.shaderParamCopyBuffer[1][1] = v9
@@ -399,7 +399,7 @@ function MotionPathEffectManager:setEffectCustomMapOnNode(node, name, textureEnt
       self.shaderParamCopyBuffer[1][3] = v11
       self.shaderParamCopyBuffer[1][4] = v12
       -- TODO: structure LOP_FORNLOOP (pc 49, target 24)
-      setMaterial(node, v5, 0)
+      setMaterial(node, newMaterial, 0)
       -- TODO: structure LOP_FORNPREP (pc 63, target 94)
       setShaderParameter(node, MotionPathEffectManager.MOTION_PATH_SHADER_PARAMS[1], self.shaderParamCopyBuffer[1][1], self.shaderParamCopyBuffer[1][2], self.shaderParamCopyBuffer[1][3], self.shaderParamCopyBuffer[1][4])
       -- TODO: structure LOP_FORNLOOP (pc 93, target 64)

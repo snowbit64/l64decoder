@@ -215,19 +215,19 @@ function FillUnit:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.foldable.foldingParts#onlyFoldOnEmpty", "vehicle.fillUnit#allowFoldingWhileFilled")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.fillAutoAimTargetNode", "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration.fillUnits.fillUnit.autoAimTargetNode")
   local fillUnitConfigurationId = Utils.getNoNil(self.configurations.fillUnit, 1)
-  local v4 = string.format("vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(%d).fillUnits", fillUnitConfigurationId - 1)
+  local baseKey = string.format("vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration(%d).fillUnits", fillUnitConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.fillUnit.fillUnitConfigurations.fillUnitConfiguration", fillUnitConfigurationId, self.components, self)
-  local v5 = v5:getValue(v4 .. "#removeVehicleIfEmpty", false)
+  local v5 = v5:getValue(baseKey .. "#removeVehicleIfEmpty", false)
   self.spec_fillUnit.removeVehicleIfEmpty = v5
-  v5 = v5:getValue(v4 .. "#removeVehicleThreshold", 0.3)
+  v5 = v5:getValue(baseKey .. "#removeVehicleThreshold", 0.3)
   self.spec_fillUnit.removeVehicleThreshold = v5
-  v5 = v5:getValue(v4 .. "#removeVehicleDelay", 0)
+  v5 = v5:getValue(baseKey .. "#removeVehicleDelay", 0)
   self.spec_fillUnit.removeVehicleDelay = v5
-  v5 = v5:getValue(v4 .. "#allowFoldingWhileFilled", true)
+  v5 = v5:getValue(baseKey .. "#allowFoldingWhileFilled", true)
   self.spec_fillUnit.allowFoldingWhileFilled = v5
-  v5 = v5:getValue(v4 .. "#allowFoldingThreshold", 0.0001)
+  v5 = v5:getValue(baseKey .. "#allowFoldingThreshold", 0.0001)
   self.spec_fillUnit.allowFoldingThreshold = v5
-  v5 = v5:getValue(v4 .. "#fillTypeChangeThreshold", 0.05)
+  v5 = v5:getValue(baseKey .. "#fillTypeChangeThreshold", 0.05)
   self.spec_fillUnit.fillTypeChangeThreshold = v5
   self.spec_fillUnit.fillUnits = {}
   self.spec_fillUnit.exactFillRootNodeToFillUnit = {}
@@ -240,12 +240,12 @@ function FillUnit:onLoad(savegame)
   self.spec_fillUnit.fillTrigger.isFilling = false
   self.spec_fillUnit.fillTrigger.currentTrigger = nil
   self.spec_fillUnit.fillTrigger.selectedTrigger = nil
-  v6 = v6:getValue(v4 .. ".fillTrigger#litersPerSecond", 200)
+  v6 = v6:getValue(baseKey .. ".fillTrigger#litersPerSecond", 200)
   self.spec_fillUnit.fillTrigger.litersPerSecond = v6
-  v6 = v6:getValue(v4 .. ".fillTrigger#consumePtoPower", false)
+  v6 = v6:getValue(baseKey .. ".fillTrigger#consumePtoPower", false)
   self.spec_fillUnit.fillTrigger.consumePtoPower = v6
   while true do
-    v6 = string.format("%s.fillUnit(%d)", v4, v5)
+    v6 = string.format("%s.fillUnit(%d)", baseKey, v5)
     v7 = v7:hasProperty(v6)
     if not v7 then
       break
@@ -259,10 +259,10 @@ function FillUnit:onLoad(savegame)
       break
     end
   end
-  v6 = v6:hasProperty(v4 .. ".unloading")
+  v6 = v6:hasProperty(baseKey .. ".unloading")
   if v6 then
     v2.unloading = {}
-    v6:iterate(v4 .. ".unloading", function(self, savegame)
+    v6:iterate(baseKey .. ".unloading", function(self, savegame)
       local fillUnitConfigurationId = fillUnitConfigurationId:loadFillUnitUnloadingFromXML(u0.xmlFile, savegame, {}, u1 + 1)
       if fillUnitConfigurationId then
         table.insert(u2.unloading, {})
@@ -276,9 +276,9 @@ function FillUnit:onLoad(savegame)
     v2.samples = {}
     v7 = v7:loadSampleFromXML(self.xmlFile, "vehicle.fillUnit.sounds", "fill", self.baseDirectory, self.components, 0, AudioGroup.VEHICLE, self.i3dMappings, self)
     v2.samples.fill = v7
-    v6 = v6:loadEffect(self.xmlFile, v4 .. ".fillEffect", self.components, self, self.i3dMappings)
+    v6 = v6:loadEffect(self.xmlFile, baseKey .. ".fillEffect", self.components, self, self.i3dMappings)
     v2.fillEffects = v6
-    v6 = v6:loadAnimations(self.xmlFile, v4 .. ".animationNodes", self.components, self, self.i3dMappings)
+    v6 = v6:loadAnimations(self.xmlFile, baseKey .. ".animationNodes", self.components, self, self.i3dMappings)
     v2.animationNodes = v6
     v2.activeFillEffects = {}
     v2.activeFillAnimations = {}

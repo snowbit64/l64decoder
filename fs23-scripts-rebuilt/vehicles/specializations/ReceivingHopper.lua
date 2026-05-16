@@ -156,8 +156,8 @@ end
 function ReceivingHopper:handleDischargeRaycast(superFunc, dischargeNode, hitObject, hitShape, hitDistance, hitFillUnitIndex, hitTerrain)
   if hitObject ~= nil then
     local fillType = self:getDischargeFillType(dischargeNode)
-    local v10 = hitObject:getFillUnitAllowsFillType(hitFillUnitIndex, fillType)
-    if v10 then
+    local allowFillType = hitObject:getFillUnitAllowsFillType(hitFillUnitIndex, fillType)
+    if allowFillType then
       local v11 = hitObject:getFillUnitFreeCapacity(hitFillUnitIndex)
       if 0 < v11 then
         self:setDischargeState(Dischargeable.DISCHARGE_STATE_OBJECT, true)

@@ -79,13 +79,13 @@ function SavegameController:loadSavegames()
     end
   end
   v5:loadDefaults()
-  v6, foundBackups, v8, v9 = saveGetInfoById(v4)
+  v6, v7, v8, v9 = saveGetInfoById(v4)
   if v6 ~= "" then
-    if foundBackups == "" then
+    if v7 == "" then
     end
     v5.hasConflict = true
     v5.isSoftConflict = v9
-    v5.conflictedMetadata = foundBackups
+    v5.conflictedMetadata = v7
     local v11 = saveGetUploadState(v4)
     v5.uploadState = v11
     if v5.hasConflict and v5.isSoftConflict then
@@ -187,8 +187,8 @@ function SavegameController:resolveConflict(savegameId, resolvePolicy)
     if resolvePolicy == SaveGameResolvePolicy.KEEP_REMOTE then
       v3 = v3:getText("ui_savegameConflictKeepRemoteYesNo")
       local v6 = v6:getText("button_continue")
-      local foundBackups = foundBackups:getText("button_cancel")
-      YesNoDialog.show(self.onYesNoConflictKeepRemote, self, v3, nil, v6, foundBackups, nil, nil, nil, {savegameId = savegameId})
+      local v7 = v7:getText("button_cancel")
+      YesNoDialog.show(self.onYesNoConflictKeepRemote, self, v3, nil, v6, v7, nil, nil, nil, {savegameId = savegameId})
       return true
     end
   end
@@ -273,7 +273,7 @@ function SavegameController:assignBackupDeleteFlags(dateNow, backups)
   -- TODO: structure LOP_FORNPREP (pc 18, target 24)
   backups[1].toDelete = false
   -- TODO: structure LOP_FORNLOOP (pc 23, target 19)
-  local v3, v4, v5, v6, foundBackups = dateNow:match("(%d%d%d%d)-(%d%d)-(%d%d)_(%d%d)-(%d%d)")
+  local v3, v4, v5, v6, v7 = dateNow:match("(%d%d%d%d)-(%d%d)-(%d%d)_(%d%d)-(%d%d)")
   local v8 = tonumber(v3)
   v8 = tonumber(v4)
   v8 = tonumber(v5)
@@ -393,9 +393,9 @@ function SavegameController:onSaveStartComplete(errorCode, savegameDirectory)
     self.currentSavegame:setSavegameDirectory(savegameDirectory)
     self.currentSavegame:saveToXMLFile()
     local v6 = math.floor(self.currentSavegame.playTime / 60 + 0.0001)
-    local foundBackups = math.floor((self.currentSavegame.playTime / 60 + 0.0001 - v6) * 60)
+    local v7 = math.floor((self.currentSavegame.playTime / 60 + 0.0001 - v6) * 60)
     local v14 = v14:formatMoney(0)
-    local v13 = string.format("%02d:%02d", v6, foundBackups)
+    local v13 = string.format("%02d:%02d", v6, v7)
     self.savegameDisplayDesc = self.currentSavegame.map.title .. "\n" .. v14 .. "\n" .. v13
     local v11 = v11:getFruitTypes()
     for v13, v14 in pairs(...) do

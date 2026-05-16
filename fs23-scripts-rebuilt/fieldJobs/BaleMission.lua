@@ -280,8 +280,8 @@ end
 function BaleMission:getCompletion()
   local v1 = math.min(1, self.depositedLiters / self.expectedLiters * BaleMission.FILL_SUCCESS_FACTOR)
   local fieldCompletion = self:getFieldCompletion()
-  local v3 = math.min(1, fieldCompletion / AbstractMission.SUCCESS_FACTOR)
-  return math.min(1, 0.2 * v3 + 0.8 * v1)
+  local mowCompletion = math.min(1, fieldCompletion / AbstractMission.SUCCESS_FACTOR)
+  return math.min(1, 0.2 * mowCompletion + 0.8 * v1)
 end
 function BaleMission:partitionCompletion(x, z, widthX, widthZ, heightX, heightZ)
   v7:setParallelogramWorldCoords(x, z, widthX, widthZ, heightX, heightZ, DensityCoordType.POINT_VECTOR_VECTOR)

@@ -110,34 +110,34 @@ function Server:update(dt, isRunning)
           table.insert(v15, {id = Connection.SEND_INFO_DELETE, objectId = v24, prio = 100})
         end
         table.sort(v15, Server.prioCmp)
-        streamWriteTimestamp(objectClass)
-        streamWriteUIntN(objectClass, MessageIds.OBJECT_UPDATE, MessageIds.SEND_NUM_BITS)
-        streamWriteInt32(objectClass, g_physicsNetworkTime)
-        v10:writeUpdateAck(objectClass)
+        streamWriteTimestamp(v9)
+        streamWriteUIntN(v9, MessageIds.OBJECT_UPDATE, MessageIds.SEND_NUM_BITS)
+        streamWriteInt32(v9, g_physicsNetworkTime)
+        v10:writeUpdateAck(v9)
         v21 = MathUtil.clamp(self.serverFPS, 1, 60)
-        streamWriteUIntN(objectClass, v21, 6)
-        streamWriteBool(objectClass, g_networkDebug)
+        streamWriteUIntN(v9, v21, 6)
+        streamWriteBool(v9, g_networkDebug)
         if self.networkListener ~= nil then
           v22:onConnectionWriteUpdateStream(v10, v11, g_networkDebug)
         end
-        v22 = streamGetWriteOffset(objectClass)
-        streamWriteUInt8(objectClass, 0)
+        v22 = streamGetWriteOffset(v9)
+        streamWriteUInt8(v9, 0)
         v23 = math.min(#v15, 255)
         -- TODO: structure LOP_FORNPREP (pc 452, target 741)
-        v27 = streamGetWriteOffset(objectClass)
+        v27 = streamGetWriteOffset(v9)
         if g_networkDebug then
-          local v30 = streamGetWriteOffset(objectClass)
-          streamWriteInt32(objectClass, 0)
+          local v30 = streamGetWriteOffset(v9)
+          streamWriteInt32(v9, 0)
         end
-        streamWriteUIntN(objectClass, v28.id, Connection.SEND_INFO_NUM_BITS)
+        streamWriteUIntN(v9, v28.id, Connection.SEND_INFO_NUM_BITS)
         if v28.id == Connection.SEND_INFO_DELETE then
-          NetworkUtil.writeNodeObjectId(objectClass, v28.objectId)
+          NetworkUtil.writeNodeObjectId(v9, v28.objectId)
           v13[v28.objectId] = nil
           v14[v28.objectId] = v10.lastSeqSent
         elseif v28.id == Connection.SEND_INFO_CREATE then
-          streamWriteUIntN(objectClass, v28.object.classId, ObjectIds.SEND_NUM_BITS)
-          NetworkUtil.writeNodeObjectId(objectClass, v28.object.id)
-          v28.object:writeStream(objectClass, v10)
+          streamWriteUIntN(v9, v28.object.classId, ObjectIds.SEND_NUM_BITS)
+          NetworkUtil.writeNodeObjectId(v9, v28.object.id)
+          v28.object:writeStream(v9, v10)
           local v33 = v28.object:getIsDelayedLoaded()
           if v33 then
           end
@@ -145,29 +145,29 @@ function Server:update(dt, isRunning)
           v12[v30.id].history[v10.lastSeqSent] = {mask = 0, sync = Connection.SYNC_HIST_CREATE}
         else
           if v28.id == Connection.SEND_INFO_SYNC then
-            NetworkUtil.writeNodeObjectId(objectClass, v28.object.id)
-            v28.object:postWriteStream(objectClass, v10)
+            NetworkUtil.writeNodeObjectId(v9, v28.object.id)
+            v28.object:postWriteStream(v9, v10)
             v12[v28.object.id].sync = Connection.SYNC_SYNCING
             v12[v28.object.id].history[v10.lastSeqSent] = {mask = 0, sync = Connection.SYNC_HIST_SYNC}
           elseif v28.id == Connection.SEND_INFO_UPDATE then
-            NetworkUtil.writeNodeObjectId(objectClass, v28.object.id)
-            v28.object:writeUpdateStream(objectClass, v10, v12[v28.object.id].dirtyMask)
+            NetworkUtil.writeNodeObjectId(v9, v28.object.id)
+            v28.object:writeUpdateStream(v9, v10, v12[v28.object.id].dirtyMask)
             v12[v28.object.id].history[v10.lastSeqSent] = {mask = v12[v28.object.id].dirtyMask, sync = Connection.SYNC_HIST_UPDATE}
             v12[v28.object.id].skipCount = 0
             v12[v28.object.id].dirtyMask = 0
           else
-            NetworkUtil.writeNodeObjectId(objectClass, v28.object.id)
+            NetworkUtil.writeNodeObjectId(v9, v28.object.id)
             v12[v28.object.id].sync = Connection.SYNC_REMOVING
             v12[v28.object.id].history[v10.lastSeqSent] = {mask = 0, sync = Connection.SYNC_HIST_REMOVE}
           end
         end
         if g_networkDebug then
-          local v32 = streamGetWriteOffset(objectClass)
-          streamSetWriteOffset(objectClass, v29)
-          streamWriteInt32(objectClass, v32 - v29 + 32)
-          streamSetWriteOffset(objectClass, v32)
+          local v32 = streamGetWriteOffset(v9)
+          streamSetWriteOffset(v9, v29)
+          streamWriteInt32(v9, v32 - v29 + 32)
+          streamSetWriteOffset(v9, v32)
         end
-        v32 = streamGetWriteOffset(objectClass)
+        v32 = streamGetWriteOffset(v9)
         local v36 = self:getObjectPacketType(v30)
         self:addPacketSize(v10, v36, (v32 - v27) / 8)
         if g_networkDebugPrints and v31 == Connection.SEND_INFO_UPDATE then
@@ -179,11 +179,11 @@ function Server:update(dt, isRunning)
         else
           -- TODO: structure LOP_FORNLOOP (pc 740, target 453)
         end
-        v24 = streamGetWriteOffset(objectClass)
-        streamSetWriteOffset(objectClass, v22)
-        streamWriteUInt8(objectClass, v23)
-        streamSetWriteOffset(objectClass, v24)
-        netSendStream(objectClass, "medium", "unreliable_sequenced", 1, true)
+        v24 = streamGetWriteOffset(v9)
+        streamSetWriteOffset(v9, v22)
+        streamWriteUInt8(v9, v23)
+        streamSetWriteOffset(v9, v24)
+        netSendStream(v9, "medium", "unreliable_sequenced", 1, true)
         self.currentWriteStreamConnection = nil
       end
     end
@@ -191,7 +191,7 @@ function Server:update(dt, isRunning)
     if self.networkListener ~= nil then
       v6:onFinishedClientsWriteUpdateStream()
     end
-    for objectClass, v10 in pairs(self.objects) do
+    for v9, v10 in pairs(self.objects) do
       v10.dirtyMask = 0
     end
     self:updatePacketStats(self.tickSum)
@@ -535,7 +535,7 @@ function Server:sendObjects(connection, x, y, z, viewDistanceCoeff)
   end
   v10 = streamGetWriteOffset(v6)
   streamSetWriteOffset(v6, v8)
-  streamWriteInt32(v6, objectClass)
+  streamWriteInt32(v6, v9)
   streamSetWriteOffset(v6, v10)
   netSendStream(v6, "high", "reliable_ordered", 1, true)
   self.currentWriteStreamConnection = nil

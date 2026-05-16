@@ -1,383 +1,350 @@
-SleepManager = {
-	SLEEPING_TIME_SCALE = 5000,
-	TIME_TO_ANSWER_REQUEST = 20000,
-	TIME_TO_NEXT_REQUEST = 20000
-}
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
+SleepManager = {SLEEPING_TIME_SCALE = 5000, TIME_TO_ANSWER_REQUEST = 20000, TIME_TO_NEXT_REQUEST = 20000}
 local SleepManager_mt = Class(SleepManager, AbstractManager)
-
 function SleepManager.new(customMt)
-	local self = AbstractManager.new(customMt or SleepManager_mt)
-	self.isSleeping = false
-	self.wakeUpTime = 0
-	self.previousCamera = nil
-	self.previousInputContext = nil
-	self.fallbackCamera = nil
-	self.isRequestPending = false
-	self.requestAnswer = true
-	self.requestedTime = 0
-	self.requestedTargetTime = 0
-
-	return self
+  if not customMt then
+  end
+  local v1 = v1(v2)
+  v1.isSleeping = false
+  v1.wakeUpTime = 0
+  v1.previousCamera = nil
+  v1.previousInputContext = nil
+  v1.fallbackCamera = nil
+  v1.isRequestPending = false
+  v1.requestAnswer = true
+  v1.requestedTime = 0
+  v1.requestedTargetTime = 0
+  return v1
 end
-
 function SleepManager:loadMapData(xmlFile, missionInfo, baseDirectory)
-	local width, height = getNormalizedScreenValues(128, 128)
-	self.animationNumFrames = 16
-	self.animationTimer = 0
-	self.animationSpeed = 50
-	self.animationOffset = 0
-	self.animationFrameSize = 128
-	self.animationRefSize = {
-		2048,
-		128
-	}
-	local xOffset, yOffset = getNormalizedScreenValues(-4, 0)
-	self.animationOverlay = Overlay.new("dataS/menu/hud/sleep_animation.png", 0.5 + xOffset, 0.5 + yOffset, width, height)
-
-	self.animationOverlay:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
-	self.animationOverlay:setUVs(GuiUtils.getUVs({
-		0,
-		0,
-		self.animationFrameSize,
-		self.animationFrameSize
-	}, self.animationRefSize))
-	self.animationOverlay:setColor(0.0742, 0.4341, 0.6939, 1)
-
-	width, height = getNormalizedScreenValues(200, 200)
-	self.animationBackgroundOverlay = Overlay.new("dataS/menu/hud/ui_elements.png", 0.5, 0.5, width, height)
-
-	self.animationBackgroundOverlay:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
-	self.animationBackgroundOverlay:setUVs(GuiUtils.getUVs({
-		294,
-		390,
-		100,
-		100
-	}, {
-		1024,
-		1024
-	}))
-	self.animationBackgroundOverlay:setColor(0, 0, 0, 0.75)
-	g_messageCenter:subscribe(MessageType.USER_REMOVED, self.onUserRemoved, self)
+  local v4, v5 = getNormalizedScreenValues(128, 128)
+  self.animationNumFrames = 16
+  self.animationTimer = 0
+  self.animationSpeed = 50
+  self.animationOffset = 0
+  self.animationFrameSize = 128
+  self.animationRefSize = {2048, 128}
+  local v6, v7 = getNormalizedScreenValues(-4, 0)
+  local v8 = Overlay.new("dataS/menu/hud/sleep_animation.png", 0.5 + v6, 0.5 + v7, v4, v5)
+  self.animationOverlay = v8
+  v8:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
+  local v10 = GuiUtils.getUVs({0, 0, self.animationFrameSize, self.animationFrameSize}, self.animationRefSize)
+  v8:setUVs(...)
+  v8:setColor(0.0742, 0.4341, 0.6939, 1)
+  local v8, v9 = getNormalizedScreenValues(200, 200)
+  v8 = Overlay.new("dataS/menu/hud/ui_elements.png", 0.5, 0.5, v8, v9)
+  self.animationBackgroundOverlay = v8
+  v8:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
+  v10 = GuiUtils.getUVs({294, 390, 100, 100}, {1024, 1024})
+  v8:setUVs(...)
+  v8:setColor(0, 0, 0, 0.75)
+  v8:subscribe(MessageType.USER_REMOVED, self.onUserRemoved, self)
 end
-
 function SleepManager:unloadMapData()
-	g_messageCenter:unsubscribeAll(self)
-
-	if self.fallbackCamera ~= nil then
-		delete(self.fallbackCamera)
-
-		self.fallbackCamera = nil
-	end
-
-	if self.animationOverlay ~= nil then
-		self.animationOverlay:delete()
-
-		self.animationOverlay = nil
-	end
-
-	if self.animationBackgroundOverlay ~= nil then
-		self.animationBackgroundOverlay:delete()
-
-		self.animationBackgroundOverlay = nil
-	end
+  v1:unsubscribeAll(self)
+  if self.fallbackCamera ~= nil then
+    delete(self.fallbackCamera)
+    self.fallbackCamera = nil
+  end
+  if self.animationOverlay ~= nil then
+    v1:delete()
+    self.animationOverlay = nil
+  end
+  if self.animationBackgroundOverlay ~= nil then
+    v1:delete()
+    self.animationBackgroundOverlay = nil
+  end
 end
-
 function SleepManager:update(dt)
-	if g_currentMission:getIsServer() then
-		if self.wakeUpTime < g_time and self.isSleeping then
-			self:stopSleep()
-		end
-
-		if self.isRequestPending then
-			if #self.userRequestIds == 0 then
-				if self.requestAnswer then
-					self:startSleep(self.requestedTargetTime)
-					self:resetRequest()
-				else
-					g_server:broadcastEvent(SleepRequestDeniedEvent.new(self.requestDeniedUserId), g_dedicatedServer == nil)
-					self:resetRequest()
-				end
-			elseif self.requestedTime + SleepManager.TIME_TO_ANSWER_REQUEST < g_time then
-				g_server:broadcastEvent(SleepRequestTimeoutEvent.new(), false)
-				self:resetRequest()
-			end
-		end
-	end
-
-	if self.isSleeping then
-		self.animationTimer = self.animationTimer - dt
-
-		if self.animationTimer < 0 then
-			self.animationTimer = self.animationSpeed
-			self.animationOffset = self.animationOffset + 1
-
-			if self.animationOffset > self.animationNumFrames - 1 then
-				self.animationOffset = 0
-			end
-
-			self.animationOverlay:setUVs(GuiUtils.getUVs({
-				self.animationOffset * self.animationFrameSize,
-				0,
-				self.animationFrameSize,
-				self.animationFrameSize
-			}, self.animationRefSize))
-		end
-	end
+  local v2 = v2:getIsServer()
+  if v2 then
+    if self.wakeUpTime < g_time and self.isSleeping then
+      self:stopSleep()
+    end
+    if self.isRequestPending then
+      if #self.userRequestIds == 0 then
+        if self.requestAnswer then
+          self:startSleep(self.requestedTargetTime)
+          self:resetRequest()
+          -- goto L81  (LOP_JUMP +43)
+        end
+        local v4 = SleepRequestDeniedEvent.new(self.requestDeniedUserId)
+        if g_dedicatedServer ~= nil then
+        end
+        v2:broadcastEvent(v4, true)
+        self:resetRequest()
+      elseif self.requestedTime + SleepManager.TIME_TO_ANSWER_REQUEST < g_time then
+        v4 = SleepRequestTimeoutEvent.new()
+        v2:broadcastEvent(v4, false)
+        self:resetRequest()
+      end
+    end
+  end
+  if self.isSleeping then
+    self.animationTimer = self.animationTimer - dt
+    if self.animationTimer < 0 then
+      self.animationTimer = self.animationSpeed
+      self.animationOffset = self.animationOffset + 1
+      if self.animationNumFrames - 1 < self.animationOffset then
+        self.animationOffset = 0
+      end
+      v4 = GuiUtils.getUVs({self.animationOffset * self.animationFrameSize, 0, self.animationFrameSize, self.animationFrameSize}, self.animationRefSize)
+      v2:setUVs(...)
+    end
+  end
 end
-
 function SleepManager:draw()
-	if self.isSleeping then
-		if self.animationBackgroundOverlay ~= nil then
-			self.animationBackgroundOverlay:render()
-		end
-
-		if self.animationOverlay ~= nil then
-			self.animationOverlay:render()
-		end
-	end
+  if self.isSleeping then
+    if self.animationBackgroundOverlay ~= nil then
+      dt:render()
+    end
+    if self.animationOverlay ~= nil then
+      dt:render()
+    end
+  end
 end
-
 function SleepManager:onUserRemoved(user)
-	if self.isRequestPending then
-		for k, id in ipairs(self.userRequestIds) do
-			if id == user:getId() then
-				table.remove(self.userRequestIds, k)
-
-				break
-			end
-		end
-	end
+  if self.isRequestPending then
+    for v5, v6 in ipairs(self.userRequestIds) do
+      local v7 = user:getId()
+      if not (v6 == v7) then
+        continue
+      end
+      table.remove(self.userRequestIds, v5)
+      return
+    end
+  end
 end
-
 function SleepManager:getCanSleep()
-	return not self.isSleeping
+  return not self.isSleeping
 end
-
 function SleepManager:getIsSleeping()
-	return self.isSleeping
+  return self.isSleeping
 end
-
-function SleepManager:onSleepNotAllowed()
-	InfoDialog.show(g_i18n:getText("ui_inGameSleepNotAllowed"), nil, self, DialogElement.TYPE_WARNING)
+function SleepManager.onSleepNotAllowed(v0)
+  local v2 = v2:getText("ui_inGameSleepNotAllowed")
+  InfoDialog.show(v2, nil, v0, DialogElement.TYPE_WARNING)
 end
-
-function SleepManager:onSleepRequestDenied(userId)
-	local nickname = ""
-
-	if userId > 0 then
-		local user = g_currentMission.userManager:getUserByUserId(userId)
-
-		if user ~= nil then
-			nickname = string.format(" (%s)", user:getNickname())
-		end
-	end
-
-	InfoDialog.show(g_i18n:getText("ui_inGameSleepRequestDenied") .. nickname, nil, self, DialogElement.TYPE_WARNING)
+function SleepManager.onSleepRequestDenied(v0, dt)
+  if 0 < dt then
+    local v3 = v3:getUserByUserId(dt)
+    if v3 ~= nil then
+      local v6 = v3:getNickname()
+      local v4 = string.format(...)
+    end
+  end
+  local v7 = v7:getText("ui_inGameSleepRequestDenied")
+  InfoDialog.show(v7 .. v2, nil, v0, DialogElement.TYPE_WARNING)
 end
-
-function SleepManager:onSleepRequestTimeout()
-	InfoDialog.show(g_i18n:getText("ui_inGameSleepRequestTimeout"), nil, self, DialogElement.TYPE_WARNING)
+function SleepManager.onSleepRequestTimeout(v0)
+  local v2 = v2:getText("ui_inGameSleepRequestTimeout")
+  InfoDialog.show(v2, nil, v0, DialogElement.TYPE_WARNING)
 end
-
-function SleepManager:onSleepRequestPending()
-	InfoDialog.show(g_i18n:getText("ui_inGameSleepRequestPending"), nil, self, DialogElement.TYPE_WARNING)
+function SleepManager.onSleepRequestPending(v0)
+  local v2 = v2:getText("ui_inGameSleepRequestPending")
+  InfoDialog.show(v2, nil, v0, DialogElement.TYPE_WARNING)
 end
-
 function SleepManager:onSleepRequest(userId, targetTime)
-	local user = g_currentMission.userManager:getUserByUserId(userId)
-	local name = "Unknown"
-
-	if user ~= nil then
-		name = user:getNickname()
-	end
-
-	YesNoDialog.show(self.onSleepRequestYesNo, self, string.format(g_i18n:getText("ui_inGameSleepRequest"), name))
+  local v3 = v3:getUserByUserId(userId)
+  if v3 ~= nil then
+    local v5 = v3:getNickname()
+  end
+  local v9 = v9:getText("ui_inGameSleepRequest")
+  local v8 = string.format(v9, v4)
+  YesNoDialog.show(...)
 end
-
-function SleepManager:onSleepRequestYesNo(yesNo)
-	g_client:getServerConnection():sendEvent(SleepResponseEvent.new(yesNo))
+function SleepManager.onSleepRequestYesNo(v0, dt)
+  local v2 = v2:getServerConnection()
+  local v4 = SleepResponseEvent.new(dt)
+  v2:sendEvent(...)
 end
-
 function SleepManager:onSleepResponse(connection, answer)
-	assert(g_currentMission:getIsServer(), "SleepManager:onSleepResponse is a server-only function")
-
-	if not self.isRequestPending then
-		return
-	end
-
-	self.requestAnswer = self.requestAnswer and answer
-	local userId = g_currentMission.userManager:getUserIdByConnection(connection)
-
-	if not answer and self.requestDeniedUserId == nil then
-		self.requestDeniedUserId = userId
-	end
-
-	if userId ~= nil then
-		for k, id in ipairs(self.userRequestIds) do
-			if id == userId then
-				table.remove(self.userRequestIds, k)
-
-				break
-			end
-		end
-	end
+  local v4 = v4:getIsServer()
+  assert(v4, "SleepManager:onSleepResponse is a server-only function")
+  if not self.isRequestPending then
+    return
+  end
+  self.requestAnswer = self.requestAnswer and answer
+  local v3 = v3:getUserIdByConnection(connection)
+  if not answer and self.requestDeniedUserId == nil then
+    self.requestDeniedUserId = v3
+  end
+  if v3 ~= nil then
+    for v7, v8 in ipairs(self.userRequestIds) do
+      if not (v8 == v3) then
+        continue
+      end
+      table.remove(self.userRequestIds, v7)
+      return
+    end
+  end
 end
-
 function SleepManager:showDialog()
-	if g_currentMission.guidedTour:getBlocksTimeChange() then
-		InfoDialog.show(g_i18n:getText("ui_inGameSleepNotAllowedDuringTour"), nil, self, DialogElement.TYPE_WARNING)
-	elseif self:getCanSleep() then
-		SleepDialog.show(g_i18n:getText("ui_inGameSleepTargetTime"), self.sleepDialogYesNo, self)
-	else
-		InfoDialog.show(g_i18n:getText("ui_inGameSleepWrongTime"), nil, self, DialogElement.TYPE_WARNING)
-	end
+  local dt = dt:getBlocksTimeChange()
+  if dt then
+    local v4 = v4:getText("ui_inGameSleepNotAllowedDuringTour")
+    dt:showInfoDialog({text = v4, dialogType = DialogElement.TYPE_WARNING, target = self})
+    return
+  end
+  dt = self:getCanSleep()
+  if dt then
+    local v2 = v2:getText("ui_inGameSleepTargetTime")
+    SleepDialog.show(v2, self.sleepDialogYesNo, self)
+    return
+  end
+  v4 = v4:getText("ui_inGameSleepWrongTime")
+  dt:showInfoDialog({text = v4, dialogType = DialogElement.TYPE_WARNING, target = self})
 end
-
 function SleepManager:sleepDialogYesNo(yes, targetTime)
-	if yes then
-		if g_currentMission:getIsServer() then
-			self:startSleepRequest(g_currentMission.playerUserId, targetTime)
-		else
-			g_client:getServerConnection():sendEvent(SleepRequestEvent.new(g_currentMission.playerUserId, targetTime))
-		end
-	end
+  if yes then
+    local v3 = v3:getIsServer()
+    if v3 then
+      self:startSleepRequest(g_currentMission.playerUserId, targetTime)
+      return
+    end
+    v3 = v3:getServerConnection()
+    local v5 = SleepRequestEvent.new(g_currentMission.playerUserId, targetTime)
+    v3:sendEvent(...)
+  end
 end
-
 function SleepManager:startSleepRequest(userId, targetTime)
-	assert(g_currentMission:getIsServer(), "SleepManager:startSleepRequest is a server-only function")
-
-	local user = g_currentMission.userManager:getUserByUserId(userId)
-	local userConnection = nil
-
-	if user ~= nil then
-		userConnection = user:getConnection()
-	end
-
-	if self.isRequestPending then
-		if userConnection ~= nil then
-			userConnection:sendEvent(SleepRequestPendingEvent.new())
-		end
-
-		return
-	end
-
-	local isInCoolDownPhase = g_time < self.requestedTime + SleepManager.TIME_TO_NEXT_REQUEST
-
-	if isInCoolDownPhase or not self:getCanSleep() or g_currentMission.guidedTour:getBlocksTimeChange() then
-		if userConnection ~= nil then
-			userConnection:sendEvent(SleepNotAllowedEvent.new())
-		end
-
-		return
-	end
-
-	self.isRequestPending = true
-	self.requestedTime = g_time
-	self.requestedTargetTime = targetTime
-	self.requestAnswer = true
-	self.userRequestIds = {}
-
-	for _, u in ipairs(g_currentMission.userManager:getUsers()) do
-		if u:getId() ~= userId and (g_dedicatedServer == nil or u:getId() ~= g_currentMission:getServerUserId()) then
-			table.insert(self.userRequestIds, u:getId())
-		end
-	end
-
-	g_server:broadcastEvent(SleepRequestEvent.new(userId, targetTime), g_dedicatedServer == nil, userConnection)
+  local v4 = v4:getIsServer()
+  assert(v4, "SleepManager:startSleepRequest is a server-only function")
+  local v3 = v3:getUserByUserId(userId)
+  if v3 ~= nil then
+    local v5 = v3:getConnection()
+  end
+  if self.isRequestPending then
+    if v4 ~= nil then
+      local v7 = SleepRequestPendingEvent.new()
+      v4:sendEvent(...)
+    end
+    return
+  end
+  if g_time >= self.requestedTime + SleepManager.TIME_TO_NEXT_REQUEST then
+  end
+  if not true then
+    local v6 = self:getCanSleep()
+    if v6 then
+      v6 = v6:getBlocksTimeChange()
+      -- if not v6 then goto L69 end
+    end
+  end
+  if v4 ~= nil then
+    local v8 = SleepNotAllowedEvent.new()
+    v4:sendEvent(...)
+  end
+  return
+  self.isRequestPending = true
+  self.requestedTime = g_time
+  self.requestedTargetTime = targetTime
+  self.requestAnswer = true
+  self.userRequestIds = {}
+  v7 = v7:getUsers()
+  for v9, v10 in ipairs(...) do
+    local v11 = v10:getId()
+    if not (v11 ~= userId) then
+      continue
+    end
+    if g_dedicatedServer ~= nil then
+      v11 = v10:getId()
+      local v12 = v12:getServerUserId()
+      if not (v11 ~= v12) then
+        continue
+      end
+    end
+    local v13 = v10:getId()
+    table.insert(...)
+  end
+  v8 = SleepRequestEvent.new(userId, targetTime)
+  if g_dedicatedServer ~= nil then
+  end
+  v6:broadcastEvent(v8, true, v4)
 end
-
 function SleepManager:resetRequest()
-	self.isRequestPending = false
-	self.requestedTargetTime = 0
-	self.requestAnswer = true
-	self.requestDeniedUserId = nil
+  self.isRequestPending = false
+  self.requestedTargetTime = 0
+  self.requestAnswer = true
+  self.requestDeniedUserId = nil
 end
-
 function SleepManager:startSleep(targetTime)
-	g_currentMission.environment.weather.cloudUpdater:setSlowModeEnabled(true)
-
-	if g_currentMission:getIsServer() then
-		targetTime = targetTime * 1000 * 60 * 60
-		local currentHour = g_currentMission.environment.dayTime + 1
-		local duration = (targetTime - currentHour) % 86400000
-		self.wakeUpTime = g_time + duration / SleepManager.SLEEPING_TIME_SCALE
-		self.startTimeScale = g_currentMission.missionInfo.timeScale
-
-		g_currentMission:setTimeScale(SleepManager.SLEEPING_TIME_SCALE)
-		g_currentMission:setTimeScaleMultiplier(1)
-		g_server:broadcastEvent(StartSleepStateEvent.new(targetTime), false)
-	end
-
-	self.isSleeping = true
-
-	g_currentMission.hud:setIsVisible(false)
-
-	g_currentMission.isPlayerFrozen = true
-
-	g_inputBinding:setContext("SLEEPING", true)
-
-	self.previousCamera = getCamera()
-	local sleepCamera = self:getCamera()
-
-	if sleepCamera ~= nil then
-		local x, y, z = getWorldTranslation(sleepCamera)
-		y = math.max(getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, x, y, z) + 60, y)
-
-		setWorldTranslation(sleepCamera, x, y, z)
-		setWorldRotation(sleepCamera, math.rad(80), 0, 0)
-		setCamera(sleepCamera)
-	end
-
-	g_messageCenter:publish(MessageType.SLEEPING, true)
+  v2:setSlowModeEnabled(true)
+  local v2 = v2:getIsServer()
+  if v2 then
+    self.wakeUpTime = g_time + (targetTime * 1000 * 60 * 60 - g_currentMission.environment.dayTime + 1) % 86400000 / SleepManager.SLEEPING_TIME_SCALE
+    self.startTimeScale = g_currentMission.missionInfo.timeScale
+    v4:setTimeScale(SleepManager.SLEEPING_TIME_SCALE)
+    v4:setTimeScaleMultiplier(1)
+    local v6 = StartSleepStateEvent.new(targetTime * 1000 * 60 * 60)
+    v4:broadcastEvent(v6, false)
+  end
+  self.isSleeping = true
+  v2:setIsVisible(false)
+  g_currentMission.isPlayerFrozen = true
+  v2:setContext("SLEEPING", true)
+  v2 = getCamera()
+  self.previousCamera = v2
+  v2 = self:getCamera()
+  if v2 ~= nil then
+    local v3, v4, v5 = getWorldTranslation(v2)
+    local v8 = getTerrainHeightAtWorldPos(g_currentMission.terrainRootNode, v3, v4, v5)
+    v6 = math.max(v8 + 60, v4)
+    setWorldTranslation(v2, v3, v6, v5)
+    setWorldRotation(v2, 1.3962634015954636, 0, 0)
+    setCamera(v2)
+  end
+  v3:publish(MessageType.SLEEPING, true)
 end
-
 function SleepManager:stopSleep()
-	g_currentMission.environment.weather.cloudUpdater:setSlowModeEnabled(false)
-
-	if g_currentMission:getIsServer() then
-		g_currentMission:setTimeScale(self.startTimeScale)
-		g_server:broadcastEvent(StopSleepStateEvent.new(), false)
-	end
-
-	if self.previousCamera ~= nil and entityExists(self.previousCamera) then
-		setCamera(self.previousCamera)
-	elseif g_currentMission.controlPlayer and g_currentMission.player ~= nil then
-		setCamera(g_currentMission.player.cameraNode)
-	elseif g_currentMission.controlledVehicle ~= nil then
-		local vehicleCamera = g_currentMission.controlledVehicle:getActiveCamera()
-
-		if vehicleCamera ~= nil and vehicleCamera.cameraNode ~= nil then
-			setCamera(vehicleCamera.cameraNode)
-		end
-	end
-
-	self.previousCamera = nil
-
-	if g_inputBinding:getContextName() == "SLEEPING" then
-		g_inputBinding:revertContext(true)
-	end
-
-	g_currentMission.isPlayerFrozen = false
-
-	g_currentMission.hud:setIsVisible(true)
-
-	self.isSleeping = false
-
-	g_messageCenter:publish(MessageType.SLEEPING, false)
+  dt:setSlowModeEnabled(false)
+  local dt = dt:getIsServer()
+  if dt then
+    dt:setTimeScale(self.startTimeScale)
+    local v3 = StopSleepStateEvent.new()
+    dt:broadcastEvent(v3, false)
+  end
+  if self.previousCamera ~= nil then
+    dt = entityExists(self.previousCamera)
+    -- if not v1 then goto L46 end
+    setCamera(self.previousCamera)
+  elseif g_currentMission.controlPlayer then
+    -- cmp-jump LOP_JUMPXEQKNIL R1 aux=0x0 -> L59
+    setCamera(g_currentMission.player.cameraNode)
+  else
+    if g_currentMission.controlledVehicle ~= nil then
+      dt = dt:getActiveCamera()
+      if dt ~= nil and dt.cameraNode ~= nil then
+        setCamera(dt.cameraNode)
+      end
+    end
+  end
+  self.previousCamera = nil
+  dt = dt:getContextName()
+  if dt == "SLEEPING" then
+    dt:revertContext(true)
+  end
+  g_currentMission.isPlayerFrozen = false
+  dt:setIsVisible(true)
+  self.isSleeping = false
+  dt:publish(MessageType.SLEEPING, false)
 end
-
 function SleepManager:getCamera()
-	return g_farmManager:getSleepCamera(g_currentMission.player.farmId) or self:getFallbackCamera()
+  local dt = dt:getSleepCamera(g_currentMission.player.farmId)
+  if not dt then
+    dt = self:getFallbackCamera()
+  end
+  return dt
 end
-
 function SleepManager:getFallbackCamera()
-	if self.fallbackCamera == nil then
-		self.fallbackCamera = createCamera("sleepingFallbackCamera", math.rad(60), 1, 10000)
-
-		link(getRootNode(), self.fallbackCamera)
-	end
-
-	return self.fallbackCamera
+  if self.fallbackCamera == nil then
+    local dt = createCamera("sleepingFallbackCamera", 1.0471975511965976, 1, 10000)
+    self.fallbackCamera = dt
+    local v2 = getRootNode()
+    link(v2, self.fallbackCamera)
+  end
+  return self.fallbackCamera
 end
-
-g_sleepManager = SleepManager.new()
+local dt = SleepManager.new()
+g_sleepManager = v1

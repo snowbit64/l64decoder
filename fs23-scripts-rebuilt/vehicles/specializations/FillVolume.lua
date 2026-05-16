@@ -84,12 +84,12 @@ function FillVolume.registerEventListeners(vehicleType)
 end
 function FillVolume:onLoad(savegame)
   local fillVolumeConfigurationId = Utils.getNoNil(self.configurations.fillVolume, 1)
-  local v4 = string.format("vehicle.fillVolume.fillVolumeConfigurations.fillVolumeConfiguration(%d).volumes", fillVolumeConfigurationId - 1)
+  local configKey = string.format("vehicle.fillVolume.fillVolumeConfigurations.fillVolumeConfiguration(%d).volumes", fillVolumeConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.fillVolume.fillVolumeConfigurations.fillVolumeConfiguration", fillVolumeConfigurationId, self.components, self)
   self.spec_fillVolume.volumes = {}
   self.spec_fillVolume.fillVolumeDeformersByNode = {}
   self.spec_fillVolume.fillUnitFillVolumeMapping = {}
-  v5:iterate(v4 .. ".volume", function(self, savegame)
+  v5:iterate(configKey .. ".volume", function(self, savegame)
     local fillVolumeConfigurationId = fillVolumeConfigurationId:loadFillVolume(u0.xmlFile, savegame, {})
     if fillVolumeConfigurationId then
       table.insert(u1.volumes, {})

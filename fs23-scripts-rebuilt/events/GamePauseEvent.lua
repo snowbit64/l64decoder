@@ -1,50 +1,46 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 GamePauseEvent = {}
 local GamePauseEvent_mt = Class(GamePauseEvent, Event)
-
 InitStaticEventClass(GamePauseEvent, "GamePauseEvent", EventIds.EVENT_GAME_PAUSE)
-
 function GamePauseEvent.emptyNew()
-	local self = Event.new(GamePauseEvent_mt)
-
-	return self
+  return Event.new(u0)
 end
-
 function GamePauseEvent.new(pause, manualPaused, isSynchronizing)
-	local self = GamePauseEvent.emptyNew()
-	self.pause = pause
-	self.manualPaused = manualPaused
-	self.isSynchronizing = isSynchronizing
-
-	return self
+  local v3 = GamePauseEvent.emptyNew()
+  v3.pause = pause
+  v3.manualPaused = manualPaused
+  v3.isSynchronizing = isSynchronizing
+  return v3
 end
-
 function GamePauseEvent:readStream(streamId, connection)
-	self.pause = streamReadBool(streamId)
-	self.manualPaused = streamReadBool(streamId)
-	self.isSynchronizing = streamReadBool(streamId)
-
-	self:run(connection)
+  local v3 = streamReadBool(streamId)
+  self.pause = v3
+  v3 = streamReadBool(streamId)
+  self.manualPaused = v3
+  v3 = streamReadBool(streamId)
+  self.isSynchronizing = v3
+  self:run(connection)
 end
-
 function GamePauseEvent:writeStream(streamId, connection)
-	streamWriteBool(streamId, self.pause)
-	streamWriteBool(streamId, self.manualPaused)
-	streamWriteBool(streamId, self.isSynchronizing)
+  streamWriteBool(streamId, self.pause)
+  streamWriteBool(streamId, self.manualPaused)
+  streamWriteBool(streamId, self.isSynchronizing)
 end
-
 function GamePauseEvent:run(connection)
-	g_currentMission.manualPaused = self.manualPaused
-	g_currentMission.isSynchronizingWithPlayers = self.isSynchronizing
-
-	if self.pause then
-		g_currentMission:pauseGame()
-	else
-		g_currentMission:doUnpauseGame()
-	end
+  g_currentMission.manualPaused = self.manualPaused
+  g_currentMission.isSynchronizingWithPlayers = self.isSynchronizing
+  if self.pause then
+    v2:pauseGame()
+    return
+  end
+  v2:doUnpauseGame()
 end
-
 function GamePauseEvent.sendEvent()
-	if g_currentMission:getIsServer() then
-		g_server:broadcastEvent(GamePauseEvent.new(g_currentMission.paused, g_currentMission.manualPaused, g_currentMission.isSynchronizingWithPlayers), false)
-	end
+  local v0 = v0:getIsServer()
+  if v0 then
+    local v2 = GamePauseEvent.new(g_currentMission.paused, g_currentMission.manualPaused, g_currentMission.isSynchronizingWithPlayers)
+    v0:broadcastEvent(v2, false)
+  end
 end

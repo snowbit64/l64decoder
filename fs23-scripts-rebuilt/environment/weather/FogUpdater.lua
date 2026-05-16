@@ -1,85 +1,97 @@
+-- Reconstructed Luau source (luauc64 0.1.0).
+-- This is a best-effort lift from bytecode; review before running.
+
 FogUpdater = {}
 local FogUpdater_mt = Class(FogUpdater)
-
 function FogUpdater.new(customMt)
-	local self = setmetatable({}, customMt or FogUpdater_mt)
-	self.isDirty = false
-	self.alpha = 1
-	self.duration = 1
-	self.currentMieScale = 1
-	self.lastMieScale = 0
-	self.targetMieScale = 0
-	self.fogColor = {
-		0.3,
-		0.3,
-		0.3
-	}
-
-	self:setFogMieScale(self.currentMieScale)
-
-	return self
+  if not customMt then
+  end
+  local v1 = v1(v2, v3)
+  v1.isDirty = false
+  v1.alpha = 1
+  v1.duration = 1
+  v1.currentMieScale = 1
+  v1.lastMieScale = 0
+  v1.targetMieScale = 0
+  v1.fogColor = {0.3, 0.3, 0.3}
+  v1:setFogMieScale(v1.currentMieScale)
+  return v1
 end
-
-function FogUpdater:delete()
+function FogUpdater.delete(v0)
 end
-
 function FogUpdater:update(dt)
-	if self.alpha ~= 1 then
-		self.alpha = math.min(self.alpha + dt / self.duration, 1)
-		self.currentMieScale = MathUtil.lerp(self.lastMieScale, self.targetMieScale, self.alpha)
-		self.isDirty = true
-	end
-
-	if self.isDirty then
-		self:setFogMieScale(self.forcedTargetMieScale or self.currentMieScale)
-
-		self.isDirty = false
-	end
+  if self.alpha ~= 1 then
+    local v2 = math.min(self.alpha + dt / self.duration, 1)
+    self.alpha = v2
+    v2 = MathUtil.lerp(self.lastMieScale, self.targetMieScale, self.alpha)
+    self.currentMieScale = v2
+    self.isDirty = true
+  end
+  if self.isDirty then
+    if not self.forcedTargetMieScale then
+    end
+    self:setFogMieScale(v4)
+    self.isDirty = false
+  end
 end
-
 function FogUpdater:getCurrentValues()
-	return self.currentMieScale
+  return self.currentMieScale
 end
-
 function FogUpdater:saveToXMLFile(xmlFile, key)
-	setXMLFloat(xmlFile, key .. "#currentMieScale", self.currentMieScale)
-	setXMLFloat(xmlFile, key .. "#lastMieScale", self.lastMieScale)
-	setXMLFloat(xmlFile, key .. "#targetMieScale", self.targetMieScale)
-	setXMLFloat(xmlFile, key .. "#alpha", self.alpha)
-	setXMLFloat(xmlFile, key .. "#duration", self.duration)
+  setXMLFloat(xmlFile, key .. "#currentMieScale", self.currentMieScale)
+  setXMLFloat(xmlFile, key .. "#lastMieScale", self.lastMieScale)
+  setXMLFloat(xmlFile, key .. "#targetMieScale", self.targetMieScale)
+  setXMLFloat(xmlFile, key .. "#alpha", self.alpha)
+  setXMLFloat(xmlFile, key .. "#duration", self.duration)
 end
-
 function FogUpdater:loadFromXMLFile(xmlFile, key)
-	self.currentMieScale = getXMLFloat(xmlFile, key .. "#currentMieScale") or self.currentMieScale
-	self.lastMieScale = getXMLFloat(xmlFile, key .. "#lastMieScale") or self.lastMieScale
-	self.targetMieScale = getXMLFloat(xmlFile, key .. "#targetMieScale") or self.targetMieScale
-	self.alpha = getXMLFloat(xmlFile, key .. "#alpha") or self.alpha
-	self.duration = getXMLFloat(xmlFile, key .. "#duration") or self.duration
-	self.isDirty = true
+  local v3 = getXMLFloat(xmlFile, key .. "#currentMieScale")
+  if not v3 then
+  end
+  self.currentMieScale = v3
+  v3 = getXMLFloat(xmlFile, key .. "#lastMieScale")
+  if not v3 then
+  end
+  self.lastMieScale = v3
+  v3 = getXMLFloat(xmlFile, key .. "#targetMieScale")
+  if not v3 then
+  end
+  self.targetMieScale = v3
+  v3 = getXMLFloat(xmlFile, key .. "#alpha")
+  if not v3 then
+  end
+  self.alpha = v3
+  v3 = getXMLFloat(xmlFile, key .. "#duration")
+  if not v3 then
+  end
+  self.duration = v3
+  self.isDirty = true
 end
-
 function FogUpdater:setTargetValues(targetMieScale, duration)
-	self.alpha = 0
-	self.duration = math.max(1, duration)
-	self.lastMieScale = self.currentMieScale
-	self.targetMieScale = math.max(1, targetMieScale)
+  self.alpha = 0
+  local v3 = math.max(1, duration)
+  self.duration = v3
+  self.lastMieScale = self.currentMieScale
+  v3 = math.max(1, targetMieScale)
+  self.targetMieScale = v3
 end
-
 function FogUpdater:setForcedTargetValues(targetMieScale, duration)
-	self.alpha = 0
-	self.duration = math.max(1, duration)
-	self.lastMieScale = self.currentMieScale
-	self.forcedTargetMieScale = targetMieScale and math.max(1, targetMieScale) or nil
+  self.alpha = 0
+  local v3 = math.max(1, duration)
+  self.duration = v3
+  self.lastMieScale = self.currentMieScale
+  if targetMieScale then
+    v3 = math.max(1, targetMieScale)
+    -- if v3 then goto L26 end
+  end
+  self.forcedTargetMieScale = nil
 end
-
-function FogUpdater:setHeight(height)
-	setFogPlaneHeight(height)
+function FogUpdater.setHeight(v0, v1)
+  setFogPlaneHeight(v1)
 end
-
-function FogUpdater:getHeight()
-	return getFogPlaneHeight()
+function FogUpdater.getHeight(v0)
+  return getFogPlaneHeight()
 end
-
-function FogUpdater:setFogMieScale(mieScale)
-	setFogPlaneMieScale(mieScale)
+function FogUpdater.setFogMieScale(v0, v1)
+  setFogPlaneMieScale(v1)
 end

@@ -840,10 +840,10 @@ function ConnectionHoses:getIsSkipNodeAvailable(skipNode)
   end
   local attacherVehicle = self:getAttacherVehicle()
   if attacherVehicle ~= nil then
-    local v3 = attacherVehicle:getAttacherJointIndexFromObject(self)
-    local v4 = attacherVehicle:getImplementFromAttacherJointIndex(v3)
-    if v4.inputJointDescIndex == skipNode.inputAttacherJointIndex then
-      local v6 = attacherVehicle:getConnectionTarget(v3, skipNode["type"], skipNode.specType, true)
+    local attacherJointIndex = attacherVehicle:getAttacherJointIndexFromObject(self)
+    local implement = attacherVehicle:getImplementFromAttacherJointIndex(attacherJointIndex)
+    if implement.inputJointDescIndex == skipNode.inputAttacherJointIndex then
+      local v6 = attacherVehicle:getConnectionTarget(attacherJointIndex, skipNode["type"], skipNode.specType, true)
       if v6 ~= nil and skipNode.parentHose ~= nil then
       end
       return v5
@@ -884,7 +884,7 @@ function ConnectionHoses:connectHose(sourceHose, targetObject, targetHose, updat
       setRotation(v7, 0, 0, 0)
       targetObject:addAllSubWashableNodes(v7)
       targetHose.adapter.node = v7
-      targetHose.adapter.refNode = attacherVehicle2
+      targetHose.adapter.refNode = v8
       targetHose.adapter.isLinked = true
     end
     sourceHose.targetNode = targetHose.adapter.refNode
@@ -948,16 +948,16 @@ function ConnectionHoses:updateToolConnectionHose(sourceObject, sourceHose, targ
     if self.spec_connectionHoses.targetNodeToToolConnection[targetHose.index].startTargetNodeIndex == targetHose.index then
     end
     -- cmp-jump LOP_JUMPXEQKNIL R10 aux=0x0 -> L360
-    if visibility and attacherVehicle2.delayedMounting ~= nil and attacherVehicle2.delayedMounting.sourceHose.connectedObject == nil then
-      if attacherVehicle2.delayedMounting.sourceObject == sourceObject then
+    if visibility and v8.delayedMounting ~= nil and v8.delayedMounting.sourceHose.connectedObject == nil then
+      if v8.delayedMounting.sourceObject == sourceObject then
       end
-      if attacherVehicle2.delayedMounting.sourceHose["type"] == sourceHose["type"] and attacherVehicle2.delayedMounting.sourceHose.specType ~= sourceHose.specType then
+      if v8.delayedMounting.sourceHose["type"] == sourceHose["type"] and v8.delayedMounting.sourceHose.specType ~= sourceHose.specType then
       end
       -- if not v11 then goto L360 end
       -- if not v12 then goto L360 end
       local v13, v14, v15 = localToLocal(targetHose.node, v10.node, 0, 0, 0)
       local v16 = MathUtil.vector3Length(v13, v14, v15)
-      if attacherVehicle2.additionalHose then
+      if v8.additionalHose then
         local v17, v18, v19, v20 = v17:getClonedHoseNode(sourceHose["type"], sourceHose.hoseType, v16, sourceHose.diameter, sourceHose.color, self.customEnvironment)
         if v17 ~= nil then
           link(targetHose.node, v17)
@@ -971,45 +971,45 @@ function ConnectionHoses:updateToolConnectionHose(sourceObject, sourceHose, targ
           setShaderParameter(v17, "cv2", v21 * 0.5 + 0.003, v22 * 0.5, v23 * 0.5, 0, false)
           setShaderParameter(v17, "cv3", v21 - 0.003, v22, v23, 0, false)
           setShaderParameter(v17, "cv4", v21 - 0.003, v22, v23 + v23 * 0.5, 0, false)
-          if attacherVehicle2.moveNodes then
+          if v8.moveNodes then
             v7(targetHose)
             v7(v10)
           end
           sourceObject:addAllSubWashableNodes(v17)
-          attacherVehicle2.hoseNode = v17
-          attacherVehicle2.hoseNodeObject = sourceObject
+          v8.hoseNode = v17
+          v8.hoseNodeObject = sourceObject
         else
           return false
         end
       end
-      attacherVehicle2.connected = true
-      if attacherVehicle2.mountingNode ~= nil then
-        setVisibility(attacherVehicle2.mountingNode, true)
+      v8.connected = true
+      if v8.mountingNode ~= nil then
+        setVisibility(v8.mountingNode, true)
       end
-      if attacherVehicle2.delayedMounting ~= nil then
-        attacherVehicle2.delayedUnmounting = {}
-        table.insert(attacherVehicle2.delayedUnmounting, attacherVehicle2.delayedMounting)
-        table.insert(attacherVehicle2.delayedUnmounting, {sourceObject = sourceObject, sourceHose = sourceHose, targetObject = targetObject, targetHose = targetHose})
-        attacherVehicle2.delayedMounting = nil
-        v18:connectHose(attacherVehicle2.delayedMounting.sourceHose, attacherVehicle2.delayedMounting.targetObject, attacherVehicle2.delayedMounting.targetHose, false)
+      if v8.delayedMounting ~= nil then
+        v8.delayedUnmounting = {}
+        table.insert(v8.delayedUnmounting, v8.delayedMounting)
+        table.insert(v8.delayedUnmounting, {sourceObject = sourceObject, sourceHose = sourceHose, targetObject = targetObject, targetHose = targetHose})
+        v8.delayedMounting = nil
+        v18:connectHose(v8.delayedMounting.sourceHose, v8.delayedMounting.targetObject, v8.delayedMounting.targetHose, false)
         v18:retryHoseSkipNodeConnections(false)
       end
       return true
       -- goto L360  (LOP_JUMP +80)
     end
     -- if not v8.connected then goto L360 end
-    attacherVehicle2.connected = false
-    if attacherVehicle2.hoseNode ~= nil then
-      v11:removeAllSubWashableNodes(attacherVehicle2.hoseNode)
-      delete(attacherVehicle2.hoseNode)
-      attacherVehicle2.hoseNode = nil
-      attacherVehicle2.hoseNodeObject = nil
+    v8.connected = false
+    if v8.hoseNode ~= nil then
+      v11:removeAllSubWashableNodes(v8.hoseNode)
+      delete(v8.hoseNode)
+      v8.hoseNode = nil
+      v8.hoseNodeObject = nil
     end
-    if attacherVehicle2.mountingNode ~= nil then
-      setVisibility(attacherVehicle2.mountingNode, false)
+    if v8.mountingNode ~= nil then
+      setVisibility(v8.mountingNode, false)
     end
     -- cmp-jump LOP_JUMPXEQKNIL R11 aux=0x0 -> L360
-    for v14, v15 in ipairs(attacherVehicle2.delayedUnmounting) do
+    for v14, v15 in ipairs(v8.delayedUnmounting) do
       if not (sourceHose ~= v15.sourceHose) then
         continue
       end
@@ -1017,9 +1017,9 @@ function ConnectionHoses:updateToolConnectionHose(sourceObject, sourceHose, targ
       if v15.sourceHose.isClonedSkipNodeHose ~= nil and not not v15.sourceHose.isClonedSkipNodeHose then
         continue
       end
-      attacherVehicle2.delayedMounting = v15
+      v8.delayedMounting = v15
     end
-    attacherVehicle2.delayedUnmounting = nil
+    v8.delayedUnmounting = nil
   else
     return true
   end
@@ -1034,7 +1034,7 @@ function ConnectionHoses:addHoseToDelayedMountings(sourceObject, sourceHose, tar
     end
     v6.delayedMounting = {sourceObject = sourceObject, sourceHose = sourceHose, targetObject = targetObject, targetHose = targetHose}
     if true then
-      attacherVehicle2:retryHoseSkipNodeConnections(true, sourceObject)
+      v8:retryHoseSkipNodeConnections(true, sourceObject)
     end
   end
 end
@@ -1054,16 +1054,16 @@ function ConnectionHoses:connectHoseToSkipNode(sourceHose, targetObject, skipNod
     if attacherVehicle1.getAttacherVehicle ~= nil then
       local attacherVehicle2 = attacherVehicle1:getAttacherVehicle()
       if attacherVehicle2 ~= nil then
-        local v9 = attacherVehicle2:getAttacherJointIndexFromObject(attacherVehicle1)
-        local v10 = attacherVehicle2:getImplementFromAttacherJointIndex(v9)
+        local attacherJointIndex = attacherVehicle2:getAttacherJointIndexFromObject(attacherVehicle1)
+        local v10 = attacherVehicle2:getImplementFromAttacherJointIndex(attacherJointIndex)
         if v10.inputJointDescIndex == skipNode.inputAttacherJointIndex then
-          local v11, v12 = attacherVehicle2:getConnectionTarget(v9, skipNode["type"], skipNode.specType)
+          local v11, v12 = attacherVehicle2:getConnectionTarget(attacherJointIndex, skipNode["type"], skipNode.specType)
           if v11 ~= nil then
-            local v13 = attacherVehicle1:getClonedSkipHoseNode(sourceHose, skipNode)
+            local hose = attacherVehicle1:getClonedSkipHoseNode(sourceHose, skipNode)
             if not v12 then
-              attacherVehicle1:connectHose(v13, attacherVehicle2, v11)
+              attacherVehicle1:connectHose(hose, attacherVehicle2, v11)
             else
-              attacherVehicle1:connectHoseToSkipNode(v13, attacherVehicle2, v11, sourceHose, attacherVehicle1)
+              attacherVehicle1:connectHoseToSkipNode(hose, attacherVehicle2, v11, sourceHose, attacherVehicle1)
             end
             if skipNode.parentHose ~= nil then
               v14:removeWashableNode(skipNode.parentHose.hoseNode)
@@ -1071,12 +1071,12 @@ function ConnectionHoses:connectHoseToSkipNode(sourceHose, targetObject, skipNod
               table.removeElement(v6.updateableHoses, skipNode.parentHose.childHose)
             end
             skipNode.parentVehicle = attacherVehicle1
-            skipNode.parentHose = v13
+            skipNode.parentHose = hose
             sourceHose.parentVehicle = attacherVehicle1
-            sourceHose.parentHose = v13
-            v13.childVehicle = self
-            v13.childHose = sourceHose
-            attacherVehicle1:addAllSubWashableNodes(v13.hoseNode)
+            sourceHose.parentHose = hose
+            hose.childVehicle = self
+            hose.childHose = sourceHose
+            attacherVehicle1:addAllSubWashableNodes(hose.hoseNode)
           elseif skipNode.parentHose ~= nil then
             sourceHose.parentVehicle = skipNode.parentVehicle
             sourceHose.parentHose = skipNode.parentHose
@@ -1220,8 +1220,8 @@ function ConnectionHoses:onPostAttach(attacherVehicle, inputJointDescIndex, join
 end
 function ConnectionHoses:onPreDetach(attacherVehicle, implement)
   local inputJointDescIndex = self:getActiveInputAttacherJointDescIndex()
-  local childVehicle = self:getConnectionHosesByInputAttacherJoint(inputJointDescIndex)
-  for v9, v10 in ipairs(childVehicle) do
+  local hoses = self:getConnectionHosesByInputAttacherJoint(inputJointDescIndex)
+  for attacherJointIndex, v10 in ipairs(hoses) do
     self:disconnectHose(v10)
   end
   -- TODO: structure LOP_FORNPREP (pc 25, target 38)

@@ -138,9 +138,9 @@ function AIImplement:onLoad(savegame)
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.ai" .. ".forceTurnNoBackward#value", "vehicle.ai" .. ".allowTurnBackward#value (inverted)")
   XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.ai" .. ".needsLowering#lowerIfAnyIsLowerd", "vehicle.ai" .. ".allowTurnBackward#lowerIfAnyIsLowered")
   local aiConfigurationId = Utils.getNoNil(self.configurations.ai, 1)
-  local v5 = string.format("vehicle.ai.aiConfigurations.aiConfiguration(%d)", aiConfigurationId - 1)
+  local configKey = string.format("vehicle.ai.aiConfigurations.aiConfiguration(%d)", aiConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.ai.aiConfigurations.aiConfiguration", aiConfigurationId, self.components, self)
-  local v6 = v6:hasProperty(v5)
+  local v6 = v6:hasProperty(configKey)
   if v6 then
   end
   v6 = v6:getValue(v3 .. ".minTurningRadius#value")

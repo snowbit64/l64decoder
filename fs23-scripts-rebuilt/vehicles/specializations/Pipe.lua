@@ -115,37 +115,37 @@ function Pipe.registerEventListeners(vehicleType)
 end
 function Pipe:onLoad(savegame)
   local pipeConfigurationId = Utils.getNoNil(self.configurations.pipe, 1)
-  local v4 = string.format("vehicle.pipe.pipeConfigurations.pipeConfiguration(%d)", pipeConfigurationId - 1)
+  local baseKey = string.format("vehicle.pipe.pipeConfigurations.pipeConfiguration(%d)", pipeConfigurationId - 1)
   ObjectChangeUtil.updateObjectChanges(self.xmlFile, "vehicle.pipe.pipeConfigurations.pipeConfiguration", pipeConfigurationId, self.components, self)
-  local v5 = v5:hasProperty(v4)
+  local v5 = v5:hasProperty(baseKey)
   if not v5 then
   end
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipeEffect.effectNode", v4 .. ".pipeEffect.effectNode")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.overloading.trailerTriggers.trailerTrigger(0)#index", v4 .. ".unloadingTriggers.unloadingTrigger(0)#node")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#raycastNodeIndex", v4 .. ".raycast#node")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#raycastDistance", v4 .. ".raycast#maxDistance")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#effectExtraDistanceOnTrailer", v4 .. ".raycast#extraDistance")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#animName", v4 .. ".animation#name")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#animSpeedScale", v4 .. ".animation#speedScale")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#animSpeedScale", v4 .. ".animation#speedScale")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe.node#node", v4 .. ".node#node")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#numStates", v4 .. ".states#num")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#unloadingStates", v4 .. ".states#unloading")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#autoAimingStates", v4 .. ".states#autoAiming")
-  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#turnOnAllowed", v4 .. ".states#turnOnAllowed")
-  local v6 = v6:getValue(v4 .. "#turnOnStateWarning", "warning_firstSetPipeState", self.customEnvironment)
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipeEffect.effectNode", baseKey .. ".pipeEffect.effectNode")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.overloading.trailerTriggers.trailerTrigger(0)#index", baseKey .. ".unloadingTriggers.unloadingTrigger(0)#node")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#raycastNodeIndex", baseKey .. ".raycast#node")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#raycastDistance", baseKey .. ".raycast#maxDistance")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#effectExtraDistanceOnTrailer", baseKey .. ".raycast#extraDistance")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#animName", baseKey .. ".animation#name")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#animSpeedScale", baseKey .. ".animation#speedScale")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#animSpeedScale", baseKey .. ".animation#speedScale")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe.node#node", baseKey .. ".node#node")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#numStates", baseKey .. ".states#num")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#unloadingStates", baseKey .. ".states#unloading")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#autoAimingStates", baseKey .. ".states#autoAiming")
+  XMLUtil.checkDeprecatedXMLElements(self.xmlFile, "vehicle.pipe#turnOnAllowed", baseKey .. ".states#turnOnAllowed")
+  local v6 = v6:getValue(baseKey .. "#turnOnStateWarning", "warning_firstSetPipeState", self.customEnvironment)
   v5 = string.format(v6, self.typeDesc)
   v2.turnOnStateWarning = v5
-  v5 = v5:getValue(v4 .. "#dischargeNodeIndex", 1)
+  v5 = v5:getValue(baseKey .. "#dischargeNodeIndex", 1)
   v2.dischargeNodeIndex = v5
-  v5 = v5:getValue(v4 .. "#forceDischargeNodeIndex", true)
+  v5 = v5:getValue(baseKey .. "#forceDischargeNodeIndex", true)
   v2.forceDischargeNodeIndex = v5
   if v2.forceDischargeNodeIndex then
     self:setCurrentDischargeNodeIndex(v2.dischargeNodeIndex)
   end
-  v5 = v5:getValue(v4 .. "#automaticDischarge", true)
+  v5 = v5:getValue(baseKey .. "#automaticDischarge", true)
   v2.automaticDischarge = v5
-  v5 = v5:getValue(v4 .. "#toggleableDischargeToGround", false)
+  v5 = v5:getValue(baseKey .. "#toggleableDischargeToGround", false)
   v2.toggleableDischargeToGround = v5
   v2.dischargeToGroundState = false
   v2.unloadingTriggers = {}
@@ -155,7 +155,7 @@ function Pipe:onLoad(savegame)
   v2.numUnloadTriggersInTriggers = 0
   v2.nearestObjectInTriggers = {objectId = nil, fillUnitIndex = 0}
   v2.nearestObjectInTriggersSent = {objectId = nil, fillUnitIndex = 0}
-  self:loadUnloadingTriggers(v2.unloadingTriggers, self.xmlFile, v4 .. ".unloadingTriggers.unloadingTrigger")
+  self:loadUnloadingTriggers(v2.unloadingTriggers, self.xmlFile, baseKey .. ".unloadingTriggers.unloadingTrigger")
   if #v2.unloadingTriggers == 0 then
     Logging.xmlWarning(self.xmlFile, "No 'unloadingTriggers' defined for pipe 'vehicle.pipe'!")
   else
@@ -168,37 +168,37 @@ function Pipe:onLoad(savegame)
     end
   end
   v2.animation = {}
-  v6 = v6:getValue(v4 .. ".animation#name")
+  v6 = v6:getValue(baseKey .. ".animation#name")
   v2.animation.name = v6
-  v6 = v6:getValue(v4 .. ".animation#speedScale", 1)
+  v6 = v6:getValue(baseKey .. ".animation#speedScale", 1)
   v2.animation.speedScale = v6
   v2.currentState = 1
   v2.targetState = 1
-  v5 = v5:getValue(v4 .. ".states#num", 0)
+  v5 = v5:getValue(baseKey .. ".states#num", 0)
   v2.numStates = v5
   v2.nodes = {}
-  self:loadPipeNodes(v2.nodes, self.xmlFile, v4 .. ".pipeNodes.pipeNode")
+  self:loadPipeNodes(v2.nodes, self.xmlFile, baseKey .. ".pipeNodes.pipeNode")
   if 0 >= #v2.nodes and v2.animation.name == nil then
   end
   v2.hasMovablePipe = v5
   v2.unloadingStates = {}
   v2.autoAimingStates = {}
   v2.turnOnAllowedStates = {}
-  local v11 = self.xmlFile:getValue(v4 .. ".states#unloading", nil, true)
+  local v11 = self.xmlFile:getValue(baseKey .. ".states#unloading", nil, true)
   if v11 ~= nil then
     for v15, v16 in ipairs(v11) do
       v7[v16] = true
     end
   end
   v2.numUnloadingStates = v10
-  v11 = self.xmlFile:getValue(v4 .. ".states#autoAiming", nil, true)
+  v11 = self.xmlFile:getValue(baseKey .. ".states#autoAiming", nil, true)
   if v11 ~= nil then
     for v15, v16 in ipairs(v11) do
       v7[v16] = true
     end
   end
   v2.numAutoAimingStates = v10
-  v11 = self.xmlFile:getValue(v4 .. ".states#turnOnAllowed", nil, true)
+  v11 = self.xmlFile:getValue(baseKey .. ".states#turnOnAllowed", nil, true)
   if v11 ~= nil then
     for v15, v16 in ipairs(v11) do
       v7[v16] = true
@@ -207,7 +207,7 @@ function Pipe:onLoad(savegame)
   v2.numTurnOnAllowedStates = v10
   v2.dischargeNodeMapping = {}
   while true do
-    v7 = string.format("%s.states.state(%d)", v4, v6)
+    v7 = string.format("%s.states.state(%d)", baseKey, v6)
     v8 = v8:hasProperty(v7)
     if not v8 then
       break
@@ -222,15 +222,15 @@ function Pipe:onLoad(savegame)
     v7 = v7:loadAnimations(self.xmlFile, "vehicle.pipe.animationNodes", self.components, self, self.i3dMappings)
     v2.animationNodes = v7
   end
-  v7 = v7:getValue(v4 .. "#foldMinLimit", 0)
+  v7 = v7:getValue(baseKey .. "#foldMinLimit", 0)
   v2.foldMinTime = v7
-  v7 = v7:getValue(v4 .. "#foldMaxLimit", 1)
+  v7 = v7:getValue(baseKey .. "#foldMaxLimit", 1)
   v2.foldMaxTime = v7
-  v7 = v7:getValue(v4 .. "#foldMinState", 1)
+  v7 = v7:getValue(baseKey .. "#foldMinState", 1)
   v2.foldMinState = v7
-  v7 = v7:getValue(v4 .. "#foldMaxState", v2.numStates)
+  v7 = v7:getValue(baseKey .. "#foldMaxState", v2.numStates)
   v2.foldMaxState = v7
-  v7 = v7:getValue(v4 .. "#aiFoldedPipeUsesTrailerSpace", false)
+  v7 = v7:getValue(baseKey .. "#aiFoldedPipeUsesTrailerSpace", false)
   v2.aiFoldedPipeUsesTrailerSpace = v7
   v2.texts = {}
   v8 = v8:getText("warning_foldingNotWhilePipeExtended")
